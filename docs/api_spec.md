@@ -1,81 +1,89 @@
-````markdown
 # API Specification v1
 
 ## Base URL
 
-- Development: `http://localhost:8000/api/v1`
-- Staging: `https://api-staging.anjem.me/v1`
-- Production: `https://api.anjem.me/v1`
+- Development: `http://localhost:8000/api`
+- Staging: `https://api-staging.anjem.me/api`
+- Production: `https://api.anjem.me/api`
 
 ## Authentication
 
 All endpoints except `/auth/*` require Bearer token.
 
-### POST /auth/otp
+### POST /auth/send-otp
 
-Request OTP for email authentication
+Request OTP for phone authentication
 
 ```json
 {
-  "email": "user@example.com",
+  "phone": "+1234567890",
   "device_id": "uuid",
   "device_type": "rider|driver"
 }
 ```
-````
 
-### POST /auth/otp/verify
+### POST /auth/verify-otp
 
 Verify OTP and receive JWT token
 
 ```json
 {
-  "request_id": "uuid",
-  "code": "123456"
+  "phone": "+1234567890",
+  "otp": "123456"
 }
 ```
 
 ## Rider Endpoints
 
-### POST /requests
+### POST /rides
 
 Create ride request
 
 ```json
 {
-  "mode": "beacon|p2p",
-  "beacon_in": "beacon_id",
-  "beacon_out": "beacon_id",
-  "pooled": true
+  "pickup_location": {
+    "latitude": 40.7128,
+    "longitude": -74.0060,
+    "address": "123 University Ave"
+  },
+  "destination_location": {
+    "latitude": 40.7589,
+    "longitude": -73.9851,
+    "address": "456 Campus Blvd"
+  },
+  "passenger_count": 1
 }
 ```
 
-### GET /requests/{id}
+### GET /rides/{id}
 
-Get request status with WebSocket fallback
+Get ride status with real-time updates
 
 ## Driver Endpoints
 
-### POST /driver/online
+### PUT /driver/status
 
-Go online with location
+Update driver status and location
 
 ```json
 {
-  "lat": -7.7956,
-  "lng": 110.3695
+  "status": "online|offline|busy",
+  "location": {
+    "latitude": -7.7956,
+    "longitude": 110.3695
+  }
 }
 ```
 
-### GET /driver/queue
+### GET /driver/available-rides
 
-Get available requests in vicinity
+Get available rides for driver
 
 ## WebSocket Events
 
-- Channel: `ride:{ride_id}`
-- Events: `driver.assigned`, `driver.arrived`, `ride.started`, `ride.completed`
+- Channel: `ride.{ride_id}`
+- Events: `RideStatusUpdated`, `DriverLocationUpdated`, `RideCompleted`
 
-```
+## Note
 
-```
+For comprehensive API documentation with full schemas and examples, see [API_DOCUMENTATION.md](API_DOCUMENTATION.md)
