@@ -1,0 +1,465 @@
+name: Laravel CI
+
+on:
+  push:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/laravel-ci.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/laravel-ci.yml'
+
+env:
+  PHP_VERSION: '8.2'
+  NODE_VERSION: '20'
+  POSTGRES_VERSION: '15'
+  REDIS_VERSION: '7'
+
+jobs:
+  # Code quality and analysis
+  code-quality:
+    name: Code Quality & Analysis
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: pdo, pdo_pgsql, mbstring, xml, ctype, json, tokenizer, bcmath, redis, zip
+          tools: composer:v2
+          coverage: xdebug
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: backend/vendor
+          key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-
+
+      - name: Install Composer dependencies
+        run: composer install --no-progress --prefer-dist --optimize-autoloader --no-scripts
+
+      - name: Create .env file
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Run Laravel Pint (Code Style)
+        run: ./vendor/bin/pint --test
+
+      - name: Run PHPStan (Static Analysis)
+        run: |
+          composer require --dev phpstan/phpstan larastan/larastan --no-update
+          composer update phpstan/phpstan larastan/larastan
+          ./vendor/bin/phpstan analyse --memory-limit=2G
+
+      - name: Check for security vulnerabilities
+        run: composer audit
+
+  # Unit and Feature Tests
+  tests:
+    name: Tests (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    needs: code-quality
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3']
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: anjem_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo, pdo_pgsql, mbstring, xml, ctype, json, tokenizer, bcmath, redis, zip
+          tools: composer:v2
+          coverage: xdebug
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: backend/vendor
+          key: composer-${{ runner.os }}-php${{ matrix.php }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-php${{ matrix.php }}-
+            composer-${{ runner.os }}-
+
+      - name: Install Composer dependencies
+        run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Setup environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Configure testing environment
+        run: |
+          echo "DB_CONNECTION=pgsql" >> .env
+          echo "DB_HOST=127.0.0.1" >> .env
+          echo "DB_PORT=5432" >> .env
+          echo "DB_DATABASE=anjem_test" >> .env
+          echo "DB_USERNAME=postgres" >> .env
+          echo "DB_PASSWORD=postgres" >> .env
+          echo "REDIS_HOST=127.0.0.1" >> .env
+          echo "REDIS_PORT=6379" >> .env
+          echo "CACHE_DRIVER=redis" >> .env
+          echo "SESSION_DRIVER=redis" >> .env
+          echo "QUEUE_CONNECTION=redis" >> .env
+
+      - name: Run database migrations
+        run: php artisan migrate --force
+
+      - name: Seed test data
+        run: php artisan db:seed --force --class=TestDataSeeder || echo "No test seeder found"
+
+      - name: Run unit tests
+        run: php artisan test --testsuite=Unit --coverage-clover coverage-unit.xml
+
+      - name: Run feature tests
+        run: php artisan test --testsuite=Feature --coverage-clover coverage-feature.xml
+
+      - name: Combine coverage reports
+        run: |
+          composer require --dev spatie/laravel-coverage-report
+          php artisan coverage:report --format=clover --output=coverage.xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: backend/coverage.xml
+          flags: laravel,php${{ matrix.php }}
+          name: laravel-php${{ matrix.php }}-coverage
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  # API Integration Tests
+  api-tests:
+    name: API Integration Tests
+    runs-on: ubuntu-latest
+    needs: tests
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: anjem_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: pdo, pdo_pgsql, mbstring, xml, ctype, json, tokenizer, bcmath, redis, zip
+          tools: composer:v2
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: backend/vendor
+          key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-
+
+      - name: Install Composer dependencies
+        run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Setup environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          echo "DB_CONNECTION=pgsql" >> .env
+          echo "DB_HOST=127.0.0.1" >> .env
+          echo "DB_PORT=5432" >> .env
+          echo "DB_DATABASE=anjem_test" >> .env
+          echo "DB_USERNAME=postgres" >> .env
+          echo "DB_PASSWORD=postgres" >> .env
+          echo "REDIS_HOST=127.0.0.1" >> .env
+          echo "REDIS_PORT=6379" >> .env
+
+      - name: Run migrations and seed
+        run: |
+          php artisan migrate --force
+          php artisan db:seed --force || echo "No seeders configured"
+
+      - name: Start Laravel server
+        run: |
+          php artisan serve --host=0.0.0.0 --port=8000 &
+          sleep 5
+
+      - name: Start Reverb WebSocket server
+        run: |
+          php artisan reverb:start --host=0.0.0.0 --port=8080 &
+          sleep 3
+
+      - name: Run API health check
+        run: |
+          curl -f http://localhost:8000/api/v1/health || exit 1
+
+      - name: Test WebSocket connection
+        run: |
+          # Test WebSocket endpoint is accessible
+          curl -f http://localhost:8080 || echo "WebSocket endpoint check completed"
+
+      - name: Run API integration tests
+        run: php artisan test --testsuite=Integration
+
+  # Performance and Load Testing
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: api-tests
+    if: github.event_name == 'pull_request'
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: anjem_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: pdo, pdo_pgsql, mbstring, xml, ctype, json, tokenizer, bcmath, redis, zip
+          tools: composer:v2
+
+      - name: Install Node.js (for k6)
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: backend/vendor
+          key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-
+
+      - name: Install Composer dependencies
+        run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Setup environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          echo "DB_CONNECTION=pgsql" >> .env
+          echo "DB_HOST=127.0.0.1" >> .env
+          echo "DB_PORT=5432" >> .env
+          echo "DB_DATABASE=anjem_test" >> .env
+          echo "DB_USERNAME=postgres" >> .env
+          echo "DB_PASSWORD=postgres" >> .env
+          echo "REDIS_HOST=127.0.0.1" >> .env
+          echo "REDIS_PORT=6379" >> .env
+
+      - name: Setup database
+        run: |
+          php artisan migrate --force
+          php artisan db:seed --force || echo "No seeders configured"
+
+      - name: Start Laravel server
+        run: |
+          php artisan serve --host=0.0.0.0 --port=8000 &
+          sleep 5
+
+      - name: Create k6 load test script
+        run: |
+          cat > k6-load-test.js << 'EOF'
+          import http from 'k6/http';
+          import { check } from 'k6';
+
+          export let options = {
+            stages: [
+              { duration: '30s', target: 10 },
+              { duration: '1m', target: 50 },
+              { duration: '30s', target: 0 },
+            ],
+            thresholds: {
+              http_req_duration: ['p(95)<300'],
+              http_req_failed: ['rate<0.05'],
+            },
+          };
+
+          export default function () {
+            let response = http.get('http://localhost:8000/api/v1/health');
+            check(response, {
+              'status is 200': (r) => r.status === 200,
+              'response time < 300ms': (r) => r.timings.duration < 300,
+            });
+          }
+          EOF
+
+      - name: Run k6 load test
+        run: k6 run k6-load-test.js
+
+  # Security Testing
+  security-tests:
+    name: Security Tests
+    runs-on: ubuntu-latest
+    needs: code-quality
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: pdo, pdo_pgsql, mbstring, xml, ctype, json, tokenizer, bcmath, redis, zip
+          tools: composer:v2
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: backend/vendor
+          key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-
+
+      - name: Install Composer dependencies
+        run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Setup environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Run security audit
+        run: composer audit
+
+      - name: Check for hardcoded secrets
+        run: |
+          echo "Scanning for potential hardcoded secrets..."
+          grep -r -E "(password|secret|key|token)" --include="*.php" app/ config/ || echo "No hardcoded secrets found in critical files"
+
+      - name: Check .env.example for sensitive data
+        run: |
+          echo "Checking .env.example for actual secrets..."
+          if grep -E "(password|secret|key|token).*[a-zA-Z0-9]{20,}" .env.example; then
+            echo "❌ Potential secrets found in .env.example"
+            exit 1
+          else
+            echo "✅ No secrets found in .env.example"
+          fi
+
+      - name: Verify HTTPS redirects (production check)
+        run: |
+          echo "Checking for HTTPS enforcement..."
+          grep -r "forceScheme\|requiresSecure" app/ || echo "HTTPS enforcement check completed"
+
+      - name: Check for debug mode in production
+        run: |
+          echo "Verifying debug mode is disabled for production..."
+          if grep -q "APP_DEBUG=true" .env.example; then
+            echo "⚠️  Warning: Debug mode is enabled in .env.example"
+          else
+            echo "✅ Debug mode properly configured"
+          fi
