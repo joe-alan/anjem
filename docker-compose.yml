@@ -1,0 +1,132 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: anjem_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: anjem
+      POSTGRES_USER: anjem_user
+      POSTGRES_PASSWORD: anjem_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - anjem_network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: anjem_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - anjem_network
+
+  # Laravel Backend (optional, for containerized development)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: anjem_backend
+    restart: unless-stopped
+    working_dir: /var/www
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "8000:8000"
+      - "8080:8080"  # Reverb WebSocket port
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_HOST=postgres
+      - DB_DATABASE=anjem
+      - DB_USERNAME=anjem_user
+      - DB_PASSWORD=anjem_password
+      - REDIS_HOST=redis
+      - REVERB_HOST=0.0.0.0
+    volumes:
+      - ./backend:/var/www
+      - backend_vendor:/var/www/vendor
+    networks:
+      - anjem_network
+    profiles:
+      - full  # Only start with docker-compose --profile full up
+
+  # Mailpit for email testing
+  mailpit:
+    image: axllent/mailpit
+    container_name: anjem_mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    volumes:
+      - mailpit_data:/data
+    networks:
+      - anjem_network
+
+  # pgAdmin for database management (optional)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: anjem_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@anjem.me
+      PGADMIN_DEFAULT_PASSWORD: admin_password
+    ports:
+      - "8081:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - anjem_network
+    profiles:
+      - tools  # Only start with docker-compose --profile tools up
+
+  # Redis Commander for Redis management (optional)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: anjem_redis_commander
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8082:8081"
+    depends_on:
+      - redis
+    networks:
+      - anjem_network
+    profiles:
+      - tools  # Only start with docker-compose --profile tools up
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  mailpit_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+  backend_vendor:
+    driver: local
+
+networks:
+  anjem_network:
+    driver: bridge

@@ -2,18 +2,21 @@
 
 ## Architecture Overview
 
-- **Backend**: Laravel 10 API with Sanctum authentication
-- **Mobile**: Flutter with Provider/Riverpod state management
-- **Database**: MySQL 8.0+ with Redis cache
+- **Backend**: Laravel 10 API with Firebase Auth + OAuth + Sanctum
+- **Mobile**: Flutter with Provider/Riverpod state management + Firebase Auth SDK
+- **Database**: PostgreSQL 14+ with Redis cache
+- **Authentication**: Firebase Authentication + Google OAuth + Laravel Sanctum tokens
 - **Real-time**: WebSockets (primary) + HTTP polling (fallback)
 
 ## Data Models
 
 ```sql
 -- Core entities only, full schema in migrations
-users(id, phone, name, email, profile_picture, role, created_at, updated_at)
+users(id, firebase_uid, name, email, phone, role, profile_picture, created_at, updated_at)
 rides(id, rider_id, driver_id, pickup_location, destination_location, status, created_at, updated_at)
-otp_codes(id, phone, code, expires_at, verified_at, created_at)
+riders(id, user_id, preferences, emergency_contact, created_at, updated_at)
+drivers(id, user_id, license_number, vehicle_info, status, location, created_at, updated_at)
+-- OTP table removed in favor of Firebase Auth
 -- Additional tables will be added as needed
 ```
 
@@ -33,9 +36,11 @@ score = driver_rating + proximity_factor + availability_score - queue_wait_time
 
 ## Security Measures
 
-- OTP rate limit: 5/30min/IP
-- JWT tokens with 24hr expiry
+- Firebase Authentication with email verification
+- Google OAuth integration for social login
+- Laravel Sanctum tokens with 24hr expiry
+- Firebase JWT token verification on backend
 - Dart obfuscation in release builds
 - No API keys in mobile apps
-- Laravel Sanctum for API authentication
 - Input validation and sanitization
+- Rate limiting on auth endpoints

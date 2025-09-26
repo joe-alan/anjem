@@ -10,28 +10,58 @@
 
 All endpoints except `/auth/*` require Bearer token.
 
-### POST /auth/send-otp
+### POST /auth/firebase
 
-Request OTP for phone authentication
-
-```json
-{
-  "phone": "+1234567890",
-  "device_id": "uuid",
-  "device_type": "rider|driver"
-}
-```
-
-### POST /auth/verify-otp
-
-Verify OTP and receive JWT token
+Authenticate with Firebase ID token and receive Sanctum token
 
 ```json
 {
-  "phone": "+1234567890",
-  "otp": "123456"
+  "firebase_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "device_type": "rider|driver",
+  "device_id": "optional-uuid"
 }
 ```
+
+Response:
+```json
+{
+  "success": true,
+  "user": {
+    "id": 1,
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "rider",
+    "firebase_uid": "firebase-user-id"
+  },
+  "token": "sanctum-token",
+  "token_type": "Bearer"
+}
+```
+
+### GET /auth/google
+
+Get Google OAuth redirect URL
+
+Response:
+```json
+{
+  "redirect_url": "https://accounts.google.com/oauth/authorize?..."
+}
+```
+
+### GET /auth/google/callback
+
+Handle Google OAuth callback (automatically processes the code)
+
+Query params: `code`, `device_type` (optional, defaults to "rider")
+
+### POST /auth/refresh
+
+Refresh Sanctum token (requires authentication)
+
+### POST /auth/logout
+
+Logout and revoke tokens (requires authentication)
 
 ## Rider Endpoints
 
