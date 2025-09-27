@@ -13,13 +13,13 @@ return new class extends Migration
     {
         Schema::create('requests', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('rider_id')->constrained('riders')->onDelete('cascade');
-            $table->string('beacon_in'); // Foreign key to beacons
-            $table->string('beacon_out'); // Foreign key to beacons
+            $table->foreignId('rider_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('pickup_location_id')->constrained('locations')->onDelete('cascade');
+            $table->foreignId('dropoff_location_id')->constrained('locations')->onDelete('cascade');
             $table->enum('mode', ['beacon', 'p2p'])->default('beacon');
             $table->enum('status', ['pending', 'matched', 'accepted', 'in_progress', 'completed', 'cancelled'])
                 ->default('pending');
-            $table->foreignId('matched_driver_id')->nullable()->constrained('drivers')->onDelete('set null');
+            $table->foreignId('matched_driver_id')->nullable()->constrained('users')->onDelete('set null');
             $table->boolean('is_pooled')->default(false);
             $table->integer('max_wait_minutes')->default(10);
             $table->decimal('pickup_lat', 10, 8)->nullable();
@@ -33,8 +33,6 @@ return new class extends Migration
             $table->timestamp('cancelled_at')->nullable();
             $table->timestamps();
 
-            $table->foreign('beacon_in')->references('id')->on('beacons');
-            $table->foreign('beacon_out')->references('id')->on('beacons');
 
             $table->index(['status', 'created_at']);
             $table->index(['rider_id', 'status']);
