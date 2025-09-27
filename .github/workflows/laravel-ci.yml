@@ -51,6 +51,9 @@ jobs:
       - name: Create .env file
         run: |
           cp .env.example .env
+          # Ensure bootstrap/cache directory exists and is writable
+          mkdir -p bootstrap/cache
+          chmod -R 775 bootstrap/cache storage
           php artisan key:generate
 
       - name: Run Laravel Pint (Code Style)
@@ -132,6 +135,9 @@ jobs:
       - name: Setup environment
         run: |
           cp .env.example .env
+          # Ensure bootstrap/cache directory exists and is writable
+          mkdir -p bootstrap/cache
+          chmod -R 775 bootstrap/cache storage
           php artisan key:generate
 
       - name: Configure testing environment
@@ -234,6 +240,9 @@ jobs:
       - name: Setup environment
         run: |
           cp .env.example .env
+          # Ensure bootstrap/cache directory exists and is writable
+          mkdir -p bootstrap/cache
+          chmod -R 775 bootstrap/cache storage
           php artisan key:generate
           echo "DB_CONNECTION=pgsql" >> .env
           echo "DB_HOST=127.0.0.1" >> .env
@@ -345,6 +354,9 @@ jobs:
       - name: Setup environment
         run: |
           cp .env.example .env
+          # Ensure bootstrap/cache directory exists and is writable
+          mkdir -p bootstrap/cache
+          chmod -R 775 bootstrap/cache storage
           php artisan key:generate
           echo "DB_CONNECTION=pgsql" >> .env
           echo "DB_HOST=127.0.0.1" >> .env
@@ -430,6 +442,9 @@ jobs:
       - name: Setup environment
         run: |
           cp .env.example .env
+          # Ensure bootstrap/cache directory exists and is writable
+          mkdir -p bootstrap/cache
+          chmod -R 775 bootstrap/cache storage
           php artisan key:generate
 
       - name: Run security audit
