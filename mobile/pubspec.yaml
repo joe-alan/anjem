@@ -68,7 +68,7 @@ dependencies:
   firebase_messaging: ^15.1.3
 
   # Device & Platform
-  device_info_plus: ^10.1.2
+  device_info_plus: ^12.1.0
   package_info_plus: ^8.0.2
   permission_handler: ^11.3.1
 
