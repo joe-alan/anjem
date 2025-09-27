@@ -183,7 +183,7 @@ class DriverProfile extends Model
      */
     public function getDistanceTo(Point $point): ?float
     {
-        if (!$this->current_location) {
+        if (! $this->current_location) {
             return null;
         }
 

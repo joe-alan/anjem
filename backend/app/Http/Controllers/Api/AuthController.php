@@ -4,16 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\FirebaseAuthService;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
-    public function __construct(private FirebaseAuthService $firebaseAuth)
-    {
-    }
+    public function __construct(private FirebaseAuthService $firebaseAuth) {}
 
     public function authenticateWithFirebase(Request $request): JsonResponse
     {
@@ -26,7 +24,7 @@ class AuthController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'error' => 'Validation failed',
-                'messages' => $validator->errors()
+                'messages' => $validator->errors(),
             ], 422);
         }
 
@@ -52,7 +50,7 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Authentication failed',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 401);
         }
     }
@@ -62,7 +60,7 @@ class AuthController extends Controller
         $url = Socialite::driver('google')->stateless()->redirect()->getTargetUrl();
 
         return response()->json([
-            'redirect_url' => $url
+            'redirect_url' => $url,
         ]);
     }
 
@@ -95,7 +93,7 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Google authentication failed',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 401);
         }
     }
@@ -126,7 +124,7 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Successfully logged out'
+            'message' => 'Successfully logged out',
         ]);
     }
 }

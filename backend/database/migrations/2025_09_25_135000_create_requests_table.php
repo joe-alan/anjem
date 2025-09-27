@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('beacon_out'); // Foreign key to beacons
             $table->enum('mode', ['beacon', 'p2p'])->default('beacon');
             $table->enum('status', ['pending', 'matched', 'accepted', 'in_progress', 'completed', 'cancelled'])
-                  ->default('pending');
+                ->default('pending');
             $table->foreignId('matched_driver_id')->nullable()->constrained('drivers')->onDelete('set null');
             $table->boolean('is_pooled')->default(false);
             $table->integer('max_wait_minutes')->default(10);

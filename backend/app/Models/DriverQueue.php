@@ -111,7 +111,7 @@ class DriverQueue extends Model
      */
     public function isWaiting(): bool
     {
-        return $this->status === 'waiting' && !$this->left_at;
+        return $this->status === 'waiting' && ! $this->left_at;
     }
 
     /**
@@ -191,7 +191,7 @@ class DriverQueue extends Model
     public static function joinQueue(int $driverId, int $beaconId): ?self
     {
         $beacon = Location::find($beaconId);
-        if (!$beacon || !$beacon->isBeacon() || !$beacon->hasCapacity()) {
+        if (! $beacon || ! $beacon->isBeacon() || ! $beacon->hasCapacity()) {
             return null;
         }
 

@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DriverController;
-use App\Http\Controllers\Api\RiderController;
 use App\Http\Controllers\Api\RequestController;
 use App\Http\Controllers\Api\RideController;
 use Illuminate\Http\Request;
@@ -36,7 +35,7 @@ Route::prefix('v1')->group(function () {
         return response()->json([
             'status' => 'ok',
             'timestamp' => now(),
-            'version' => '1.0.0'
+            'version' => '1.0.0',
         ]);
     });
 

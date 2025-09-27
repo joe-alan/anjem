@@ -135,7 +135,7 @@ class Rating extends Model
      */
     public function getStarsAttribute(): string
     {
-        return str_repeat('★', $this->rating) . str_repeat('☆', 5 - $this->rating);
+        return str_repeat('★', $this->rating).str_repeat('☆', 5 - $this->rating);
     }
 
     /**
@@ -255,7 +255,7 @@ class Rating extends Model
      */
     public function validateTags(): bool
     {
-        if (!$this->tags) {
+        if (! $this->tags) {
             return true; // No tags is valid
         }
 
@@ -263,7 +263,7 @@ class Rating extends Model
         $providedTags = is_array($this->tags) ? $this->tags : [];
 
         foreach ($providedTags as $tag) {
-            if (!in_array($tag, $allowedTags)) {
+            if (! in_array($tag, $allowedTags)) {
                 return false;
             }
         }

@@ -134,7 +134,7 @@ class User extends Authenticatable
      */
     public function getDriverRatingAttribute(): ?float
     {
-        if (!$this->isDriver()) {
+        if (! $this->isDriver()) {
             return null;
         }
 
