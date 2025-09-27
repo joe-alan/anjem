@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('rides', function (Blueprint $table) {
             $table->id();
             $table->foreignId('request_id')->constrained('requests')->onDelete('cascade');
-            $table->foreignId('driver_id')->constrained('drivers')->onDelete('cascade');
-            $table->foreignId('rider_id')->constrained('riders')->onDelete('cascade');
+            $table->foreignId('driver_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('rider_id')->constrained('users')->onDelete('cascade');
             $table->enum('status', ['assigned', 'en_route', 'arrived', 'started', 'completed', 'cancelled'])
                 ->default('assigned');
             $table->integer('distance_m')->nullable();
