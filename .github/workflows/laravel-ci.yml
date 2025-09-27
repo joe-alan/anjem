@@ -61,8 +61,7 @@ jobs:
 
       - name: Run PHPStan (Static Analysis)
         run: |
-          composer require --dev phpstan/phpstan larastan/larastan --no-update
-          composer update phpstan/phpstan larastan/larastan
+          # PHPStan and Larastan are already in composer.json, just run analysis
           ./vendor/bin/phpstan analyse --memory-limit=2G
 
       - name: Check for security vulnerabilities

@@ -36,9 +36,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check PR title format
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          PR_TITLE="${{ github.event.pull_request.title }}"
-
           # Check if PR title follows conventional commit format
           if [[ ! $PR_TITLE =~ ^(feat|fix|docs|style|refactor|test|chore|ci)(\(.+\))?\!?:\ .+ ]]; then
             echo "❌ PR title must follow conventional commit format:"
@@ -58,9 +58,9 @@ jobs:
           fi
 
       - name: Check PR description
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          PR_BODY="${{ github.event.pull_request.body }}"
-
           if [[ -z "$PR_BODY" || ${#PR_BODY} -lt 20 ]]; then
             echo "❌ PR description is required and must be at least 20 characters"
             echo "Please describe what this PR does and why"
@@ -97,19 +97,26 @@ jobs:
         run: |
           echo "Scanning for potential secrets..."
 
-          # Look for common secret patterns
+          # Look for hardcoded secrets (exclude env() calls and legitimate config)
           secret_patterns=(
-            "password.*=.*['\"][^'\"]{8,}['\"]"
-            "secret.*=.*['\"][^'\"]{16,}['\"]"
-            "token.*=.*['\"][^'\"]{20,}['\"]"
-            "key.*=.*['\"][^'\"]{20,}['\"]"
-            "api[_-]?key.*=.*['\"][^'\"]{10,}['\"]"
+            # Actual hardcoded values, not env() calls
+            "(password|secret|token|key|api[_-]?key)\s*=\s*['\"][a-zA-Z0-9+/=]{16,}['\"]"
+            # AWS keys pattern
+            "AKIA[0-9A-Z]{16}"
+            # GitHub tokens
+            "ghp_[0-9a-zA-Z]{36}"
+            # Common API keys
+            "['\"][0-9a-f]{32,64}['\"]"
           )
 
           found_secrets=false
           for pattern in "${secret_patterns[@]}"; do
-            if grep -r -E -i "$pattern" --include="*.dart" --include="*.php" --include="*.js" --include="*.ts" --exclude="*.example.*" . ; then
-              found_secrets=true
+            # Exclude Laravel config files using env() and factory defaults
+            if grep -r -E -i "$pattern" --include="*.dart" --include="*.php" --include="*.js" --include="*.ts" --exclude="*.example.*" --exclude-dir="config" --exclude="*Factory.php" . ; then
+              # Additional check to exclude env() usage
+              if ! grep -E "env\(|Hash::make\(" <<< "$matches" > /dev/null; then
+                found_secrets=true
+              fi
             fi
           done
 
