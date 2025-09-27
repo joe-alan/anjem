@@ -1,0 +1,340 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+env:
+  PHP_VERSION: '8.2'
+  FLUTTER_VERSION: '3.24.x'
+  JAVA_VERSION: '17'
+
+jobs:
+  # Label PR based on changed files
+  label-pr:
+    name: Auto Label PR
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Label PR based on changes
+        uses: actions/labeler@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: .github/labeler.yml
+
+  # Check PR requirements
+  pr-requirements:
+    name: PR Requirements Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check PR title format
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          # Check if PR title follows conventional commit format
+          if [[ ! $PR_TITLE =~ ^(feat|fix|docs|style|refactor|test|chore|ci)(\(.+\))?\!?:\ .+ ]]; then
+            echo "❌ PR title must follow conventional commit format:"
+            echo "   feat: add new feature"
+            echo "   fix: bug fix"
+            echo "   docs: documentation changes"
+            echo "   style: code style changes"
+            echo "   refactor: code refactoring"
+            echo "   test: adding or updating tests"
+            echo "   chore: maintenance tasks"
+            echo "   ci: CI/CD changes"
+            echo ""
+            echo "Current title: $PR_TITLE"
+            exit 1
+          else
+            echo "✅ PR title format is correct"
+          fi
+
+      - name: Check PR description
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if [[ -z "$PR_BODY" || ${#PR_BODY} -lt 20 ]]; then
+            echo "❌ PR description is required and must be at least 20 characters"
+            echo "Please describe what this PR does and why"
+            exit 1
+          else
+            echo "✅ PR description is adequate"
+          fi
+
+  # Quick smoke tests
+  smoke-tests:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for large files
+        run: |
+          echo "Checking for files larger than 10MB..."
+          large_files=$(find . -type f -size +10M -not -path './.git/*' -not -path './node_modules/*' -not -path './vendor/*')
+
+          if [ -n "$large_files" ]; then
+            echo "❌ Large files detected (>10MB):"
+            echo "$large_files"
+            echo ""
+            echo "Please use Git LFS for large files or remove them"
+            exit 1
+          else
+            echo "✅ No large files detected"
+          fi
+
+      - name: Check for secrets in code
+        run: |
+          echo "Scanning for potential secrets..."
+
+          # Look for hardcoded secrets (exclude env() calls and legitimate config)
+          secret_patterns=(
+            # Actual hardcoded values, not env() calls
+            "(password|secret|token|key|api[_-]?key)\s*=\s*['\"][a-zA-Z0-9+/=]{16,}['\"]"
+            # AWS keys pattern
+            "AKIA[0-9A-Z]{16}"
+            # GitHub tokens
+            "ghp_[0-9a-zA-Z]{36}"
+            # Common API keys
+            "['\"][0-9a-f]{32,64}['\"]"
+          )
+
+          found_secrets=false
+          for pattern in "${secret_patterns[@]}"; do
+            # Exclude Laravel config files using env() and factory defaults
+            if grep -r -E -i "$pattern" --include="*.dart" --include="*.php" --include="*.js" --include="*.ts" --exclude="*.example.*" --exclude-dir="config" --exclude="*Factory.php" . ; then
+              # Additional check to exclude env() usage
+              if ! grep -E "env\(|Hash::make\(" <<< "$matches" > /dev/null; then
+                found_secrets=true
+              fi
+            fi
+          done
+
+          if $found_secrets; then
+            echo "❌ Potential hardcoded secrets detected!"
+            echo "Please use environment variables or configuration files"
+            exit 1
+          else
+            echo "✅ No hardcoded secrets detected"
+          fi
+
+      - name: Check .env.example
+        run: |
+          if [ -f "backend/.env.example" ]; then
+            echo "Checking .env.example for actual secrets..."
+            if grep -E "(password|secret|key|token).*[a-zA-Z0-9]{20,}" backend/.env.example; then
+              echo "❌ Real secrets found in .env.example!"
+              echo "Please use placeholder values in .env.example"
+              exit 1
+            else
+              echo "✅ .env.example looks safe"
+            fi
+          fi
+
+  # Quick build test
+  quick-build:
+    name: Quick Build Test
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        component: [backend, mobile]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Backend quick build
+      - name: Quick PHP/Laravel check
+        if: matrix.component == 'backend'
+        run: |
+          cd backend
+
+          # Check if composer.json is valid
+          composer validate --strict
+
+          # Check if .env.example has required fields
+          required_vars=("DB_CONNECTION" "REDIS_HOST" "APP_KEY")
+          for var in "${required_vars[@]}"; do
+            if ! grep -q "^$var=" .env.example; then
+              echo "❌ Required environment variable $var not found in .env.example"
+              exit 1
+            fi
+          done
+
+          echo "✅ Backend configuration looks good"
+
+      # Mobile quick build
+      - name: Quick Flutter check
+        if: matrix.component == 'mobile'
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Flutter analysis
+        if: matrix.component == 'mobile'
+        run: |
+          cd mobile
+
+          # Check if pubspec.yaml is valid and install dependencies
+          flutter pub get
+
+          # Quick analysis
+          flutter analyze --no-fatal-infos lib/
+
+          # Check if both main files exist
+          if [[ ! -f "lib/main_rider.dart" || ! -f "lib/main_driver.dart" ]]; then
+            echo "❌ Both main_rider.dart and main_driver.dart must exist"
+            exit 1
+          fi
+
+          echo "✅ Mobile configuration looks good"
+
+  # Performance impact check
+  performance-check:
+    name: Performance Impact
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for comparison
+
+      - name: Check bundle size impact
+        run: |
+          echo "Checking for potential performance impacts..."
+
+          # Check for large image additions
+          large_images=$(git diff --name-status origin/main | grep "^A" | grep -E "\.(png|jpg|jpeg|gif|webp)$" | while read status file; do
+            size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null || echo "0")
+            if [ "$size" -gt 1048576 ]; then  # 1MB
+              echo "$file ($size bytes)"
+            fi
+          done)
+
+          if [ -n "$large_images" ]; then
+            echo "⚠️ Large images added (>1MB):"
+            echo "$large_images"
+            echo "Consider optimizing these images"
+          else
+            echo "✅ No large images added"
+          fi
+
+      - name: Check dependency additions
+        run: |
+          # Check for new Composer dependencies
+          if git diff --name-only origin/main | grep -q "backend/composer.json"; then
+            echo "📦 Composer dependencies changed"
+            git diff origin/main backend/composer.json | grep "^+" | grep -E "(require|require-dev)" || true
+          fi
+
+          # Check for new Flutter dependencies
+          if git diff --name-only origin/main | grep -q "mobile/pubspec.yaml"; then
+            echo "📦 Flutter dependencies changed"
+            git diff origin/main mobile/pubspec.yaml | grep "^+" | grep -E "^\s*\w+:" || true
+          fi
+
+  # Security check
+  security-check:
+    name: Security Review
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for security-sensitive changes
+        run: |
+          security_files=(
+            "backend/app/Http/Controllers/Api/AuthController.php"
+            "backend/app/Services/OtpService.php"
+            "backend/routes/api.php"
+            "backend/config/auth.php"
+            "backend/config/sanctum.php"
+            "mobile/lib/core/services/"
+            ".github/workflows/"
+          )
+
+          security_changes=false
+          for file in "${security_files[@]}"; do
+            if git diff --name-only origin/main | grep -q "$file"; then
+              echo "🔒 Security-sensitive file changed: $file"
+              security_changes=true
+            fi
+          done
+
+          if $security_changes; then
+            echo ""
+            echo "⚠️ This PR modifies security-sensitive files."
+            echo "Please ensure proper review and testing."
+          fi
+
+  # Documentation check
+  docs-check:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for documentation updates
+        run: |
+          # Check if code changes should require doc updates
+          code_changes=$(git diff --name-only origin/main | grep -E "\.(php|dart)$" | wc -l)
+          doc_changes=$(git diff --name-only origin/main | grep -E "\.(md|txt)$" | wc -l)
+
+          if [ "$code_changes" -gt 10 ] && [ "$doc_changes" -eq 0 ]; then
+            echo "⚠️ Large code changes detected without documentation updates"
+            echo "Consider updating relevant documentation in docs/ directory"
+          else
+            echo "✅ Documentation changes look proportionate"
+          fi
+
+  # Overall PR status
+  pr-status:
+    name: PR Status Summary
+    runs-on: ubuntu-latest
+    needs: [pr-requirements, smoke-tests, quick-build, performance-check, security-check, docs-check]
+    if: always()
+
+    steps:
+      - name: Summarize PR checks
+        run: |
+          echo "## PR Checks Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Check each job status
+          if [ "${{ needs.pr-requirements.result }}" = "success" ]; then
+            echo "✅ PR Requirements: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ PR Requirements: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.smoke-tests.result }}" = "success" ]; then
+            echo "✅ Smoke Tests: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Smoke Tests: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.quick-build.result }}" = "success" ]; then
+            echo "✅ Quick Build: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Quick Build: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Full CI/CD tests will run after these checks pass." >> $GITHUB_STEP_SUMMARY

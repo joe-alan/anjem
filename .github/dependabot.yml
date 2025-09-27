@@ -1,0 +1,86 @@
+version: 2
+
+updates:
+  # Laravel/PHP dependencies
+  - package-ecosystem: "composer"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "your-username"  # Replace with actual GitHub username
+    assignees:
+      - "your-username"  # Replace with actual GitHub username
+    commit-message:
+      prefix: "composer"
+      prefix-development: "composer-dev"
+    labels:
+      - "backend"
+      - "dependencies"
+    ignore:
+      # Ignore major version updates for core Laravel packages
+      - dependency-name: "laravel/framework"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "php"
+        update-types: ["version-update:semver-major"]
+
+  # Flutter/Dart dependencies
+  - package-ecosystem: "pub"
+    directory: "/mobile"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "04:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "your-username"  # Replace with actual GitHub username
+    assignees:
+      - "your-username"  # Replace with actual GitHub username
+    commit-message:
+      prefix: "flutter"
+      prefix-development: "flutter-dev"
+    labels:
+      - "mobile"
+      - "dependencies"
+    ignore:
+      # Ignore major Flutter SDK updates
+      - dependency-name: "flutter"
+        update-types: ["version-update:semver-major"]
+
+  # GitHub Actions workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "04:00"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "your-username"  # Replace with actual GitHub username
+    assignees:
+      - "your-username"  # Replace with actual GitHub username
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "ci/cd"
+      - "dependencies"
+
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "thursday"
+      time: "04:00"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "your-username"  # Replace with actual GitHub username
+    assignees:
+      - "your-username"  # Replace with actual GitHub username
+    commit-message:
+      prefix: "docker"
+    labels:
+      - "infrastructure"
+      - "dependencies"

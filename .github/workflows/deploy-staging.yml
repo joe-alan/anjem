@@ -1,0 +1,455 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'mobile/**'
+      - '.do/**'
+      - '.github/workflows/deploy-staging.yml'
+
+  workflow_dispatch:
+    inputs:
+      deploy_backend:
+        description: 'Deploy backend'
+        required: true
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      deploy_mobile:
+        description: 'Deploy mobile apps'
+        required: true
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+env:
+  DO_APP_NAME: anjem-staging
+  REGISTRY_NAME: anjem
+  PHP_VERSION: '8.2'
+  FLUTTER_VERSION: '3.24.x'
+  JAVA_VERSION: '17'
+
+jobs:
+  # Check for changes
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      mobile: ${{ steps.changes.outputs.mobile }}
+      infrastructure: ${{ steps.changes.outputs.infrastructure }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            mobile:
+              - 'mobile/**'
+            infrastructure:
+              - '.do/**'
+              - 'docker-compose.yml'
+
+  # Deploy backend to DigitalOcean App Platform
+  deploy-backend:
+    name: Deploy Backend
+    runs-on: ubuntu-latest
+    needs: changes
+    if: |
+      (needs.changes.outputs.backend == 'true' ||
+       needs.changes.outputs.infrastructure == 'true' ||
+       github.event.inputs.deploy_backend == 'true') &&
+      github.ref == 'refs/heads/main'
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: pdo, pdo_pgsql, mbstring, xml, ctype, json, tokenizer, bcmath, redis, zip
+          tools: composer:v2
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: backend/vendor
+          key: composer-deploy-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: |
+            composer-deploy-${{ runner.os }}-
+            composer-${{ runner.os }}-
+
+      - name: Install Composer dependencies (production)
+        run: composer install --no-dev --optimize-autoloader --no-scripts
+
+      - name: Create deployment .env
+        run: |
+          cat > .env << 'EOF'
+          APP_NAME="Anjem API"
+          APP_ENV=staging
+          APP_DEBUG=false
+          APP_URL=https://api-staging.anjem.me
+
+          # Database (will be injected by DigitalOcean)
+          DB_CONNECTION=pgsql
+          DB_HOST=${db.HOSTNAME}
+          DB_PORT=${db.PORT}
+          DB_DATABASE=${db.DATABASE}
+          DB_USERNAME=${db.USERNAME}
+          DB_PASSWORD=${db.PASSWORD}
+
+          # Redis (will be injected by DigitalOcean)
+          REDIS_HOST=${redis.HOSTNAME}
+          REDIS_PORT=${redis.PORT}
+          REDIS_PASSWORD=${redis.PASSWORD}
+          REDIS_CLIENT=predis
+
+          # Caching and Sessions
+          BROADCAST_DRIVER=reverb
+          CACHE_DRIVER=redis
+          SESSION_DRIVER=redis
+          QUEUE_CONNECTION=redis
+
+          # Laravel Reverb
+          REVERB_APP_ID=anjem-staging
+          REVERB_APP_KEY=${{ secrets.REVERB_APP_KEY }}
+          REVERB_APP_SECRET=${{ secrets.REVERB_APP_SECRET }}
+          REVERB_HOST=0.0.0.0
+          REVERB_PORT=8080
+          REVERB_SCHEME=https
+
+          # Sanctum
+          SANCTUM_STATEFUL_DOMAINS=api-staging.anjem.me,staging.anjem.me
+
+          # External APIs
+          FIREBASE_SERVER_KEY=${{ secrets.FIREBASE_SERVER_KEY }}
+          FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
+          GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }}
+          WHATSAPP_API_TOKEN=${{ secrets.WHATSAPP_API_TOKEN }}
+          WHATSAPP_PHONE_NUMBER_ID=${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}
+
+          # Rate Limiting
+          OTP_RATE_LIMIT_PER_IP=5
+          OTP_RATE_LIMIT_WINDOW_MINUTES=30
+
+          # Ride Settings
+          DEFAULT_RIDE_TIMEOUT_MINUTES=10
+          MAX_DRIVER_DISTANCE_KM=5
+          BASE_FARE_RP=5000
+          FARE_PER_KM_RP=3000
+          EOF
+
+      - name: Generate application key
+        run: php artisan key:generate --show | sed 's/base64://' > app_key.txt
+
+      - name: Create DigitalOcean App Platform spec
+        run: |
+          mkdir -p ../.do
+          cat > ../.do/app-staging.yaml << EOF
+          name: ${{ env.DO_APP_NAME }}
+          region: sgp1
+
+          services:
+          - name: api
+            source_dir: /backend
+            github:
+              repo: \${{ github.repository }}
+              branch: main
+              deploy_on_push: true
+
+            run_command: |
+              php artisan config:cache
+              php artisan route:cache
+              php artisan view:cache
+              php artisan migrate --force
+              supervisord -c docker/supervisord.conf
+
+            build_command: |
+              composer install --no-dev --optimize-autoloader
+              php artisan config:cache
+              php artisan route:cache
+
+            environment_slug: php
+            instance_count: 1
+            instance_size_slug: basic-xxs
+
+            http_port: 8000
+
+            health_check:
+              http_path: /api/v1/health
+              initial_delay_seconds: 60
+              period_seconds: 10
+              timeout_seconds: 5
+              success_threshold: 1
+              failure_threshold: 3
+
+            envs:
+            - key: APP_KEY
+              value: \${{ secrets.LARAVEL_APP_KEY }}
+            - key: APP_ENV
+              value: staging
+            - key: APP_DEBUG
+              value: "false"
+            - key: APP_URL
+              value: https://api-staging.anjem.me
+            - key: REVERB_APP_KEY
+              value: \${{ secrets.REVERB_APP_KEY }}
+            - key: REVERB_APP_SECRET
+              value: \${{ secrets.REVERB_APP_SECRET }}
+            - key: FIREBASE_SERVER_KEY
+              value: \${{ secrets.FIREBASE_SERVER_KEY }}
+            - key: FIREBASE_PROJECT_ID
+              value: \${{ secrets.FIREBASE_PROJECT_ID }}
+            - key: GOOGLE_MAPS_API_KEY
+              value: \${{ secrets.GOOGLE_MAPS_API_KEY }}
+            - key: WHATSAPP_API_TOKEN
+              value: \${{ secrets.WHATSAPP_API_TOKEN }}
+            - key: WHATSAPP_PHONE_NUMBER_ID
+              value: \${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}
+
+          databases:
+          - name: anjem-db
+            engine: PG
+            version: "15"
+            size: basic
+            num_nodes: 1
+
+          - name: anjem-redis
+            engine: REDIS
+            version: "7"
+            size: basic
+            num_nodes: 1
+
+          domains:
+          - domain: api-staging.anjem.me
+            type: PRIMARY
+            wildcard: false
+            certificate_id: ""
+
+          static_sites: []
+
+          alerts:
+          - rule: CPU_UTILIZATION
+            disabled: false
+          - rule: MEM_UTILIZATION
+            disabled: false
+          EOF
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Update DigitalOcean App
+        run: |
+          # Check if app exists
+          if doctl apps list --format Name --no-header | grep -q "^${{ env.DO_APP_NAME }}$"; then
+            echo "Updating existing app..."
+            APP_ID=$(doctl apps list --format ID,Name --no-header | grep "${{ env.DO_APP_NAME }}" | awk '{print $1}')
+            doctl apps update "$APP_ID" --spec ../.do/app-staging.yaml
+          else
+            echo "Creating new app..."
+            doctl apps create --spec ../.do/app-staging.yaml
+          fi
+
+      - name: Wait for deployment
+        run: |
+          APP_ID=$(doctl apps list --format ID,Name --no-header | grep "${{ env.DO_APP_NAME }}" | awk '{print $1}')
+          echo "Waiting for deployment to complete..."
+
+          # Wait up to 10 minutes for deployment
+          for i in {1..60}; do
+            STATUS=$(doctl apps get "$APP_ID" --format Status --no-header)
+            echo "Deployment status: $STATUS"
+
+            if [ "$STATUS" = "ACTIVE" ]; then
+              echo "✅ Deployment completed successfully!"
+              break
+            elif [ "$STATUS" = "ERROR" ]; then
+              echo "❌ Deployment failed!"
+              exit 1
+            fi
+
+            sleep 10
+          done
+
+      - name: Run post-deployment tasks
+        run: |
+          echo "Running post-deployment health checks..."
+          sleep 30  # Allow app to fully start
+
+          # Health check
+          curl -f https://api-staging.anjem.me/api/v1/health || {
+            echo "❌ Health check failed!"
+            exit 1
+          }
+
+          echo "✅ Backend deployment successful!"
+
+  # Build and deploy mobile apps
+  deploy-mobile:
+    name: Deploy Mobile Apps
+    runs-on: ubuntu-latest
+    needs: changes
+    if: |
+      (needs.changes.outputs.mobile == 'true' ||
+       github.event.inputs.deploy_mobile == 'true') &&
+      github.ref == 'refs/heads/main'
+
+    strategy:
+      matrix:
+        flavor: [rider, driver]
+
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            mobile/.dart_tool
+          key: flutter-deploy-${{ runner.os }}-${{ hashFiles('mobile/pubspec.yaml') }}
+          restore-keys: |
+            flutter-deploy-${{ runner.os }}-
+            flutter-deps-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Setup Firebase configuration
+        run: |
+          # Create Firebase config for staging
+          echo '${{ secrets.FIREBASE_CONFIG_STAGING }}' > android/app/src/${{ matrix.flavor }}/google-services.json
+
+      - name: Setup keystore for signing
+        run: |
+          echo '${{ secrets.ANDROID_KEYSTORE_BASE64 }}' | base64 -d > android/keystore.jks
+          echo "storeFile=../../keystore.jks" > android/key.properties
+          echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" >> android/key.properties
+          echo "storePassword=${{ secrets.ANDROID_STORE_PASSWORD }}" >> android/key.properties
+          echo "keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}" >> android/key.properties
+
+      - name: Build APK - ${{ matrix.flavor }} (Staging)
+        run: |
+          flutter build apk \
+            --flavor ${{ matrix.flavor }} \
+            --target lib/main_${{ matrix.flavor }}.dart \
+            --dart-define=API_URL=https://api-staging.anjem.me/v1 \
+            --dart-define=WS_URL=wss://api-staging.anjem.me \
+            --obfuscate \
+            --split-debug-info=build/debug-info/${{ matrix.flavor }}-staging \
+            --release
+
+      - name: Rename APK
+        run: |
+          mv build/app/outputs/flutter-apk/app-${{ matrix.flavor }}-release.apk \
+             build/app/outputs/flutter-apk/anjem-${{ matrix.flavor }}-staging-${{ github.sha }}.apk
+
+      - name: Upload APK to DigitalOcean Spaces
+        uses: shallwefootball/s3-upload-action@master
+        with:
+          aws_key_id: ${{ secrets.DO_SPACES_KEY }}
+          aws_secret_access_key: ${{ secrets.DO_SPACES_SECRET }}
+          aws_bucket: ${{ secrets.DO_SPACES_BUCKET }}
+          source_dir: mobile/build/app/outputs/flutter-apk/
+          destination_dir: staging/mobile/
+          endpoint: https://sgp1.digitaloceanspaces.com
+
+      - name: Upload debug symbols to DigitalOcean Spaces
+        uses: shallwefootball/s3-upload-action@master
+        with:
+          aws_key_id: ${{ secrets.DO_SPACES_KEY }}
+          aws_secret_access_key: ${{ secrets.DO_SPACES_SECRET }}
+          aws_bucket: ${{ secrets.DO_SPACES_BUCKET }}
+          source_dir: mobile/build/debug-info/
+          destination_dir: staging/debug-symbols/
+          endpoint: https://sgp1.digitaloceanspaces.com
+
+      - name: Create release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: anjem-${{ matrix.flavor }}-staging
+          path: mobile/build/app/outputs/flutter-apk/anjem-${{ matrix.flavor }}-staging-${{ github.sha }}.apk
+          retention-days: 90
+
+  # Deployment notification
+  notify-deployment:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs: [deploy-backend, deploy-mobile]
+    if: always() && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Determine deployment status
+        id: status
+        run: |
+          BACKEND_STATUS="${{ needs.deploy-backend.result }}"
+          MOBILE_STATUS="${{ needs.deploy-mobile.result }}"
+
+          if [[ "$BACKEND_STATUS" == "success" && "$MOBILE_STATUS" == "success" ]]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "message=✅ Staging deployment completed successfully!" >> $GITHUB_OUTPUT
+          elif [[ "$BACKEND_STATUS" == "failure" || "$MOBILE_STATUS" == "failure" ]]; then
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "message=❌ Staging deployment failed!" >> $GITHUB_OUTPUT
+          elif [[ "$BACKEND_STATUS" == "skipped" && "$MOBILE_STATUS" == "skipped" ]]; then
+            echo "status=skipped" >> $GITHUB_OUTPUT
+            echo "message=⏭️ No changes detected, deployment skipped" >> $GITHUB_OUTPUT
+          else
+            echo "status=partial" >> $GITHUB_OUTPUT
+            echo "message=⚠️ Staging deployment completed with warnings" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send deployment notification
+        if: steps.status.outputs.status != 'skipped'
+        run: |
+          # You can integrate with Slack, Discord, or other notification services here
+          echo "Deployment Status: ${{ steps.status.outputs.message }}"
+          echo "Backend: ${{ needs.deploy-backend.result }}"
+          echo "Mobile: ${{ needs.deploy-mobile.result }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Actor: ${{ github.actor }}"
+
+          # Example webhook notification (configure with your service)
+          # curl -X POST -H 'Content-type: application/json' \
+          #   --data '{"text":"${{ steps.status.outputs.message }}"}' \
+          #   ${{ secrets.WEBHOOK_URL }}

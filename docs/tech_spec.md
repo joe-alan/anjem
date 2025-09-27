@@ -1,29 +1,30 @@
-````markdown
 # Technical Specification
 
 ## Architecture Overview
 
-- **Backend**: Laravel 10 API with Reverb WebSockets
-- **Mobile**: Flutter with BLoC/Riverpod state management
-- **Database**: PostgreSQL 15 with Redis cache
+- **Backend**: Laravel 10 API with Firebase Auth + OAuth + Sanctum
+- **Mobile**: Flutter with Provider/Riverpod state management + Firebase Auth SDK
+- **Database**: PostgreSQL 14+ with Redis cache
+- **Authentication**: Firebase Authentication + Google OAuth + Laravel Sanctum tokens
 - **Real-time**: WebSockets (primary) + HTTP polling (fallback)
 
 ## Data Models
 
 ```sql
 -- Core entities only, full schema in migrations
-riders(id, email, name, fcm_token, created_at)
-drivers(id, email, name, ktm_url, rating_avg, reliability_score)
-requests(id, rider_id, beacon_in, beacon_out, status, matched_driver_id)
-rides(id, request_id, driver_id, distance_m, fare_rp, started_at, completed_at)
+users(id, firebase_uid, name, email, phone, role, profile_picture, created_at, updated_at)
+rides(id, rider_id, driver_id, pickup_location, destination_location, status, created_at, updated_at)
+riders(id, user_id, preferences, emergency_contact, created_at, updated_at)
+drivers(id, user_id, license_number, vehicle_info, status, location, created_at, updated_at)
+-- OTP table removed in favor of Firebase Auth
+-- Additional tables will be added as needed
 ```
-````
 
 ## Matching Algorithm
 
 ```
-score = reliability_score + on_time_rate + experience_points - 0.5*queue_age
-// Note: Add minimum score threshold to prevent negative values
+score = driver_rating + proximity_factor + availability_score - queue_wait_time
+// Note: Will be implemented based on real usage patterns
 ```
 
 ## Performance Requirements
@@ -35,11 +36,11 @@ score = reliability_score + on_time_rate + experience_points - 0.5*queue_age
 
 ## Security Measures
 
-- OTP rate limit: 5/30min/IP
-- JWT tokens with 24hr expiry
+- Firebase Authentication with email verification
+- Google OAuth integration for social login
+- Laravel Sanctum tokens with 24hr expiry
+- Firebase JWT token verification on backend
 - Dart obfuscation in release builds
 - No API keys in mobile apps
-
-```
-
-```
+- Input validation and sanitization
+- Rate limiting on auth endpoints
