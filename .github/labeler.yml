@@ -1,0 +1,123 @@
+# Automatic PR labeling configuration
+
+# Backend changes
+'backend':
+  - changed-files:
+    - any-glob-to-any-file: 'backend/**/*'
+
+# Mobile app changes
+'mobile':
+  - changed-files:
+    - any-glob-to-any-file: 'mobile/**/*'
+
+# Frontend changes (if any)
+'frontend':
+  - changed-files:
+    - any-glob-to-any-file: 'web/**/*'
+
+# Documentation changes
+'documentation':
+  - changed-files:
+    - any-glob-to-any-file: 'docs/**/*'
+    - any-glob-to-any-file: '*.md'
+    - any-glob-to-any-file: '.github/**/*.md'
+
+# Infrastructure and deployment
+'infrastructure':
+  - changed-files:
+    - any-glob-to-any-file: '.do/**/*'
+    - any-glob-to-any-file: 'docker-compose*.yml'
+    - any-glob-to-any-file: '**/Dockerfile'
+    - any-glob-to-any-file: 'scripts/**/*'
+
+# CI/CD changes
+'ci/cd':
+  - changed-files:
+    - any-glob-to-any-file: '.github/workflows/**/*'
+    - any-glob-to-any-file: '.github/dependabot.yml'
+
+# Dependencies
+'dependencies':
+  - changed-files:
+    - any-glob-to-any-file: 'backend/composer.json'
+    - any-glob-to-any-file: 'backend/composer.lock'
+    - any-glob-to-any-file: 'mobile/pubspec.yaml'
+    - any-glob-to-any-file: 'mobile/pubspec.lock'
+
+# Database changes
+'database':
+  - changed-files:
+    - any-glob-to-any-file: 'backend/database/**/*'
+
+# API changes
+'api':
+  - changed-files:
+    - any-glob-to-any-file: 'backend/routes/api.php'
+    - any-glob-to-any-file: 'backend/app/Http/Controllers/Api/**/*'
+    - any-glob-to-any-file: 'docs/api_spec.md'
+
+# Authentication & Security
+'security':
+  - changed-files:
+    - any-glob-to-any-file: 'backend/app/Http/Controllers/Api/AuthController.php'
+    - any-glob-to-any-file: 'backend/app/Services/OtpService.php'
+    - any-glob-to-any-file: 'backend/config/auth.php'
+    - any-glob-to-any-file: 'backend/config/sanctum.php'
+
+# Tests
+'tests':
+  - changed-files:
+    - any-glob-to-any-file: 'backend/tests/**/*'
+    - any-glob-to-any-file: 'mobile/test/**/*'
+    - any-glob-to-any-file: 'mobile/integration_test/**/*'
+
+# Configuration
+'configuration':
+  - changed-files:
+    - any-glob-to-any-file: 'backend/config/**/*'
+    - any-glob-to-any-file: 'backend/.env.example'
+    - any-glob-to-any-file: 'mobile/android/app/build.gradle*'
+
+# Bug fixes (based on branch name or PR title)
+'bug':
+  - head-branch: ['fix/**', 'bugfix/**', 'hotfix/**']
+
+# New features
+'enhancement':
+  - head-branch: ['feat/**', 'feature/**']
+
+# Breaking changes
+'breaking-change':
+  - head-branch: ['breaking/**', 'major/**']
+
+# Hot fixes
+'hotfix':
+  - head-branch: ['hotfix/**', 'urgent/**']
+
+# Priority labels based on files changed
+'high-priority':
+  - changed-files:
+    - any-glob-to-any-file: 'backend/app/Services/MatchingService.php'
+    - any-glob-to-any-file: 'backend/app/Http/Controllers/Api/AuthController.php'
+    - any-glob-to-any-file: 'mobile/lib/core/**/*'
+
+# Size labels
+'size/xs':
+  - changed-files:
+    - any-glob-to-any-file: ['*']
+
+'size/s':
+  - changed-files:
+    - any-glob-to-any-file: ['*', '*', '*', '*', '*']
+
+'size/m':
+  - changed-files:
+    - any-glob-to-any-file: ['*', '*', '*', '*', '*', '*', '*', '*', '*', '*']
+
+'size/l':
+  - changed-files:
+    - any-glob-to-any-file: ['*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*']
+
+'size/xl':
+  - changed-files:
+    - any-glob-to-any-file: ['*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*']

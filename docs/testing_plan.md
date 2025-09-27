@@ -1,4 +1,3 @@
-````markdown
 # Testing Strategy
 
 ## Unit Tests (Target: 80% coverage)
@@ -6,24 +5,24 @@
 ### Backend (PHPUnit)
 
 - Auth flow: OTP generation, verification, token refresh
-- Matching algorithm with edge cases
-- Fare calculation with distance steps
-- State machine transitions
+- Ride management: creation, matching, status updates
+- API endpoints and validation rules
+- Service layer business logic
 
 ### Mobile (Flutter Test)
 
-- BLoC/Riverpod state management
+- Provider/Riverpod state management
 - Form validations
-- Offline queue for requests
+- API service layer
 - Location permission flows
 
 ## Integration Tests
 
 ### Critical Paths
 
-1. Rider: Request → Match → Complete → Rate
-2. Driver: Online → Accept → Arrive → Complete
-3. Cancellation flows with penalties
+1. Rider: OTP Login → Create Ride → Track Progress → Complete
+2. Driver: OTP Login → Go Online → Accept Ride → Complete
+3. Cancellation flows and error handling
 
 ## Load Testing (k6)
 
@@ -47,11 +46,18 @@ export let options = {
 };
 
 export default function () {
-  // Test request creation at peak
-  let res = http.post(`${__ENV.API_URL}/v1/requests`, {
-    mode: "beacon",
-    beacon_in: "test-beacon-1",
-    beacon_out: "test-beacon-2",
+  // Test ride creation at peak
+  let res = http.post(`${__ENV.API_URL}/rides`, {
+    pickup_location: {
+      latitude: 40.7128,
+      longitude: -74.0060,
+      address: "123 Test St"
+    },
+    destination_location: {
+      latitude: 40.7589,
+      longitude: -73.9851,
+      address: "456 Test Ave"
+    }
   });
   check(res, { "status is 201": (r) => r.status === 201 });
 }
@@ -69,4 +75,3 @@ export default function () {
 - Complete ride flow with mock backend
 - Background location tracking verification
 - Push notification delivery
-````

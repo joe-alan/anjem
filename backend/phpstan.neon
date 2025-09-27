@@ -1,0 +1,18 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app/
+
+    # Rule level - start low for CI success, increase gradually
+    level: 1
+
+    # Ignore Laravel model property access issues
+    ignoreErrors:
+        - '#Relation .* is not found in .* model#'
+        - '#Access to an undefined property .*::\$.*#'
+
+    # Parallel processing
+    parallel:
+        maximumNumberOfProcesses: 32

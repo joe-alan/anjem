@@ -11,16 +11,20 @@ This guide will help new developers set up their local development environment f
 - **Node.js**: Version 18+ (for tooling)
 
 ### Backend Requirements
-- **PHP**: Version 8.2+
+- **PHP**: Version 8.2+ with extensions: `pdo_pgsql`, `mbstring`, `openssl`, `tokenizer`, `xml`, `curl`
 - **Composer**: Latest version
-- **MySQL**: 8.0+ (via Docker recommended)
+- **PostgreSQL**: 15+ with PostGIS extension
 - **Redis**: 6.0+ (via Docker recommended)
 
 ### Mobile Requirements
-- **Flutter SDK**: Version 3.10+
+- **Flutter SDK**: Version 3.24+
 - **Dart SDK**: Version 3.0+
 - **Android Studio**: Latest stable version
 - **Xcode**: 14+ (macOS only, for iOS development)
+
+### External Services
+- **Firebase Project** with Authentication enabled
+- **Google Cloud Console** project for OAuth
 
 ## Quick Start
 
@@ -60,7 +64,7 @@ cp .env.example .env
 # Generate application key
 php artisan key:generate
 
-# Start Docker services (MySQL, Redis)
+# Start Docker services (PostgreSQL, Redis)
 docker-compose up -d
 
 # Run database migrations
@@ -104,24 +108,30 @@ APP_KEY=base64:your-generated-key
 APP_DEBUG=true
 APP_URL=http://localhost:8000
 
-DB_CONNECTION=mysql
+# PostgreSQL Database with PostGIS
+DB_CONNECTION=pgsql
 DB_HOST=localhost
-DB_PORT=3306
-DB_DATABASE=anjem
-DB_USERNAME=root
-DB_PASSWORD=password
+DB_PORT=5432
+DB_DATABASE=anjemme
+DB_USERNAME=postgres
+DB_PASSWORD=your_password
 
 REDIS_HOST=localhost
 REDIS_PASSWORD=null
 REDIS_PORT=6379
 
-# OTP Configuration
-OTP_PROVIDER=twilio
-TWILIO_SID=your-twilio-sid
-TWILIO_TOKEN=your-twilio-token
-TWILIO_FROM=your-twilio-phone
+# Firebase Configuration
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+FIREBASE_CLIENT_EMAIL=your-service-account@your-project.iam.gserviceaccount.com
+FIREBASE_CLIENT_ID=your-client-id
 
-# Map Configuration
+# OAuth Configuration
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:8000/auth/google/callback
+
+# Google Maps API
 GOOGLE_MAPS_API_KEY=your-google-maps-key
 ```
 
@@ -129,9 +139,44 @@ GOOGLE_MAPS_API_KEY=your-google-maps-key
 ```dart
 class Environment {
   static const String baseUrl = 'http://localhost:8000/api';
+  static const String wsUrl = 'ws://localhost:8080';
   static const String googleMapsApiKey = 'your-google-maps-key';
   static const bool debugMode = true;
 }
+```
+
+### 4. Database Setup
+
+```bash
+# Create database with PostGIS extension
+createdb anjemme
+psql anjemme -c "CREATE EXTENSION postgis;"
+
+# Run migrations
+php artisan migrate
+
+# Optional: Seed test data
+php artisan db:seed
+```
+
+### 5. Firebase Configuration
+
+1. Download `google-services.json` from Firebase Console
+2. Place in `mobile/android/app/src/rider/` and `mobile/android/app/src/driver/`
+3. Download `GoogleService-Info.plist` from Firebase Console
+4. Add to `mobile/ios/Runner/` via Xcode
+
+### 6. Start Development Servers
+
+```bash
+# Start Laravel server
+php artisan serve
+
+# In another terminal, start WebSocket server
+php artisan reverb:start
+
+# Start queue worker (optional)
+php artisan queue:work
 ```
 
 ## Development Workflow
@@ -194,35 +239,6 @@ make lint
 make build
 ```
 
-## IDE Setup
-
-### VS Code (Recommended)
-
-Install these extensions:
-- **Flutter**: Dart and Flutter support
-- **Laravel Extra Intellisense**: PHP/Laravel support
-- **PHP Intelephense**: Advanced PHP language support
-- **GitLens**: Enhanced Git integration
-- **Docker**: Docker support
-
-**Settings (.vscode/settings.json):**
-```json
-{
-  "dart.flutterSdkPath": "/path/to/flutter",
-  "php.validate.executablePath": "/path/to/php",
-  "editor.formatOnSave": true,
-  "dart.previewFlutterUiGuides": true,
-  "php.suggest.basic": false
-}
-```
-
-### Android Studio
-
-1. Install Flutter and Dart plugins
-2. Configure Flutter SDK path
-3. Set up Android emulators
-4. Configure code style (File > Settings > Editor > Code Style)
-
 ## Database Management
 
 ### Migrations
@@ -250,6 +266,18 @@ php artisan db:seed --class=UsersTableSeeder
 
 # Run all seeders
 php artisan db:seed
+```
+
+### PostGIS Operations
+```bash
+# Connect to database
+psql anjemme
+
+# Check PostGIS version
+SELECT PostGIS_Version();
+
+# View spatial tables
+SELECT * FROM geometry_columns;
 ```
 
 ## Testing
@@ -289,6 +317,56 @@ flutter drive --target=test_driver/app.dart
 flutter create --template=package test/widget_test.dart
 ```
 
+## Build Configurations
+
+### Mobile Builds
+
+**Development Build:**
+```bash
+# Android - Rider flavor
+flutter build apk --flavor rider --debug
+
+# Android - Driver flavor
+flutter build apk --flavor driver --debug
+
+# iOS
+flutter build ios --flavor rider --debug
+```
+
+**Production Build:**
+```bash
+flutter build apk --flavor rider --release --obfuscate --split-debug-info=build/debug-info
+```
+
+## IDE Setup
+
+### VS Code (Recommended)
+
+Install these extensions:
+- **Flutter**: Dart and Flutter support
+- **Laravel Extra Intellisense**: PHP/Laravel support
+- **PHP Intelephense**: Advanced PHP language support
+- **GitLens**: Enhanced Git integration
+- **Docker**: Docker support
+
+**Settings (.vscode/settings.json):**
+```json
+{
+  "dart.flutterSdkPath": "/path/to/flutter",
+  "php.validate.executablePath": "/path/to/php",
+  "editor.formatOnSave": true,
+  "dart.previewFlutterUiGuides": true,
+  "php.suggest.basic": false
+}
+```
+
+### Android Studio
+
+1. Install Flutter and Dart plugins
+2. Configure Flutter SDK path
+3. Set up Android emulators
+4. Configure code style (File > Settings > Editor > Code Style)
+
 ## Debugging
 
 ### Backend Debugging
@@ -326,17 +404,23 @@ composer install --no-cache
 
 **Database connection error:**
 ```bash
-# Check if MySQL is running
+# Check if PostgreSQL is running
 docker-compose ps
 
 # Restart database
-docker-compose restart mysql
+docker-compose restart postgres
 ```
 
 **Permission errors:**
 ```bash
 # Fix storage permissions
 chmod -R 775 storage bootstrap/cache
+```
+
+**PostGIS extension missing:**
+```bash
+# Install PostGIS extension
+psql anjemme -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 ```
 
 ### Mobile Issues
