@@ -435,16 +435,18 @@ jobs:
           restore-keys: |
             composer-${{ runner.os }}-
 
-      - name: Install Composer dependencies
-        run: composer install --no-progress --prefer-dist --optimize-autoloader
-
       - name: Setup environment
         run: |
           cp .env.example .env
-          # Ensure bootstrap/cache directory exists and is writable
-          mkdir -p bootstrap/cache
+          # Ensure bootstrap/cache directory exists and is writable BEFORE composer install
+          mkdir -p bootstrap/cache storage/framework/cache storage/framework/sessions storage/framework/views
           chmod -R 775 bootstrap/cache storage
-          php artisan key:generate
+
+      - name: Install Composer dependencies
+        run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Generate application key
+        run: php artisan key:generate
 
       - name: Run security audit
         run: composer audit
