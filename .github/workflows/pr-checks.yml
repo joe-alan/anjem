@@ -187,8 +187,8 @@ jobs:
         run: |
           cd mobile
 
-          # Check if pubspec.yaml is valid
-          flutter pub get --dry-run
+          # Check if pubspec.yaml is valid and install dependencies
+          flutter pub get
 
           # Quick analysis
           flutter analyze --no-fatal-infos lib/
