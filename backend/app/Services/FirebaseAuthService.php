@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
-use Kreait\Firebase\Factory;
 use Kreait\Firebase\Auth as FirebaseAuth;
 use Kreait\Firebase\Exception\Auth\FailedToVerifyToken;
+use Kreait\Firebase\Factory;
 
 class FirebaseAuthService
 {
@@ -38,7 +38,7 @@ class FirebaseAuthService
             $emailVerified = $verifiedIdToken->claims()->get('email_verified', false);
             $name = $verifiedIdToken->claims()->get('name');
 
-            if (!$emailVerified) {
+            if (! $emailVerified) {
                 throw new \Exception('Email not verified');
             }
 
@@ -49,7 +49,7 @@ class FirebaseAuthService
                 'email_verified' => $emailVerified,
             ];
         } catch (FailedToVerifyToken $e) {
-            Log::error('Failed to verify Firebase token: ' . $e->getMessage());
+            Log::error('Failed to verify Firebase token: '.$e->getMessage());
             throw new \Exception('Invalid Firebase token');
         }
     }
@@ -58,7 +58,7 @@ class FirebaseAuthService
     {
         $user = User::where('email', $firebaseUser['email'])->first();
 
-        if (!$user) {
+        if (! $user) {
             $user = User::create([
                 'name' => $firebaseUser['name'] ?? 'User',
                 'email' => $firebaseUser['email'],
@@ -70,17 +70,17 @@ class FirebaseAuthService
             Log::info('Created new user from Firebase auth', [
                 'user_id' => $user->id,
                 'email' => $user->email,
-                'role' => $deviceType
+                'role' => $deviceType,
             ]);
         } else {
             // Update Firebase UID if not set
-            if (!$user->firebase_uid) {
+            if (! $user->firebase_uid) {
                 $user->update(['firebase_uid' => $firebaseUser['uid']]);
             }
 
             Log::info('Existing user logged in via Firebase', [
                 'user_id' => $user->id,
-                'email' => $user->email
+                'email' => $user->email,
             ]);
         }
 
@@ -93,7 +93,7 @@ class FirebaseAuthService
             $this->auth->revokeRefreshTokens($uid);
             Log::info('Revoked Firebase refresh tokens for user', ['uid' => $uid]);
         } catch (\Exception $e) {
-            Log::error('Failed to revoke Firebase refresh tokens: ' . $e->getMessage());
+            Log::error('Failed to revoke Firebase refresh tokens: '.$e->getMessage());
         }
     }
 }

@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\OtpVerification;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\DB;
 
 class OtpService
 {
@@ -51,7 +50,7 @@ class OtpService
             ->where('is_verified', false)
             ->first();
 
-        if (!$otp) {
+        if (! $otp) {
             return false;
         }
 

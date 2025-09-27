@@ -154,7 +154,7 @@ class Location extends Model
      */
     public function hasCapacity(): bool
     {
-        if (!$this->isBeacon()) {
+        if (! $this->isBeacon()) {
             return false;
         }
 
@@ -188,7 +188,7 @@ class Location extends Model
      */
     public function getLatLngAttribute(): array
     {
-        if (!$this->coordinates) {
+        if (! $this->coordinates) {
             return ['lat' => null, 'lng' => null];
         }
 

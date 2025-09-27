@@ -236,7 +236,7 @@ class Ride extends Model
     /**
      * Cancel the ride
      */
-    public function cancelRide(string $reason = null): void
+    public function cancelRide(?string $reason = null): void
     {
         $updates = ['status' => 'cancelled'];
 
@@ -268,11 +268,12 @@ class Ride extends Model
      */
     public function getTotalDurationMinutesAttribute(): ?int
     {
-        if (!$this->driver_accepted_at) {
+        if (! $this->driver_accepted_at) {
             return null;
         }
 
         $endTime = $this->dropoff_time ?? now();
+
         return $this->driver_accepted_at->diffInMinutes($endTime);
     }
 

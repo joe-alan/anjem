@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\Driver;
 use App\Models\Request as RideRequest;
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
 
 class MatchingService
 {
@@ -70,7 +69,7 @@ class MatchingService
     {
         $bestDriver = $this->findBestDriver($request);
 
-        if (!$bestDriver) {
+        if (! $bestDriver) {
             return false;
         }
 

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('driver_id')->constrained('drivers')->onDelete('cascade');
             $table->foreignId('rider_id')->constrained('riders')->onDelete('cascade');
             $table->enum('status', ['assigned', 'en_route', 'arrived', 'started', 'completed', 'cancelled'])
-                  ->default('assigned');
+                ->default('assigned');
             $table->integer('distance_m')->nullable();
             $table->integer('duration_seconds')->nullable();
             $table->decimal('fare_rp', 10, 2)->default(0.00); // Fare in Rupiah

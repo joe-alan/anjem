@@ -169,7 +169,7 @@ class DriverSession extends Model
      */
     public function updateWithRide(Ride $ride): void
     {
-        if (!$this->isActive()) {
+        if (! $this->isActive()) {
             return;
         }
 
@@ -184,10 +184,10 @@ class DriverSession extends Model
 
         // Track visited locations
         $visitedLocations = $this->locations_visited ?? [];
-        if ($ride->pickup_location_id && !in_array($ride->pickup_location_id, $visitedLocations)) {
+        if ($ride->pickup_location_id && ! in_array($ride->pickup_location_id, $visitedLocations)) {
             $visitedLocations[] = $ride->pickup_location_id;
         }
-        if ($ride->destination_location_id && !in_array($ride->destination_location_id, $visitedLocations)) {
+        if ($ride->destination_location_id && ! in_array($ride->destination_location_id, $visitedLocations)) {
             $visitedLocations[] = $ride->destination_location_id;
         }
         $updates['locations_visited'] = $visitedLocations;
@@ -200,7 +200,7 @@ class DriverSession extends Model
      */
     protected function calculatePeakOffPeakHours(): void
     {
-        if (!$this->ended_at) {
+        if (! $this->ended_at) {
             return;
         }
 
@@ -251,11 +251,12 @@ class DriverSession extends Model
      */
     public function getEarningsPerHourAttribute(): float
     {
-        if (!$this->total_online_minutes || $this->total_online_minutes === 0) {
+        if (! $this->total_online_minutes || $this->total_online_minutes === 0) {
             return 0;
         }
 
         $hours = $this->total_online_minutes / 60;
+
         return round($this->total_earnings_rp / $hours, 2);
     }
 
@@ -264,11 +265,12 @@ class DriverSession extends Model
      */
     public function getRidesPerHourAttribute(): float
     {
-        if (!$this->total_online_minutes || $this->total_online_minutes === 0) {
+        if (! $this->total_online_minutes || $this->total_online_minutes === 0) {
             return 0;
         }
 
         $hours = $this->total_online_minutes / 60;
+
         return round($this->rides_completed / $hours, 2);
     }
 

@@ -3,7 +3,6 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use MatanYadaev\EloquentSpatial\SpatialServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
