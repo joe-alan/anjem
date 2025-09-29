@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\DriverLocationUpdated;
+use App\Events\DriverOnlineStatusChanged;
+use App\Events\QueuePositionChanged;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GoOnlineRequest;
 use App\Http\Requests\UpdateLocationRequest;
 use App\Http\Resources\DriverQueueResource;
+use App\Models\Location;
 use App\Services\LocationService;
 use App\Services\QueueService;
 use Illuminate\Http\JsonResponse;
@@ -63,6 +67,28 @@ class DriverController extends Controller
         }
 
         $queueEntry->load(['beacon']);
+        $beacon = Location::find($request->beacon_id);
+
+        // Get updated queue status for broadcasting
+        $queueStatus = $this->queueService->getDriverQueueStatus($driver->id);
+
+        // Broadcast driver online status changed
+        broadcast(new DriverOnlineStatusChanged(
+            $driver,
+            true,
+            $beacon,
+            $queueStatus['position'] ?? 1
+        ));
+
+        // Broadcast queue position changed
+        broadcast(new QueuePositionChanged(
+            $driver,
+            $beacon,
+            $queueStatus['position'] ?? 1,
+            $queueStatus['total_drivers'] ?? 1,
+            $queueStatus['estimated_wait_minutes'] ?? 10,
+            'joined'
+        ));
 
         return response()->json([
             'success' => true,
@@ -86,6 +112,13 @@ class DriverController extends Controller
             ], 403);
         }
 
+        // Get queue status before leaving for broadcasting
+        $queueStatus = $this->queueService->getDriverQueueStatus($driver->id);
+        $beacon = null;
+        if ($queueStatus['in_queue'] && $queueStatus['beacon_id']) {
+            $beacon = Location::find($queueStatus['beacon_id']);
+        }
+
         $success = $this->queueService->leaveQueue($driver->id);
 
         if (!$success) {
@@ -93,6 +126,21 @@ class DriverController extends Controller
                 'success' => false,
                 'message' => 'Not currently in queue or failed to leave',
             ], 400);
+        }
+
+        // Broadcast driver offline status changed
+        broadcast(new DriverOnlineStatusChanged($driver, false, $beacon));
+
+        // Broadcast queue position changed for other drivers if was in queue
+        if ($beacon) {
+            broadcast(new QueuePositionChanged(
+                $driver,
+                $beacon,
+                0, // position 0 means left queue
+                $queueStatus['total_drivers'] - 1,
+                $queueStatus['estimated_wait_minutes'] ?? 0,
+                'left'
+            ));
         }
 
         return response()->json([
@@ -146,6 +194,24 @@ class DriverController extends Controller
             ], 500);
         }
 
+        // Check if driver has an active ride for real-time tracking
+        $activeRide = $driver->driverRides()
+            ->whereIn('status', ['accepted', 'in_progress'])
+            ->latest()
+            ->first();
+
+        // Broadcast location update if driver is online or has active ride
+        if ($driver->isDriverOnline() || $activeRide) {
+            broadcast(new DriverLocationUpdated(
+                $driver,
+                $request->latitude,
+                $request->longitude,
+                $activeRide?->id,
+                $request->heading,
+                $request->speed
+            ));
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Location updated successfully',
@@ -155,6 +221,7 @@ class DriverController extends Controller
                 'heading' => $request->heading,
                 'speed' => $request->speed,
                 'updated_at' => now()->toISOString(),
+                'broadcast_sent' => $driver->isDriverOnline() || $activeRide !== null,
             ],
         ]);
     }
