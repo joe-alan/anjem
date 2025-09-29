@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\FirebaseAuthService;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -11,7 +12,10 @@ use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
-    public function __construct(private FirebaseAuthService $firebaseAuth) {}
+    public function __construct(
+        private FirebaseAuthService $firebaseAuth,
+        private NotificationService $notificationService
+    ) {}
 
     public function authenticateWithFirebase(Request $request): JsonResponse
     {
@@ -19,6 +23,7 @@ class AuthController extends Controller
             'firebase_token' => 'required|string',
             'device_type' => 'required|string|in:rider,driver',
             'device_id' => 'nullable|string',
+            'fcm_token' => 'nullable|string|min:50',
         ]);
 
         if ($validator->fails()) {
@@ -32,7 +37,14 @@ class AuthController extends Controller
             $firebaseUser = $this->firebaseAuth->verifyToken($request->firebase_token);
             $user = $this->firebaseAuth->getOrCreateUser($firebaseUser, $request->device_type);
 
-            $token = $user->createToken('mobile-app', ['*'], now()->addDay())->plainTextToken;
+            // Update FCM token if provided
+            if ($request->fcm_token) {
+                $this->notificationService->updateUserToken($user->id, $request->fcm_token);
+            }
+
+            // Create token with role-based abilities
+            $abilities = $this->getTokenAbilities($user);
+            $token = $user->createToken('mobile-app', $abilities, now()->addDay())->plainTextToken;
 
             return response()->json([
                 'success' => true,
@@ -40,11 +52,13 @@ class AuthController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'role' => $user->role,
+                    'user_type' => $user->user_type,
                     'firebase_uid' => $user->firebase_uid,
+                    'is_active' => $user->is_active,
                 ],
                 'token' => $token,
                 'token_type' => 'Bearer',
+                'abilities' => $abilities,
             ]);
 
         } catch (\Exception $e) {
@@ -76,7 +90,9 @@ class AuthController extends Controller
                 'email_verified' => true,
             ], $request->query('device_type', 'rider'));
 
-            $token = $user->createToken('mobile-app', ['*'], now()->addDay())->plainTextToken;
+            // Create token with role-based abilities
+            $abilities = $this->getTokenAbilities($user);
+            $token = $user->createToken('mobile-app', $abilities, now()->addDay())->plainTextToken;
 
             return response()->json([
                 'success' => true,
@@ -103,7 +119,10 @@ class AuthController extends Controller
         $user = $request->user();
 
         $user->currentAccessToken()->delete();
-        $newToken = $user->createToken('mobile-app', ['*'], now()->addDay())->plainTextToken;
+
+        // Create new token with role-based abilities
+        $abilities = $this->getTokenAbilities($user);
+        $newToken = $user->createToken('mobile-app', $abilities, now()->addDay())->plainTextToken;
 
         return response()->json([
             'success' => true,
@@ -126,5 +145,70 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Successfully logged out',
         ]);
+    }
+
+    /**
+     * Update user's FCM token for push notifications
+     */
+    public function updateFcmToken(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'fcm_token' => 'required|string|min:50',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Validation failed',
+                'messages' => $validator->errors(),
+            ], 422);
+        }
+
+        $user = $request->user();
+
+        $success = $this->notificationService->updateUserToken($user->id, $request->fcm_token);
+
+        return response()->json([
+            'success' => $success,
+            'message' => $success ? 'FCM token updated successfully' : 'Failed to update FCM token',
+        ], $success ? 200 : 500);
+    }
+
+    /**
+     * Get token abilities based on user role
+     */
+    private function getTokenAbilities($user): array
+    {
+        $baseAbilities = [
+            'profile:read',
+            'profile:update',
+            'locations:read',
+        ];
+
+        $roleAbilities = match($user->user_type) {
+            'rider' => [
+                'rider:request-ride',
+                'rider:cancel-ride',
+                'rider:rate-driver',
+            ],
+            'driver' => [
+                'driver:go-online',
+                'driver:accept-ride',
+                'driver:complete-ride',
+                'driver:update-location',
+            ],
+            'both' => [
+                'rider:request-ride',
+                'rider:cancel-ride',
+                'rider:rate-driver',
+                'driver:go-online',
+                'driver:accept-ride',
+                'driver:complete-ride',
+                'driver:update-location',
+            ],
+            default => []
+        };
+
+        return array_merge($baseAbilities, $roleAbilities);
     }
 }

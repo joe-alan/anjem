@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -17,7 +18,7 @@ use Laravel\Sanctum\HasApiTokens;
  */
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -25,13 +26,19 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'email',
-        'firebase_uid',
         'name',
-        'profile_picture',
-        'phone',
+        'email',
+        'password',
+        'firebase_uid',
+        'user_type',
+        'phone_number',
         'phone_verified_at',
+        'fcm_token',
+        'profile_picture',
+        'emergency_contact',
+        'preferred_payment',
         'is_active',
+        'last_active_at',
     ];
 
     /**
@@ -40,6 +47,7 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $hidden = [
+        'password',
         'firebase_uid',
         'remember_token',
     ];
@@ -53,8 +61,10 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'phone_verified_at' => 'datetime',
         'is_active' => 'boolean',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'last_active_at' => 'datetime',
+        'rider_rating_avg' => 'decimal:2',
+        'total_rides_taken' => 'integer',
+        'password' => 'hashed',
     ];
 
     /**
@@ -122,11 +132,19 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user can be a driver
+     */
+    public function canBeDriver(): bool
+    {
+        return in_array($this->user_type, ['driver', 'both']);
+    }
+
+    /**
      * Check if user is currently online as a driver
      */
     public function isDriverOnline(): bool
     {
-        return $this->isDriver() && $this->driverProfile->status === 'online';
+        return $this->isDriver() && $this->driverProfile->went_online_at !== null;
     }
 
     /**
@@ -173,7 +191,7 @@ class User extends Authenticatable
             'notifications:read',
         ];
 
-        if ($asDriver && $this->isDriver()) {
+        if ($asDriver && $this->canBeDriver()) {
             $abilities = array_merge($abilities, [
                 'driver:go-online',
                 'driver:accept-ride',
@@ -193,5 +211,47 @@ class User extends Authenticatable
         }
 
         return $this->createToken($tokenName, $abilities)->plainTextToken;
+    }
+
+    /**
+     * Create or find user from Firebase authentication
+     */
+    public static function findOrCreateFromFirebase(array $firebaseData): self
+    {
+        $user = static::where('firebase_uid', $firebaseData['uid'])->first();
+
+        if (!$user) {
+            $user = static::where('email', $firebaseData['email'])->first();
+        }
+
+        if (!$user) {
+            $user = static::create([
+                'name' => $firebaseData['name'] ?? 'User',
+                'email' => $firebaseData['email'],
+                'firebase_uid' => $firebaseData['uid'],
+                'email_verified_at' => $firebaseData['email_verified'] ? now() : null,
+                'phone_number' => $firebaseData['phone'] ?? null,
+                'phone_verified_at' => $firebaseData['phone_verified'] ? now() : null,
+                'profile_picture' => $firebaseData['picture'] ?? null,
+                'is_active' => true,
+                'last_active_at' => now(),
+            ]);
+        } else {
+            // Update existing user with Firebase data
+            $user->update([
+                'firebase_uid' => $firebaseData['uid'],
+                'last_active_at' => now(),
+            ]);
+        }
+
+        return $user;
+    }
+
+    /**
+     * Update FCM token for push notifications
+     */
+    public function updateFcmToken(?string $token): void
+    {
+        $this->update(['fcm_token' => $token]);
     }
 }
