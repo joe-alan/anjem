@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\RideRequestMatched;
+use App\Events\RideStatusUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RateRideRequest;
 use App\Http\Requests\UpdateRideStatusRequest;
@@ -108,10 +110,16 @@ class RideController extends Controller
             ], 400);
         }
 
+        $ride->load(['rider', 'driver', 'pickupLocation', 'destinationLocation']);
+
+        // Broadcast ride request matched event
+        broadcast(new RideRequestMatched($rideRequest, $ride));
+
+        // Broadcast ride status updated event
+        broadcast(new RideStatusUpdated($ride, 'pending', 'driver'));
+
         // Send notification to rider
         $this->notificationService->sendRideAcceptedToRider($ride);
-
-        $ride->load(['rider', 'driver', 'pickupLocation', 'destinationLocation']);
 
         return response()->json([
             'success' => true,
@@ -138,6 +146,7 @@ class RideController extends Controller
 
         $success = false;
         $message = '';
+        $previousStatus = $ride->status;
 
         switch ($status) {
             case 'in_progress':
@@ -146,6 +155,8 @@ class RideController extends Controller
                     $message = $success ? 'Ride started successfully' : 'Unable to start ride';
 
                     if ($success) {
+                        $ride->refresh();
+                        broadcast(new RideStatusUpdated($ride, $previousStatus, 'driver'));
                         $this->notificationService->sendRideStartedToRider($ride);
                     }
                 }
@@ -165,6 +176,7 @@ class RideController extends Controller
 
                     if ($success) {
                         $ride->refresh();
+                        broadcast(new RideStatusUpdated($ride, $previousStatus, 'driver'));
                         $this->notificationService->sendRideCompletedNotifications($ride);
                     }
                 }
@@ -177,6 +189,8 @@ class RideController extends Controller
 
                 if ($success) {
                     $ride->refresh();
+                    $updatedBy = $ride->rider_id === $user->id ? 'rider' : 'driver';
+                    broadcast(new RideStatusUpdated($ride, $previousStatus, $updatedBy));
                     $this->notificationService->sendRideCancelledNotification($ride, $user->id, $cancelReason);
                 }
                 break;
