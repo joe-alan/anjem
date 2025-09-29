@@ -16,6 +16,11 @@ class DriverQueue extends Model
     use HasFactory;
 
     /**
+     * The table associated with the model.
+     */
+    protected $table = 'driver_queue';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
