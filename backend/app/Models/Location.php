@@ -25,13 +25,16 @@ class Location extends Model
      */
     protected $fillable = [
         'name',
-        'type',
         'address',
         'coordinates',
-        'description',
+        'radius_m',
+        'is_beacon',
+        'usage_count',
+        'google_place_id',
         'is_active',
         'beacon_capacity',
         'current_queue_size',
+        'description',
         'metadata',
     ];
 
@@ -43,6 +46,9 @@ class Location extends Model
     protected $casts = [
         'coordinates' => Point::class,
         'is_active' => 'boolean',
+        'is_beacon' => 'boolean',
+        'radius_m' => 'integer',
+        'usage_count' => 'integer',
         'beacon_capacity' => 'integer',
         'current_queue_size' => 'integer',
         'metadata' => 'json',
@@ -95,7 +101,7 @@ class Location extends Model
      */
     public function scopeBeacons($query)
     {
-        return $query->where('type', 'beacon');
+        return $query->where('is_beacon', true);
     }
 
     /**
@@ -103,7 +109,7 @@ class Location extends Model
      */
     public function scopeDestinations($query)
     {
-        return $query->where('type', 'p2p_destination');
+        return $query->where('is_beacon', false);
     }
 
     /**
@@ -138,7 +144,7 @@ class Location extends Model
      */
     public function isBeacon(): bool
     {
-        return $this->type === 'beacon';
+        return $this->is_beacon === true;
     }
 
     /**
@@ -146,7 +152,7 @@ class Location extends Model
      */
     public function isDestination(): bool
     {
-        return $this->type === 'p2p_destination';
+        return $this->is_beacon === false;
     }
 
     /**
@@ -158,15 +164,20 @@ class Location extends Model
             return false;
         }
 
-        return $this->current_queue_size < $this->beacon_capacity;
+        return ($this->current_queue_size ?? 0) < ($this->beacon_capacity ?? 10);
     }
 
     /**
-     * Get the distance to a specific point in meters
+     * Get the distance to a specific point in meters using PostGIS
      */
     public function getDistanceTo(Point $point): float
     {
-        return $this->coordinates->distanceTo($point);
+        $result = \Illuminate\Support\Facades\DB::selectOne(
+            'SELECT ST_Distance(?, ?) as distance',
+            [$this->coordinates, $point]
+        );
+
+        return $result->distance ?? 0;
     }
 
     /**
@@ -231,9 +242,9 @@ class Location extends Model
         // Create new destination
         return static::create([
             'name' => $name,
-            'type' => 'p2p_destination',
             'address' => $address,
             'coordinates' => $point,
+            'is_beacon' => false, // P2P destination
             'is_active' => true,
         ]);
     }

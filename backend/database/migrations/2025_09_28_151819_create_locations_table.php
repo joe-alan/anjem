@@ -11,19 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('riders', function (Blueprint $table) {
+        Schema::create('locations', function (Blueprint $table) {
             $table->id();
-            $table->string('email')->unique();
             $table->string('name');
-            $table->string('phone')->nullable();
-            $table->string('fcm_token')->nullable();
-            $table->decimal('rating_avg', 3, 2)->default(0.00);
-            $table->boolean('is_verified')->default(false);
+            $table->text('address')->nullable();
+            $table->geometry('coordinates', 'POINT', 4326); // PostGIS POINT
+            $table->integer('radius_m')->default(100);
+            $table->boolean('is_beacon')->default(false);
+            $table->integer('usage_count')->default(0);
+            $table->string('google_place_id', 500)->nullable();
             $table->boolean('is_active')->default(true);
-            $table->timestamp('last_active_at')->nullable();
             $table->timestamps();
-
-            $table->index(['email', 'is_active']);
         });
     }
 
@@ -32,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('riders');
+        Schema::dropIfExists('locations');
     }
 };

@@ -11,9 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('ratings', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
+        Schema::table('rides', function (Blueprint $table) {
+            $table->integer('actual_fare_rp')->nullable()->after('estimated_fare_rp');
         });
     }
 
@@ -22,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('ratings');
+        Schema::table('rides', function (Blueprint $table) {
+            $table->dropColumn('actual_fare_rp');
+        });
     }
 };
