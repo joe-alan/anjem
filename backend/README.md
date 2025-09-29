@@ -8,10 +8,11 @@ This Laravel application serves as the backend API for the Anjem ride-sharing pl
 
 ## Features
 
-- **OTP Authentication**: Phone number-based authentication with Twilio
-- **Ride Management**: Create, accept, track, and complete rides
+- **Firebase Authentication**: Email-based authentication with Firebase integration
+- **Sanctum Authorization**: Token-based API authorization with role-based permissions
+- **Ride Management**: Create, accept, track, and complete rides with spatial queries
 - **Real-time Updates**: WebSocket support for live ride tracking
-- **Geolocation Services**: Google Maps integration for location services
+- **PostGIS Integration**: Advanced geolocation services with spatial indexing
 - **Rate Limiting**: API rate limiting for security and performance
 - **Background Jobs**: Queue processing for notifications and heavy tasks
 
@@ -19,9 +20,10 @@ This Laravel application serves as the backend API for the Anjem ride-sharing pl
 
 - **PHP**: 8.2+
 - **Composer**: Latest version
-- **MySQL**: 8.0+ (or PostgreSQL 13+)
+- **PostgreSQL**: 13+ with PostGIS extension
 - **Redis**: 6.0+ (for caching and queues)
 - **Node.js**: 18+ (for asset compilation)
+- **Firebase**: Account for authentication services
 
 ## Quick Start
 
@@ -86,10 +88,10 @@ backend/
 ### Database Configuration
 
 ```env
-DB_CONNECTION=mysql
+DB_CONNECTION=pgsql
 DB_HOST=localhost
-DB_PORT=3306
-DB_DATABASE=anjem
+DB_PORT=5432
+DB_DATABASE=anjemme
 DB_USERNAME=your_username
 DB_PASSWORD=your_password
 ```
@@ -106,20 +108,26 @@ REDIS_DB=0
 ### Third-party Services
 
 ```env
-# Twilio (for OTP)
-TWILIO_SID=your_twilio_sid
-TWILIO_TOKEN=your_twilio_token
-TWILIO_FROM=your_twilio_phone_number
+# Firebase Authentication
+FIREBASE_PROJECT_ID=your_firebase_project_id
+FIREBASE_PRIVATE_KEY_ID=your_private_key_id
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nyour_private_key\n-----END PRIVATE KEY-----\n"
+FIREBASE_CLIENT_EMAIL=your_service_account_email
+FIREBASE_CLIENT_ID=your_client_id
+FIREBASE_AUTH_URI=https://accounts.google.com/o/oauth2/auth
+FIREBASE_TOKEN_URI=https://oauth2.googleapis.com/token
 
-# Google Maps
+# Google Services (for location estimation)
 GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 
-# Broadcasting (optional)
-BROADCAST_DRIVER=pusher
-PUSHER_APP_ID=your_pusher_app_id
-PUSHER_APP_KEY=your_pusher_key
-PUSHER_APP_SECRET=your_pusher_secret
-PUSHER_APP_CLUSTER=mt1
+# Broadcasting (using Laravel Reverb)
+BROADCAST_DRIVER=reverb
+REVERB_APP_ID=your_app_id
+REVERB_APP_KEY=your_app_key
+REVERB_APP_SECRET=your_app_secret
+REVERB_HOST=localhost
+REVERB_PORT=8080
+REVERB_SCHEME=http
 ```
 
 ## Essential Artisan Commands
@@ -449,9 +457,9 @@ APP_DEBUG=false
 APP_KEY=your-production-key
 
 # Database
-DB_CONNECTION=mysql
+DB_CONNECTION=pgsql
 DB_HOST=your-db-host
-DB_DATABASE=anjem_production
+DB_DATABASE=anjemme_production
 
 # Queue
 QUEUE_CONNECTION=redis

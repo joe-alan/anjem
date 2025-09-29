@@ -28,6 +28,7 @@ Route::prefix('v1')->group(function () {
         Route::get('google/callback', [AuthController::class, 'googleCallback']);
         Route::post('refresh', [AuthController::class, 'refreshToken'])->middleware('auth:sanctum');
         Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+        Route::post('fcm-token', [AuthController::class, 'updateFcmToken'])->middleware('auth:sanctum');
     });
 
     // Health check
@@ -44,11 +45,15 @@ Route::prefix('v1')->group(function () {
 
         // User profile
         Route::get('user', function (Request $request) {
-            return $request->user();
+            return response()->json([
+                'success' => true,
+                'data' => new \App\Http\Resources\UserResource($request->user()->load('driverProfile')),
+            ]);
         });
 
         // Rider routes
         Route::prefix('requests')->group(function () {
+            Route::get('estimates', [RequestController::class, 'getEstimates']);
             Route::post('/', [RequestController::class, 'store']);
             Route::get('{request}', [RequestController::class, 'show']);
             Route::patch('{request}/cancel', [RequestController::class, 'cancel']);
@@ -61,6 +66,8 @@ Route::prefix('v1')->group(function () {
             Route::post('offline', [DriverController::class, 'goOffline']);
             Route::get('queue', [DriverController::class, 'getQueue']);
             Route::post('location', [DriverController::class, 'updateLocation']);
+            Route::get('beacons', [DriverController::class, 'getAvailableBeacons']);
+            Route::get('statistics', [DriverController::class, 'getStatistics']);
         });
 
         // Ride management
@@ -72,9 +79,13 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [RideController::class, 'index']);
         });
 
-        // Beacons (read-only for now)
-        Route::get('beacons', function () {
-            return response()->json(\App\Models\Beacon::where('is_active', true)->get());
+        // Locations/Beacons (read-only for now)
+        Route::get('locations', function () {
+            $locations = \App\Models\Location::active()->get();
+            return response()->json([
+                'success' => true,
+                'data' => \App\Http\Resources\LocationResource::collection($locations),
+            ]);
         });
     });
 });
