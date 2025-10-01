@@ -171,7 +171,7 @@ jobs:
           php artisan coverage:report --format=clover --output=coverage.xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           file: backend/coverage.xml
           flags: laravel,php${{ matrix.php }}
