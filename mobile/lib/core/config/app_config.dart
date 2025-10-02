@@ -36,6 +36,7 @@ class AppConfig {
   }
 
   static AppConfig get instance => _instance;
+  static String? pusherKey;
 
   bool get isRiderApp => flavor == AppFlavor.rider;
   bool get isDriverApp => flavor == AppFlavor.driver;

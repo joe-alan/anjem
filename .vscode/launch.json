@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Rider (Android)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "${workspaceFolder}/mobile",
+      "program": "lib/main_rider.dart",
+      "args": ["--flavor", "rider"],
+    },
+    {
+      "name": "Driver (Android)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "${workspaceFolder}/mobile",
+      "program": "lib/main_driver.dart",
+      "args": ["--flavor", "driver"],
+    }
+  ]
+}

@@ -101,7 +101,7 @@ class RideController extends Controller
             ], 403);
         }
 
-        $ride = $this->rideService->acceptRide($rideRequest->id, $driver->id);
+        $ride = $this->rideService->acceptRideRequest($rideRequest->id, $driver->id);
 
         if (!$ride) {
             return response()->json([
