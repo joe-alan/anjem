@@ -46,6 +46,7 @@ dependencies:
   # WebSocket & Real-time
   web_socket_channel: ^3.0.1
   socket_io_client: ^3.0.1
+  pusher_channels_flutter: ^2.2.1
 
   # Location Services
   geolocator: ^13.0.1
@@ -62,6 +63,7 @@ dependencies:
   jwt_decoder: ^2.0.1
   firebase_auth: ^5.3.1
   google_sign_in: ^6.2.1
+  flutter_secure_storage: ^9.2.2
 
   # Push Notifications
   firebase_core: ^3.6.0
