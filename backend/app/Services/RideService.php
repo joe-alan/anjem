@@ -170,6 +170,50 @@ class RideService
     }
 
     /**
+     * Accept a ride request by driver (creates and accepts ride)
+     */
+    public function acceptRideRequest(int $rideRequestId, int $driverId): ?Ride
+    {
+        try {
+            DB::beginTransaction();
+
+            // First create the ride from the request
+            $ride = $this->matchDriver($rideRequestId);
+            if (!$ride) {
+                DB::rollBack();
+                return null;
+            }
+
+            // Then accept it if the driver matches
+            if ($ride->driver_id === $driverId) {
+                $ride->markAsAccepted();
+                DB::commit();
+
+                Log::info('Ride request accepted by driver', [
+                    'ride_request_id' => $rideRequestId,
+                    'ride_id' => $ride->id,
+                    'driver_id' => $driverId
+                ]);
+
+                return $ride;
+            }
+
+            DB::rollBack();
+            return null;
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to accept ride request', [
+                'ride_request_id' => $rideRequestId,
+                'driver_id' => $driverId,
+                'error' => $e->getMessage()
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
      * Accept a ride by driver
      */
     public function acceptRide(int $rideId, int $driverId): bool

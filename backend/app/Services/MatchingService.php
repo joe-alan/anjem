@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\Driver;
-use App\Models\Request as RideRequest;
+use App\Models\RideRequest;
+use App\Models\User;
 use Carbon\Carbon;
 
 class MatchingService
@@ -11,13 +11,13 @@ class MatchingService
     /**
      * Find best driver for a ride request based on matching algorithm
      */
-    public function findBestDriver(RideRequest $request): ?Driver
+    public function findBestDriver(RideRequest $request): ?User
     {
-        $availableDrivers = Driver::where('is_online', true)
+        $availableDrivers = User::where('user_type', 'driver')
             ->where('is_active', true)
-            ->where('is_verified', true)
-            ->whereDoesntHave('rides', function ($query) {
-                $query->whereIn('status', ['assigned', 'en_route', 'started']);
+            ->whereHas('driverProfile')
+            ->whereDoesntHave('driverRides', function ($query) {
+                $query->whereIn('status', ['matched', 'accepted', 'in_progress']);
             })
             ->get();
 
@@ -26,7 +26,7 @@ class MatchingService
         }
 
         // Calculate scores for each driver
-        $scoredDrivers = $availableDrivers->map(function (Driver $driver) {
+        $scoredDrivers = $availableDrivers->map(function (User $driver) {
             return [
                 'driver' => $driver,
                 'score' => $this->calculateDriverScore($driver),
@@ -43,16 +43,18 @@ class MatchingService
      * Calculate driver score based on the algorithm:
      * score = reliability_score + on_time_rate + experience_points - 0.5*queue_age
      */
-    private function calculateDriverScore(Driver $driver): float
+    private function calculateDriverScore(User $driver): float
     {
-        $reliabilityScore = $driver->reliability_score ?? 0;
-        $onTimeRate = ($driver->on_time_rate ?? 0) * 100; // Convert to points
-        $experiencePoints = min($driver->experience_points ?? 0, 1000); // Cap at 1000
+        $driverProfile = $driver->driverProfile;
+
+        $reliabilityScore = $driverProfile->reliability_score ?? 0;
+        $onTimeRate = ($driverProfile->on_time_rate ?? 0) * 100; // Convert to points
+        $experiencePoints = min($driverProfile->experience_points ?? 0, 1000); // Cap at 1000
 
         // Calculate queue age in hours since went online
         $queueAge = 0;
-        if ($driver->went_online_at) {
-            $queueAge = Carbon::parse($driver->went_online_at)
+        if ($driverProfile->went_online_at) {
+            $queueAge = Carbon::parse($driverProfile->went_online_at)
                 ->diffInHours(Carbon::now());
         }
 
