@@ -4,29 +4,16 @@ namespace App\Services;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
-use Kreait\Firebase\Auth as FirebaseAuth;
+use Kreait\Firebase\Contract\Auth;
 use Kreait\Firebase\Exception\Auth\FailedToVerifyToken;
-use Kreait\Firebase\Factory;
 
 class FirebaseAuthService
 {
-    private FirebaseAuth $auth;
+    private Auth $auth;
 
-    public function __construct()
+    public function __construct(Auth $auth)
     {
-        $firebase = (new Factory)
-            ->withServiceAccount([
-                'type' => 'service_account',
-                'project_id' => config('services.firebase.project_id'),
-                'private_key_id' => config('services.firebase.private_key_id'),
-                'private_key' => str_replace('\\n', "\n", config('services.firebase.private_key')),
-                'client_email' => config('services.firebase.client_email'),
-                'client_id' => config('services.firebase.client_id'),
-                'auth_uri' => config('services.firebase.auth_uri'),
-                'token_uri' => config('services.firebase.token_uri'),
-            ]);
-
-        $this->auth = $firebase->createAuth();
+        $this->auth = $auth;
     }
 
     public function verifyToken(string $idToken): array
@@ -59,18 +46,19 @@ class FirebaseAuthService
         $user = User::where('email', $firebaseUser['email'])->first();
 
         if (! $user) {
+            // Create new user with the device type they registered from
             $user = User::create([
                 'name' => $firebaseUser['name'] ?? 'User',
                 'email' => $firebaseUser['email'],
                 'firebase_uid' => $firebaseUser['uid'],
                 'email_verified_at' => now(),
-                'role' => $deviceType, // 'rider' or 'driver'
+                'user_type' => $deviceType, // 'rider' or 'driver'
             ]);
 
             Log::info('Created new user from Firebase auth', [
                 'user_id' => $user->id,
                 'email' => $user->email,
-                'role' => $deviceType,
+                'user_type' => $deviceType,
             ]);
         } else {
             // Update Firebase UID if not set
@@ -78,9 +66,27 @@ class FirebaseAuthService
                 $user->update(['firebase_uid' => $firebaseUser['uid']]);
             }
 
+            // Upgrade user_type to 'both' if they sign in from different app
+            if ($user->user_type !== 'both' && $user->user_type !== $deviceType) {
+                $oldType = $user->user_type;
+                $user->update(['user_type' => 'both']);
+
+                Log::info('Upgraded user to both rider and driver', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'old_type' => $oldType,
+                    'new_type' => 'both',
+                    'signed_in_from' => $deviceType,
+                ]);
+            }
+
+            // Update last active timestamp
+            $user->update(['last_active_at' => now()]);
+
             Log::info('Existing user logged in via Firebase', [
                 'user_id' => $user->id,
                 'email' => $user->email,
+                'user_type' => $user->user_type,
             ]);
         }
 
