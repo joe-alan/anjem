@@ -26,16 +26,20 @@ class DriverProfile extends Model
      */
     protected $fillable = [
         'user_id',
+        'student_email',
+        'student_id',
+        'student_name',
         'vehicle_type',
         'vehicle_make',
         'vehicle_model',
         'vehicle_year',
         'vehicle_color',
-        'license_plate',
+        'vehicle_plate', // Fixed: matches database column name
         'driver_license_number',
         'current_location',
         'status',
         'is_verified',
+        'email_verified_at',
         'rating_average',
         'rating_count',
         'total_rides',
@@ -60,6 +64,7 @@ class DriverProfile extends Model
     protected $casts = [
         'current_location' => Point::class,
         'is_verified' => 'boolean',
+        'email_verified_at' => 'datetime',
         'rating_average' => 'decimal:2',
         'rating_count' => 'integer',
         'total_rides' => 'integer',
