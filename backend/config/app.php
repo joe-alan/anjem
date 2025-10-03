@@ -185,4 +185,15 @@ return [
         // 'Example' => App\Facades\Example::class,
     ])->toArray(),
 
+    /*
+    |--------------------------------------------------------------------------
+    | KYC Verification Settings
+    |--------------------------------------------------------------------------
+    |
+    | Configure the allowed student email domain for driver verification
+    |
+    */
+
+    'allowed_student_email_domain' => env('ALLOWED_STUDENT_EMAIL_DOMAIN', 'ui.ac.id'),
+
 ];
