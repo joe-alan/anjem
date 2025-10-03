@@ -62,6 +62,14 @@ Route::prefix('v1')->group(function () {
 
         // Driver routes
         Route::prefix('driver')->group(function () {
+            // KYC verification routes
+            Route::prefix('kyc')->group(function () {
+                Route::post('submit', [\App\Http\Controllers\Api\DriverKycController::class, 'submitKyc']);
+                Route::post('send-code', [\App\Http\Controllers\Api\DriverKycController::class, 'sendVerificationCode']);
+                Route::post('verify-email', [\App\Http\Controllers\Api\DriverKycController::class, 'verifyEmail']);
+                Route::get('status', [\App\Http\Controllers\Api\DriverKycController::class, 'getKycStatus']);
+            });
+
             Route::post('online', [DriverController::class, 'goOnline']);
             Route::post('offline', [DriverController::class, 'goOffline']);
             Route::get('queue', [DriverController::class, 'getQueue']);

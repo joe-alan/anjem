@@ -42,9 +42,9 @@ class AuthController extends Controller
                 $this->notificationService->updateUserToken($user->id, $request->fcm_token);
             }
 
-            // Create token with role-based abilities
+            // Create token with role-based abilities (no expiration)
             $abilities = $this->getTokenAbilities($user);
-            $token = $user->createToken('mobile-app', $abilities, now()->addDay())->plainTextToken;
+            $token = $user->createToken('mobile-app', $abilities)->plainTextToken;
 
             return response()->json([
                 'success' => true,
@@ -90,9 +90,9 @@ class AuthController extends Controller
                 'email_verified' => true,
             ], $request->query('device_type', 'rider'));
 
-            // Create token with role-based abilities
+            // Create token with role-based abilities (no expiration)
             $abilities = $this->getTokenAbilities($user);
-            $token = $user->createToken('mobile-app', $abilities, now()->addDay())->plainTextToken;
+            $token = $user->createToken('mobile-app', $abilities)->plainTextToken;
 
             return response()->json([
                 'success' => true,
@@ -120,9 +120,9 @@ class AuthController extends Controller
 
         $user->currentAccessToken()->delete();
 
-        // Create new token with role-based abilities
+        // Create new token with role-based abilities (no expiration)
         $abilities = $this->getTokenAbilities($user);
-        $newToken = $user->createToken('mobile-app', $abilities, now()->addDay())->plainTextToken;
+        $newToken = $user->createToken('mobile-app', $abilities)->plainTextToken;
 
         return response()->json([
             'success' => true,
