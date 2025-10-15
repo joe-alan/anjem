@@ -327,7 +327,7 @@ jobs:
           tools: composer:v2
 
       - name: Install Node.js (for k6)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
