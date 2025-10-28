@@ -22,7 +22,7 @@ return new class extends Migration
                 'current_fare_estimate',
                 'pickup_address',
                 'dropoff_address',
-                'deleted_at'
+                'deleted_at',
             ]);
 
             // Remove foreign key constraint on matched_driver_id if it exists

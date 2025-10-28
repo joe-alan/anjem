@@ -22,6 +22,7 @@ class RideControllerTest extends TestCase
     use RefreshDatabase;
 
     private $mockRideService;
+
     private $mockNotificationService;
 
     protected function setUp(): void
@@ -64,13 +65,13 @@ class RideControllerTest extends TestCase
         $otherRide = $this->createTestRide(['rider_id' => $otherRider->id, 'driver_id' => $driver->id]);
 
         $response = $this->actingAs($rider, 'sanctum')
-                        ->getJson("/api/v1/rides/{$otherRide->id}");
+            ->getJson("/api/v1/rides/{$otherRide->id}");
 
         $response->assertStatus(Response::HTTP_FORBIDDEN)
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'Unauthorized to view this ride'
-                ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'Unauthorized to view this ride',
+            ]);
     }
 
     /**
@@ -85,13 +86,13 @@ class RideControllerTest extends TestCase
         $token = $rider->createToken('mobile-app', ['profile:read']);
 
         $response = $this->withToken($token->plainTextToken)
-                        ->postJson("/api/v1/rides/{$rideRequest->id}/accept");
+            ->postJson("/api/v1/rides/{$rideRequest->id}/accept");
 
         $response->assertStatus(Response::HTTP_FORBIDDEN)
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'Unauthorized: Driver permissions required'
-                ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'Unauthorized: Driver permissions required',
+            ]);
     }
 
     /**
@@ -106,21 +107,21 @@ class RideControllerTest extends TestCase
         $ride = $this->createTestRide([
             'rider_id' => $rider->id,
             'driver_id' => $driver->id,
-            'status' => 'accepted'
+            'status' => 'accepted',
         ]);
 
         $token = $otherUser->createToken('mobile-app', ['driver:complete-ride']);
 
         $response = $this->withToken($token->plainTextToken)
-                        ->patchJson("/api/v1/rides/{$ride->id}/status", [
-                            'status' => 'completed'
-                        ]);
+            ->patchJson("/api/v1/rides/{$ride->id}/status", [
+                'status' => 'completed',
+            ]);
 
         $response->assertStatus(Response::HTTP_FORBIDDEN)
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'Unauthorized to update this ride'
-                ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'Unauthorized to update this ride',
+            ]);
     }
 
     // Helper methods

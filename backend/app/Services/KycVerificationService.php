@@ -16,11 +16,11 @@ class KycVerificationService
     {
         $allowedDomain = config('app.allowed_student_email_domain');
 
-        if (!$allowedDomain) {
+        if (! $allowedDomain) {
             return false;
         }
 
-        return Str::endsWith($email, '@' . $allowedDomain);
+        return Str::endsWith($email, '@'.$allowedDomain);
     }
 
     /**
@@ -74,7 +74,7 @@ class KycVerificationService
             ->valid()
             ->first();
 
-        if (!$verificationCode) {
+        if (! $verificationCode) {
             return false;
         }
 
@@ -98,10 +98,10 @@ class KycVerificationService
      */
     public function storeKtmPhoto($file, int $userId): string
     {
-        $filename = 'ktm_' . $userId . '_' . time() . '.' . $file->getClientOriginalExtension();
+        $filename = 'ktm_'.$userId.'_'.time().'.'.$file->getClientOriginalExtension();
         $path = $file->storeAs('ktm_photos', $filename, 'public');
 
-        return '/storage/' . $path;
+        return '/storage/'.$path;
     }
 
     /**
@@ -139,7 +139,7 @@ class KycVerificationService
     {
         $driverProfile = DriverProfile::where('user_id', $userId)->first();
 
-        if (!$driverProfile) {
+        if (! $driverProfile) {
             return [
                 'kyc_submitted' => false,
                 'email_verified' => false,
@@ -148,7 +148,7 @@ class KycVerificationService
         }
 
         return [
-            'kyc_submitted' => !empty($driverProfile->student_email),
+            'kyc_submitted' => ! empty($driverProfile->student_email),
             'email_verified' => $driverProfile->email_verified_at !== null,
             'is_verified' => $driverProfile->is_verified,
             'student_email' => $driverProfile->student_email,

@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\User;
 use App\Services\FirebaseAuthService;
 use App\Services\NotificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,6 +17,7 @@ class AuthControllerTest extends TestCase
     use RefreshDatabase;
 
     private $mockFirebaseAuth;
+
     private $mockNotificationService;
 
     protected function setUp(): void
@@ -55,9 +55,9 @@ class AuthControllerTest extends TestCase
         ]);
 
         $response->assertStatus(Response::HTTP_UNAUTHORIZED)
-                ->assertJson([
-                    'error' => 'Authentication failed',
-                ]);
+            ->assertJson([
+                'error' => 'Authentication failed',
+            ]);
     }
 
     /**
@@ -71,12 +71,12 @@ class AuthControllerTest extends TestCase
         ]);
 
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY)
-                ->assertJson([
-                    'error' => 'Validation failed',
-                    'messages' => [
-                        'device_type' => ['The device type field is required.']
-                    ]
-                ]);
+            ->assertJson([
+                'error' => 'Validation failed',
+                'messages' => [
+                    'device_type' => ['The device type field is required.'],
+                ],
+            ]);
     }
 
     /**
@@ -90,12 +90,12 @@ class AuthControllerTest extends TestCase
         ]);
 
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY)
-                ->assertJson([
-                    'error' => 'Validation failed',
-                    'messages' => [
-                        'device_type' => ['The selected device type is invalid.']
-                    ]
-                ]);
+            ->assertJson([
+                'error' => 'Validation failed',
+                'messages' => [
+                    'device_type' => ['The selected device type is invalid.'],
+                ],
+            ]);
     }
 
     /**

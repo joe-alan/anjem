@@ -27,13 +27,13 @@ class TokenPermissionsTest extends TestCase
 
         // Try to access rider-specific endpoint without rider permissions
         $response = $this->withToken($token)
-                        ->getJson('/api/v1/requests');
+            ->getJson('/api/v1/requests');
 
         $response->assertStatus(Response::HTTP_FORBIDDEN)
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'Unauthorized: Rider permissions required'
-                ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'Unauthorized: Rider permissions required',
+            ]);
     }
 
     /**
@@ -49,7 +49,7 @@ class TokenPermissionsTest extends TestCase
         $token->update(['expires_at' => now()->subDay()]);
 
         $response = $this->withToken($tokenResult->plainTextToken)
-                        ->getJson('/api/v1/user');
+            ->getJson('/api/v1/user');
 
         $response->assertStatus(Response::HTTP_UNAUTHORIZED);
     }
@@ -60,16 +60,16 @@ class TokenPermissionsTest extends TestCase
     public function test_malformed_authorization_header()
     {
         $response = $this->withHeaders([
-                'Authorization' => 'InvalidFormat token_here'
-            ])
+            'Authorization' => 'InvalidFormat token_here',
+        ])
             ->getJson('/api/v1/user');
 
         $response->assertStatus(Response::HTTP_UNAUTHORIZED);
 
         // Test with no Bearer prefix
         $response = $this->withHeaders([
-                'Authorization' => 'some_token_without_bearer'
-            ])
+            'Authorization' => 'some_token_without_bearer',
+        ])
             ->getJson('/api/v1/user');
 
         $response->assertStatus(Response::HTTP_UNAUTHORIZED);
@@ -82,13 +82,13 @@ class TokenPermissionsTest extends TestCase
     {
         // Test with completely invalid token
         $response = $this->withToken('invalid_token_format')
-                        ->getJson('/api/v1/user');
+            ->getJson('/api/v1/user');
 
         $response->assertStatus(Response::HTTP_UNAUTHORIZED);
 
         // Test with empty token
         $response = $this->withToken('')
-                        ->getJson('/api/v1/user');
+            ->getJson('/api/v1/user');
 
         $response->assertStatus(Response::HTTP_UNAUTHORIZED);
 
@@ -110,12 +110,12 @@ class TokenPermissionsTest extends TestCase
 
         // Should be able to access any endpoint
         $response = $this->withToken($token)
-                        ->getJson('/api/v1/user');
+            ->getJson('/api/v1/user');
 
         $response->assertStatus(Response::HTTP_OK);
 
         $response = $this->withToken($token)
-                        ->getJson('/api/v1/requests');
+            ->getJson('/api/v1/requests');
 
         $response->assertStatus(Response::HTTP_OK);
     }
@@ -132,17 +132,17 @@ class TokenPermissionsTest extends TestCase
             'rider:request-ride',
             'rider:cancel-ride',
             'driver:go-online',
-            'driver:accept-ride'
+            'driver:accept-ride',
         ])->plainTextToken;
 
         // Should be able to access both rider and driver endpoints
         $response = $this->withToken($token)
-                        ->getJson('/api/v1/requests');
+            ->getJson('/api/v1/requests');
 
         $response->assertStatus(Response::HTTP_OK);
 
         $response = $this->withToken($token)
-                        ->getJson('/api/v1/driver/queue');
+            ->getJson('/api/v1/driver/queue');
 
         $response->assertStatus(Response::HTTP_OK);
     }
@@ -160,7 +160,7 @@ class TokenPermissionsTest extends TestCase
 
         // Token should work initially
         $response = $this->withToken($plainTextToken)
-                        ->getJson('/api/v1/user');
+            ->getJson('/api/v1/user');
 
         $response->assertStatus(Response::HTTP_OK);
 
@@ -169,7 +169,7 @@ class TokenPermissionsTest extends TestCase
 
         // Token should no longer work
         $response = $this->withToken($plainTextToken)
-                        ->getJson('/api/v1/user');
+            ->getJson('/api/v1/user');
 
         $response->assertStatus(Response::HTTP_UNAUTHORIZED);
     }
@@ -187,12 +187,12 @@ class TokenPermissionsTest extends TestCase
 
         // Both tokens should work simultaneously
         $response1 = $this->withToken($token1)
-                         ->getJson('/api/v1/user');
+            ->getJson('/api/v1/user');
 
         $response1->assertStatus(Response::HTTP_OK);
 
         $response2 = $this->withToken($token2)
-                         ->getJson('/api/v1/user');
+            ->getJson('/api/v1/user');
 
         $response2->assertStatus(Response::HTTP_OK);
     }
@@ -206,12 +206,12 @@ class TokenPermissionsTest extends TestCase
             "'; DROP TABLE users; --",
             "1' OR '1'='1",
             "admin'; SELECT * FROM users WHERE '1'='1",
-            "1; DELETE FROM personal_access_tokens; --"
+            '1; DELETE FROM personal_access_tokens; --',
         ];
 
         foreach ($maliciousTokens as $maliciousToken) {
             $response = $this->withToken($maliciousToken)
-                            ->getJson('/api/v1/user');
+                ->getJson('/api/v1/user');
 
             $response->assertStatus(Response::HTTP_UNAUTHORIZED);
         }
@@ -226,12 +226,12 @@ class TokenPermissionsTest extends TestCase
             '<script>alert("xss")</script>',
             'javascript:alert("xss")',
             '<img src=x onerror=alert("xss")>',
-            '"><script>alert("xss")</script>'
+            '"><script>alert("xss")</script>',
         ];
 
         foreach ($xssPayloads as $payload) {
             $response = $this->withToken($payload)
-                            ->getJson('/api/v1/user');
+                ->getJson('/api/v1/user');
 
             $response->assertStatus(Response::HTTP_UNAUTHORIZED);
         }
@@ -246,7 +246,7 @@ class TokenPermissionsTest extends TestCase
         $longToken = str_repeat('a', 10000);
 
         $response = $this->withToken($longToken)
-                        ->getJson('/api/v1/user');
+            ->getJson('/api/v1/user');
 
         $response->assertStatus(Response::HTTP_UNAUTHORIZED);
     }
@@ -262,12 +262,12 @@ class TokenPermissionsTest extends TestCase
             'token\twith\ttabs',
             'token\0with\0nulls',
             'token|with|pipes',
-            'token;with;semicolons'
+            'token;with;semicolons',
         ];
 
         foreach ($specialTokens as $specialToken) {
             $response = $this->withToken($specialToken)
-                            ->getJson('/api/v1/user');
+                ->getJson('/api/v1/user');
 
             $response->assertStatus(Response::HTTP_UNAUTHORIZED);
         }
@@ -285,7 +285,7 @@ class TokenPermissionsTest extends TestCase
 
         // Try to access with different case variations
         $response = $this->withToken($token)
-                        ->getJson('/api/v1/requests');
+            ->getJson('/api/v1/requests');
 
         $response->assertStatus(Response::HTTP_OK);
 
@@ -304,7 +304,7 @@ class TokenPermissionsTest extends TestCase
         $token = $user->createToken('', ['rider:request-ride'])->plainTextToken;
 
         $response = $this->withToken($token)
-                        ->getJson('/api/v1/user');
+            ->getJson('/api/v1/user');
 
         $response->assertStatus(Response::HTTP_OK);
     }
@@ -321,11 +321,11 @@ class TokenPermissionsTest extends TestCase
             'rider:request-ride',
             'rider:request-ride', // Duplicate
             'profile:read',
-            'profile:read' // Duplicate
+            'profile:read', // Duplicate
         ])->plainTextToken;
 
         $response = $this->withToken($token)
-                        ->getJson('/api/v1/requests');
+            ->getJson('/api/v1/requests');
 
         $response->assertStatus(Response::HTTP_OK);
     }
@@ -342,13 +342,13 @@ class TokenPermissionsTest extends TestCase
 
         // Should be able to access basic user endpoint but not protected ones
         $response = $this->withToken($token)
-                        ->getJson('/api/v1/user');
+            ->getJson('/api/v1/user');
 
         $response->assertStatus(Response::HTTP_OK);
 
         // Should not be able to access protected endpoints
         $response = $this->withToken($token)
-                        ->getJson('/api/v1/requests');
+            ->getJson('/api/v1/requests');
 
         $response->assertStatus(Response::HTTP_FORBIDDEN);
     }

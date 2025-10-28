@@ -220,11 +220,11 @@ class User extends Authenticatable
     {
         $user = static::where('firebase_uid', $firebaseData['uid'])->first();
 
-        if (!$user) {
+        if (! $user) {
             $user = static::where('email', $firebaseData['email'])->first();
         }
 
-        if (!$user) {
+        if (! $user) {
             $user = static::create([
                 'name' => $firebaseData['name'] ?? 'User',
                 'email' => $firebaseData['email'],

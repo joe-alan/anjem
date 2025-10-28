@@ -100,10 +100,13 @@ class AuthController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'role' => $user->role,
+                    'firebase_uid' => $user->firebase_uid,
+                    'user_type' => $user->user_type,
+                    'is_active' => $user->is_active,
                 ],
                 'token' => $token,
                 'token_type' => 'Bearer',
+                'abilities' => $abilities,
             ]);
 
         } catch (\Exception $e) {
@@ -185,7 +188,7 @@ class AuthController extends Controller
             'locations:read',
         ];
 
-        $roleAbilities = match($user->user_type) {
+        $roleAbilities = match ($user->user_type) {
             'rider' => [
                 'rider:request-ride',
                 'rider:cancel-ride',
@@ -196,6 +199,7 @@ class AuthController extends Controller
                 'driver:accept-ride',
                 'driver:complete-ride',
                 'driver:update-location',
+                'driver:rate-rider',
             ],
             'both' => [
                 'rider:request-ride',
@@ -205,6 +209,7 @@ class AuthController extends Controller
                 'driver:accept-ride',
                 'driver:complete-ride',
                 'driver:update-location',
+                'driver:rate-rider',
             ],
             default => []
         };

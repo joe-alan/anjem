@@ -52,7 +52,7 @@ class RealTimeEventsTest extends TestCase
         $this->assertCount(3, $channels);
 
         // Verify channel names contain correct IDs
-        $channelNames = array_map(fn($channel) => $channel->name, $channels);
+        $channelNames = array_map(fn ($channel) => $channel->name, $channels);
         $this->assertContains("private-ride.{$ride->id}", $channelNames);
         $this->assertContains("private-user.{$rider->id}", $channelNames);
         $this->assertContains("private-user.{$driver->id}", $channelNames);
@@ -94,7 +94,7 @@ class RealTimeEventsTest extends TestCase
 
         // Test broadcast channels include ride channel for active ride
         $channels = $event->broadcastOn();
-        $channelNames = array_map(fn($channel) => $channel->name, $channels);
+        $channelNames = array_map(fn ($channel) => $channel->name, $channels);
         $this->assertContains("private-driver.{$driver->id}", $channelNames);
         $this->assertContains("private-ride.{$ride->id}", $channelNames);
 
@@ -136,7 +136,7 @@ class RealTimeEventsTest extends TestCase
 
         // Test broadcast channels include both private and public channels
         $channels = $event->broadcastOn();
-        $channelNames = array_map(fn($channel) => $channel->name, $channels);
+        $channelNames = array_map(fn ($channel) => $channel->name, $channels);
         $this->assertContains("private-user.{$driver->id}", $channelNames);
         $this->assertContains("private-driver.{$driver->id}", $channelNames);
         $this->assertContains("beacon.{$beacon->id}", $channelNames); // Public channel, no prefix
@@ -206,7 +206,7 @@ class RealTimeEventsTest extends TestCase
 
         // Test broadcast channels
         $channels = $event->broadcastOn();
-        $channelNames = array_map(fn($channel) => $channel->name, $channels);
+        $channelNames = array_map(fn ($channel) => $channel->name, $channels);
         $this->assertContains("private-user.{$driver->id}", $channelNames);
         $this->assertContains("private-driver.{$driver->id}", $channelNames);
         $this->assertContains("beacon.{$beacon->id}", $channelNames); // Public channel, no prefix

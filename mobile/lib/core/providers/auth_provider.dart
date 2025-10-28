@@ -62,13 +62,39 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
       final isAuthenticated = await _authService.isAuthenticated();
 
       if (isAuthenticated) {
-        final user = await _authService.getCurrentUser();
-        state = state.copyWith(
-          isLoading: false,
-          isAuthenticated: true,
-          user: user,
-          error: null,
-        );
+        // Token exists, try to get user data
+        try {
+          final user = await _authService.getCurrentUser();
+          state = state.copyWith(
+            isLoading: false,
+            isAuthenticated: true,
+            user: user,
+            error: null,
+          );
+        } catch (e) {
+          // If user fetch fails with 401, token is expired - log them out
+          print('Failed to fetch user data: $e');
+
+          // Check if it's an auth error (401)
+          if (e is ApiException && e.statusCode == 401) {
+            print('Token expired or invalid - clearing auth state');
+            await _authService.signOut();
+            state = state.copyWith(
+              isLoading: false,
+              isAuthenticated: false,
+              user: null,
+              error: null,
+            );
+          } else {
+            // Other errors (network, etc) - keep them logged in
+            state = state.copyWith(
+              isLoading: false,
+              isAuthenticated: true,
+              user: null,
+              error: null,
+            );
+          }
+        }
       } else {
         state = state.copyWith(
           isLoading: false,
@@ -78,9 +104,12 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
         );
       }
     } catch (e) {
+      print('Auth check failed: $e');
+      // Check if we have a token even if auth check failed
+      final hasToken = await _authService.isAuthenticated();
       state = state.copyWith(
         isLoading: false,
-        isAuthenticated: false,
+        isAuthenticated: hasToken,
         user: null,
         error: null,
       );

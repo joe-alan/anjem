@@ -5,7 +5,7 @@ enum RideRequestStatus { pending, matched, cancelled, expired }
 
 class RideRequest extends Equatable {
   final int id;
-  final int riderId;
+  final int? riderId; // Nullable - not always provided by backend
   final Location pickupLocation;
   final Location destinationLocation;
   final int passengerCount;
@@ -19,7 +19,7 @@ class RideRequest extends Equatable {
 
   const RideRequest({
     required this.id,
-    required this.riderId,
+    this.riderId, // Now optional
     required this.pickupLocation,
     required this.destinationLocation,
     required this.passengerCount,
@@ -35,7 +35,7 @@ class RideRequest extends Equatable {
   factory RideRequest.fromJson(Map<String, dynamic> json) {
     return RideRequest(
       id: json['id'] as int,
-      riderId: json['rider_id'] as int,
+      riderId: json['rider_id'] as int?, // Nullable - not always provided
       pickupLocation: Location.fromJson(
         json['pickup_location'] as Map<String, dynamic>,
       ),
@@ -44,7 +44,8 @@ class RideRequest extends Equatable {
       ),
       passengerCount: json['passenger_count'] as int,
       specialRequests: json['special_requests'] as String?,
-      estimatedFare: (json['estimated_fare'] as num).toDouble(),
+      // Backend returns 'estimated_fare_rp', fallback to 'estimated_fare'
+      estimatedFare: (json['estimated_fare_rp'] ?? json['estimated_fare'] as num).toDouble(),
       status: _parseStatus(json['status'] as String),
       queuePosition: json['queue_position'] as int?,
       estimatedWaitTime: json['estimated_wait_time'] as int?,

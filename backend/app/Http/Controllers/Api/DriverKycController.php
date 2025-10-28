@@ -103,8 +103,9 @@ class DriverKycController extends Controller
             $email = $request->student_email;
 
             // Validate email domain
-            if (!$this->kycService->isValidStudentEmail($email)) {
+            if (! $this->kycService->isValidStudentEmail($email)) {
                 $allowedDomain = config('app.allowed_student_email_domain');
+
                 return response()->json([
                     'success' => false,
                     'message' => "Email must be from {$allowedDomain}",
@@ -155,7 +156,7 @@ class DriverKycController extends Controller
                 $request->code
             );
 
-            if (!$verified) {
+            if (! $verified) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid or expired verification code',
@@ -188,7 +189,7 @@ class DriverKycController extends Controller
             $user = $request->user();
 
             // Check driver permissions
-            if (!$user->tokenCan('driver:go-online')) {
+            if (! $user->tokenCan('driver:go-online')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized: Driver permissions required',

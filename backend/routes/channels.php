@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\Ride;
 use App\Models\Location;
+use App\Models\Ride;
 use Illuminate\Support\Facades\Broadcast;
 
 /*
@@ -35,7 +35,7 @@ Broadcast::channel('ride.{rideId}', function ($user, $rideId) {
     // Only the rider or driver of the specific ride can listen
     $ride = Ride::find($rideId);
 
-    if (!$ride) {
+    if (! $ride) {
         return false;
     }
 

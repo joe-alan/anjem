@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DriverController;
+use App\Http\Controllers\Api\PlaceController;
 use App\Http\Controllers\Api\RequestController;
 use App\Http\Controllers\Api\RideController;
 use Illuminate\Http\Request;
@@ -40,6 +41,9 @@ Route::prefix('v1')->group(function () {
         ]);
     });
 
+    // Public place search endpoint (no auth required)
+    Route::get('places/search', [PlaceController::class, 'search'])->middleware('throttle:60,1');
+
     // Protected routes - General rate limiting
     Route::middleware(['auth:sanctum', 'throttle:100,1'])->group(function () {
 
@@ -55,8 +59,8 @@ Route::prefix('v1')->group(function () {
         Route::prefix('requests')->group(function () {
             Route::get('estimates', [RequestController::class, 'getEstimates']);
             Route::post('/', [RequestController::class, 'store']);
-            Route::get('{request}', [RequestController::class, 'show']);
-            Route::patch('{request}/cancel', [RequestController::class, 'cancel']);
+            Route::get('{ride_request}', [RequestController::class, 'show']);
+            Route::patch('{ride_request}/cancel', [RequestController::class, 'cancel']);
             Route::get('/', [RequestController::class, 'index']);
         });
 
@@ -91,9 +95,11 @@ Route::prefix('v1')->group(function () {
         // Locations/Beacons (read-only for now)
         Route::get('locations', function () {
             $locations = \App\Models\Location::active()->get();
+
             return response()->json([
                 'success' => true,
-                'data' => \App\Http\Resources\LocationResource::collection($locations),
+                // Use resolve() to flatten the resource collection and avoid double-nesting
+                'data' => \App\Http\Resources\LocationResource::collection($locations)->resolve(),
             ]);
         });
     });
