@@ -47,4 +47,9 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    'mapbox' => [
+        'public_token' => env('MAPBOX_PUBLIC_TOKEN'),
+        'secret_token' => env('MAPBOX_SECRET_TOKEN'), // Optional for MVP
+    ],
+
 ];

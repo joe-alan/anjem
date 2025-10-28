@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'config/app_config.dart';
 import 'providers/auth_provider.dart';
+import 'providers/kyc_provider.dart';
 import 'widgets/splash_screen.dart';
 import 'widgets/login_screen.dart';
 import '../rider/screens/rider_home_screen.dart';
 import '../driver/screens/driver_home_screen.dart';
+import '../driver/screens/kyc_form_screen.dart';
 
 class AnjerApp extends ConsumerWidget {
   const AnjerApp({super.key});
@@ -47,6 +49,8 @@ class AuthenticationWrapper extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
+    final kycState = ref.watch(kycStateProvider);
+    final config = AppConfig.instance;
 
     // Show splash screen while checking authentication
     if (authState.isLoading) {
@@ -58,10 +62,24 @@ class AuthenticationWrapper extends ConsumerWidget {
       return const LoginScreen();
     }
 
-    // Show appropriate home screen based on app flavor
-    final config = AppConfig.instance;
-    return config.isRiderApp
-        ? const RiderHomeScreen()
-        : const DriverHomeScreen();
+    // For driver app, check KYC status
+    if (config.isDriverApp) {
+      // Still loading KYC status
+      if (kycState.isLoading && kycState.kycSubmission == null) {
+        return const SplashScreen();
+      }
+
+      // Check if driver needs to complete KYC
+      final kycSubmission = kycState.kycSubmission;
+      if (kycSubmission == null || !kycSubmission.isVerified) {
+        return const KycFormScreen();
+      }
+
+      // Driver is verified, show home screen
+      return const DriverHomeScreen();
+    }
+
+    // For rider app, show home screen directly
+    return const RiderHomeScreen();
   }
 }

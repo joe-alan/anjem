@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:permission_handler/permission_handler.dart';
+import '../../models/lat_lng.dart';
 
 class LocationService {
   StreamSubscription<Position>? _positionStreamSubscription;

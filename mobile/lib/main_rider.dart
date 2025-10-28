@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'core/app.dart';
 import 'core/config/app_config.dart';
+import 'core/config/mapbox_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase
   await Firebase.initializeApp();
+
+  // Initialize Mapbox access token
+  MapboxOptions.setAccessToken(MapboxConfig.accessToken);
 
   // Initialize app config for Rider
   AppConfig.initialize(

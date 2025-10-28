@@ -522,11 +522,184 @@ paths:
           description: Driver status updated successfully
 
   # Location Endpoints
+  /places/search:
+    get:
+      tags:
+        - Location
+      summary: Search for places (beacons + destinations)
+      description: |
+        Search for places using local database with Mapbox API fallback.
+        Searches campus beacon locations and popular destinations first,
+        then falls back to Mapbox Search API if fewer than 5 results.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 100
+          description: Search query string
+          example: "gate"
+        - name: latitude
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+            minimum: -90
+            maximum: 90
+          description: User's latitude for proximity sorting (must provide both lat/lng)
+          example: -6.3615
+        - name: longitude
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+            minimum: -180
+            maximum: 180
+          description: User's longitude for proximity sorting (must provide both lat/lng)
+          example: 106.8242
+        - name: radius
+          in: query
+          schema:
+            type: number
+            minimum: 0.1
+            maximum: 50
+            default: 5.0
+          description: Search radius in kilometers
+          example: 5.0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+          description: Maximum number of results
+          example: 10
+      responses:
+        '200':
+          description: Places retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        name:
+                          type: string
+                          example: "Gerbang Utama UI (Gate 1)"
+                        address:
+                          type: string
+                          example: "Jl. Margonda Raya, Depok"
+                        coordinates:
+                          type: object
+                          properties:
+                            latitude:
+                              type: number
+                              example: -6.3615
+                            longitude:
+                              type: number
+                              example: 106.8242
+                        is_beacon:
+                          type: boolean
+                          example: true
+                          description: True for official pickup points, false for destinations
+                        category:
+                          type: string
+                          example: "gate"
+                          description: Place category (gate, faculty, canteen, etc.)
+                        distance_km:
+                          type: number
+                          example: 0.5
+                          description: Distance from user location (only if lat/lng provided)
+                        usage_count:
+                          type: integer
+                          example: 150
+                          description: Popularity metric
+                        beacon_capacity:
+                          type: integer
+                          nullable: true
+                          example: 15
+                          description: Max drivers at beacon (beacons only)
+                        current_queue_size:
+                          type: integer
+                          nullable: true
+                          example: 3
+                          description: Current drivers waiting (beacons only)
+                        has_capacity:
+                          type: boolean
+                          nullable: true
+                          example: true
+                          description: Whether beacon has space (beacons only)
+                  meta:
+                    type: object
+                    properties:
+                      query:
+                        type: string
+                        example: "gate"
+                      count:
+                        type: integer
+                        example: 4
+                      has_proximity:
+                        type: boolean
+                        example: true
+                        description: Whether results are sorted by distance
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Validation failed"
+                  errors:
+                    type: object
+                    example:
+                      q: ["The q field is required."]
+                      latitude: ["Both latitude and longitude must be provided together"]
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Failed to search places"
+                  error:
+                    type: string
+                    example: "Internal server error"
+
   /location/autocomplete:
     get:
       tags:
         - Location
-      summary: Autocomplete location search
+      summary: Autocomplete location search (DEPRECATED)
+      description: |
+        **DEPRECATED**: Use `/places/search` instead.
+        This endpoint is kept for backward compatibility.
       parameters:
         - name: query
           in: query
