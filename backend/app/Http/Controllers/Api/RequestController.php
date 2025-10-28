@@ -85,12 +85,15 @@ class RequestController extends Controller
             ], 400);
         }
 
+        // Use validated() to get mapped field names
+        $validatedData = $request->validated();
+
         $rideRequest = $this->rideService->createRideRequest([
             'rider_id' => $rider->id,
-            'pickup_location_id' => $request->pickup_location_id,
-            'destination_location_id' => $request->destination_location_id,
-            'passenger_count' => $request->passenger_count,
-            'special_requests' => $request->special_requests,
+            'pickup_location_id' => $validatedData['pickup_location_id'],
+            'destination_location_id' => $validatedData['destination_location_id'],
+            'passenger_count' => $validatedData['passenger_count'],
+            'special_requests' => $validatedData['special_requests'] ?? null,
         ]);
 
         if (!$rideRequest) {
@@ -112,35 +115,35 @@ class RequestController extends Controller
     /**
      * Show a specific ride request
      */
-    public function show(Request $request, RideRequest $rideRequest): JsonResponse
+    public function show(Request $request, RideRequest $ride_request): JsonResponse
     {
         $user = $request->user();
 
         // Check if user is authorized to view this request
-        if ($rideRequest->rider_id !== $user->id) {
+        if ($ride_request->rider_id !== $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized to view this ride request',
             ], 403);
         }
 
-        $rideRequest->load(['pickupLocation', 'destinationLocation']);
+        $ride_request->load(['pickupLocation', 'destinationLocation']);
 
         return response()->json([
             'success' => true,
-            'data' => new RideRequestResource($rideRequest),
+            'data' => new RideRequestResource($ride_request),
         ]);
     }
 
     /**
      * Cancel a ride request
      */
-    public function cancel(Request $request, RideRequest $rideRequest): JsonResponse
+    public function cancel(Request $request, RideRequest $ride_request): JsonResponse
     {
         $user = $request->user();
 
         // Check if user is authorized to cancel this request
-        if ($rideRequest->rider_id !== $user->id) {
+        if ($ride_request->rider_id !== $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized to cancel this ride request',
@@ -156,15 +159,15 @@ class RequestController extends Controller
         }
 
         // Check if request can be cancelled
-        if (!in_array($rideRequest->status, ['pending', 'matched'])) {
+        if (!in_array($ride_request->status, ['pending', 'matched'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Cannot cancel ride request in current status',
-                'current_status' => $rideRequest->status,
+                'current_status' => $ride_request->status,
             ], 400);
         }
 
-        $success = $this->rideService->cancelRideRequest($rideRequest->id, $user->id);
+        $success = $this->rideService->cancelRideRequest($ride_request->id, $user->id);
 
         if (!$success) {
             return response()->json([
@@ -174,8 +177,8 @@ class RequestController extends Controller
         }
 
         // If the request was matched, notify the driver
-        if ($rideRequest->status === 'matched') {
-            $ride = $rideRequest->rides()->first();
+        if ($ride_request->status === 'matched') {
+            $ride = $ride_request->rides()->first();
             if ($ride && $ride->driver) {
                 $this->notificationService->sendRideCancelledNotification(
                     $ride,
@@ -185,13 +188,13 @@ class RequestController extends Controller
             }
         }
 
-        $rideRequest->refresh();
-        $rideRequest->load(['pickupLocation', 'destinationLocation']);
+        $ride_request->refresh();
+        $ride_request->load(['pickupLocation', 'destinationLocation']);
 
         return response()->json([
             'success' => true,
             'message' => 'Ride request cancelled successfully',
-            'data' => new RideRequestResource($rideRequest),
+            'data' => new RideRequestResource($ride_request),
         ]);
     }
 
@@ -210,15 +213,22 @@ class RequestController extends Controller
             ], 403);
         }
 
+        // Accept both old and new field names for backward compatibility
         $request->validate([
-            'pickup_location_id' => 'required|integer|exists:locations,id',
-            'destination_location_id' => 'required|integer|exists:locations,id|different:pickup_location_id',
+            'pickup_beacon_id' => 'required_without:pickup_location_id|integer|exists:locations,id',
+            'pickup_location_id' => 'required_without:pickup_beacon_id|integer|exists:locations,id',
+            'destination_beacon_id' => 'required_without:destination_location_id|integer|exists:locations,id|different:pickup_beacon_id,pickup_location_id',
+            'destination_location_id' => 'required_without:destination_beacon_id|integer|exists:locations,id|different:pickup_beacon_id,pickup_location_id',
             'passenger_count' => 'required|integer|min:1|max:4',
         ]);
 
+        // Use whichever field name was provided
+        $pickupId = $request->input('pickup_beacon_id') ?? $request->input('pickup_location_id');
+        $destinationId = $request->input('destination_beacon_id') ?? $request->input('destination_location_id');
+
         $estimates = $this->rideService->getRideEstimates(
-            $request->pickup_location_id,
-            $request->destination_location_id,
+            $pickupId,
+            $destinationId,
             $request->passenger_count
         );
 

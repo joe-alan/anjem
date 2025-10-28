@@ -8,10 +8,14 @@ class RateRideRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
+     * Allow both riders and drivers to rate each other
      */
     public function authorize(): bool
     {
-        return $this->user() && $this->user()->tokenCan('rider:rate-driver');
+        return $this->user() && (
+            $this->user()->tokenCan('rider:rate-driver') ||
+            $this->user()->tokenCan('driver:rate-rider')
+        );
     }
 
     /**

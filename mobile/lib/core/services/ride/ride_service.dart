@@ -1,0 +1,99 @@
+import '../api/api_service.dart';
+import '../../models/ride.dart';
+
+class RideService {
+  final ApiService _apiService;
+
+  RideService({required ApiService apiService}) : _apiService = apiService;
+
+  /// Get ride details
+  Future<Ride> getRide(int rideId) async {
+    try {
+      final response = await _apiService.get('/rides/$rideId');
+
+      if (response.data['success'] != true) {
+        throw Exception(
+          response.data['message'] ?? 'Failed to get ride details',
+        );
+      }
+
+      return Ride.fromJson(response.data['data'] as Map<String, dynamic>);
+    } catch (e) {
+      print('RideService: Error getting ride - $e');
+      rethrow;
+    }
+  }
+
+  /// Get list of user's rides
+  Future<List<Ride>> getUserRides({String? status}) async {
+    try {
+      final response = await _apiService.get(
+        '/rides',
+        queryParameters: status != null ? {'status': status} : null,
+      );
+
+      if (response.data['success'] != true) {
+        throw Exception(
+          response.data['message'] ?? 'Failed to get rides',
+        );
+      }
+
+      final ridesData = response.data['data'] as List;
+      return ridesData
+          .map((json) => Ride.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      print('RideService: Error getting rides - $e');
+      rethrow;
+    }
+  }
+
+  /// Rate a completed ride
+  Future<void> rateRide({
+    required int rideId,
+    required int rating,
+    List<String>? tags,
+    String? feedback,
+  }) async {
+    try {
+      final response = await _apiService.post('/rides/$rideId/rate', data: {
+        'rating': rating,
+        if (tags != null && tags.isNotEmpty) 'tags': tags,
+        if (feedback != null && feedback.isNotEmpty) 'feedback': feedback,
+      });
+
+      if (response.data['success'] != true) {
+        throw Exception(
+          response.data['message'] ?? 'Failed to rate ride',
+        );
+      }
+    } catch (e) {
+      print('RideService: Error rating ride - $e');
+      rethrow;
+    }
+  }
+
+  /// Update ride status (used by driver)
+  Future<Ride> updateRideStatus({
+    required int rideId,
+    required String status,
+  }) async {
+    try {
+      final response = await _apiService.patch(
+        '/rides/$rideId/status',
+        data: {'status': status},
+      );
+
+      if (response.data['success'] != true) {
+        throw Exception(
+          response.data['message'] ?? 'Failed to update ride status',
+        );
+      }
+
+      return Ride.fromJson(response.data['data'] as Map<String, dynamic>);
+    } catch (e) {
+      print('RideService: Error updating ride status - $e');
+      rethrow;
+    }
+  }
+}

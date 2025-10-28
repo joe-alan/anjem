@@ -18,6 +18,7 @@ class UserResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
+            'firebase_uid' => $this->firebase_uid, // Mobile expects this field
             'user_type' => $this->user_type,
             'is_active' => $this->is_active,
             'email_verified_at' => $this->email_verified_at?->toISOString(),
@@ -31,15 +32,27 @@ class UserResource extends JsonResource
                 function () {
                     return $this->driverProfile ? [
                         'id' => $this->driverProfile->id,
-                        'license_number' => $this->driverProfile->license_number,
+                        'license_number' => $this->driverProfile->driver_license_number,
+                        'vehicle_info' => [ // Mobile expects consolidated vehicle_info Map
+                            'type' => $this->driverProfile->vehicle_type,
+                            'make' => $this->driverProfile->vehicle_make,
+                            'model' => $this->driverProfile->vehicle_model,
+                            'year' => $this->driverProfile->vehicle_year,
+                            'color' => $this->driverProfile->vehicle_color,
+                            'plate' => $this->driverProfile->vehicle_plate,
+                        ],
+                        // Keep individual fields for backward compatibility
                         'vehicle_type' => $this->driverProfile->vehicle_type,
                         'vehicle_model' => $this->driverProfile->vehicle_model,
                         'vehicle_year' => $this->driverProfile->vehicle_year,
-                        'plate_number' => $this->driverProfile->plate_number,
+                        'plate_number' => $this->driverProfile->vehicle_plate,
                         'is_verified' => $this->driverProfile->is_verified,
-                        'is_available' => $this->driverProfile->is_available,
-                        'rating' => $this->driverProfile->rating,
+                        'is_available' => $this->driverProfile->status === 'online',
+                        'status' => $this->driverProfile->status,
+                        'rating' => (float) $this->driverProfile->rating_average,
                         'total_rides' => $this->driverProfile->total_rides,
+                        'created_at' => $this->driverProfile->created_at->toISOString(),
+                        'updated_at' => $this->driverProfile->updated_at->toISOString(),
                     ] : null;
                 }
             ),

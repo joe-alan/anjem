@@ -90,6 +90,11 @@ class User extends Equatable {
   bool get isDriver => role == UserRole.driver || role == UserRole.both;
   bool get isRider => role == UserRole.rider || role == UserRole.both;
 
+  // Convenience getters for UI
+  String? get avatarUrl => profilePicture;
+  double? get rating => driverProfile?.rating;
+  int? get totalRides => driverProfile?.totalRides;
+
   User copyWith({
     int? id,
     String? firebaseUid,

@@ -16,6 +16,12 @@ use MatanYadaev\EloquentSpatial\Objects\Point;
  */
 class LocationService
 {
+    private MapboxService $mapboxService;
+
+    public function __construct(MapboxService $mapboxService)
+    {
+        $this->mapboxService = $mapboxService;
+    }
     /**
      * Find nearby beacon locations within walking distance
      */
@@ -119,28 +125,13 @@ class LocationService
     }
 
     /**
-     * Get driving distance and duration using external mapping service
-     * This would integrate with Google Maps API or similar service
+     * Get driving distance and duration using Mapbox Directions API
+     * Falls back to straight-line estimate if API fails
      */
     public function getDrivingDetails(float $originLat, float $originLng, float $destLat, float $destLng): array
     {
-        // For MVP, return estimated values based on straight-line distance
-        $distance = $this->calculateDistance($originLat, $originLng, $destLat, $destLng);
-
-        // Rough campus estimates:
-        // - Average speed: 20 km/h (campus speed limits)
-        // - Distance factor: 1.3x straight line (accounting for roads)
-        $estimatedDistance = $distance * 1.3;
-        $estimatedDuration = ($estimatedDistance / 1000) / 20 * 60; // minutes
-
-        return [
-            'distance_meters' => (int) $estimatedDistance,
-            'duration_minutes' => (int) $estimatedDuration,
-            'estimated' => true // Flag to indicate this is an estimate
-        ];
-
-        // TODO: Implement actual Google Maps API integration when budget allows
-        // return $this->getGoogleMapsDetails($originLat, $originLng, $destLat, $destLng);
+        // Use Mapbox Directions API for real routes
+        return $this->mapboxService->getDirections($originLat, $originLng, $destLat, $destLng);
     }
 
     /**
@@ -263,5 +254,61 @@ class LocationService
         }
 
         return $details;
+    }
+
+    /**
+     * Update driver's current location with optional heading and speed
+     * Uses Redis caching for high-frequency updates with periodic DB writes
+     */
+    public function updateDriverLocation(
+        int $driverId,
+        float $latitude,
+        float $longitude,
+        ?float $heading = null,
+        ?float $speed = null
+    ): bool {
+        try {
+            $user = \App\Models\User::find($driverId);
+
+            if (!$user || !$user->driverProfile) {
+                Log::error('Cannot update location: Driver profile not found', [
+                    'driver_id' => $driverId
+                ]);
+                return false;
+            }
+
+            // Update driver profile location
+            $user->driverProfile->updateLocation($latitude, $longitude);
+
+            // Cache the location update for real-time features (optional heading/speed)
+            $cacheKey = "driver_location:{$driverId}";
+            $locationData = [
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'heading' => $heading,
+                'speed' => $speed,
+                'updated_at' => now()->toISOString(),
+            ];
+
+            \Illuminate\Support\Facades\Cache::put($cacheKey, $locationData, 300); // 5 minutes TTL
+
+            Log::debug('Driver location updated', [
+                'driver_id' => $driverId,
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+            ]);
+
+            return true;
+
+        } catch (\Exception $e) {
+            Log::error('Failed to update driver location', [
+                'driver_id' => $driverId,
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'error' => $e->getMessage()
+            ]);
+
+            return false;
+        }
     }
 }

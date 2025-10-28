@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'lat_lng.dart';
 
 enum DriverStatus { offline, online, busy }
 
@@ -103,6 +103,7 @@ class DriverProfile extends Equatable {
   String get vehicleModel => vehicleInfo['model'] as String? ?? '';
   String get vehicleColor => vehicleInfo['color'] as String? ?? '';
   String get vehiclePlate => vehicleInfo['plate'] as String? ?? '';
+  String get vehicleType => vehicleInfo['type'] as String? ?? '';
 
   DriverProfile copyWith({
     int? id,

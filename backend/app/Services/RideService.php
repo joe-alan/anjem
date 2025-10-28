@@ -419,31 +419,73 @@ class RideService
     }
 
     /**
+     * Get ride estimates by location IDs
+     */
+    public function getRideEstimates(int $pickupLocationId, int $destinationLocationId, int $passengerCount = 1): ?array
+    {
+        try {
+            $pickupLocation = Location::find($pickupLocationId);
+            $destinationLocation = Location::find($destinationLocationId);
+
+            if (!$pickupLocation || !$destinationLocation) {
+                return null;
+            }
+
+            return $this->calculateRideEstimates(
+                $pickupLocation->coordinates->latitude,
+                $pickupLocation->coordinates->longitude,
+                $destinationLocation->coordinates->latitude,
+                $destinationLocation->coordinates->longitude,
+                $passengerCount
+            );
+        } catch (\Exception $e) {
+            Log::error('Failed to get ride estimates', [
+                'pickup_location_id' => $pickupLocationId,
+                'destination_location_id' => $destinationLocationId,
+                'error' => $e->getMessage()
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
      * Calculate ride estimates (distance, duration, fare)
+     * Returns mobile-friendly field names with route geometry
      */
     public function calculateRideEstimates(float $pickupLat, float $pickupLng, float $destLat, float $destLng, int $passengerCount = 1): array
     {
-        // Get driving details
+        // Get driving details with route geometry
         $drivingDetails = $this->locationService->getDrivingDetails($pickupLat, $pickupLng, $destLat, $destLng);
 
         $distanceKm = $drivingDetails['distance_meters'] / 1000;
         $durationMinutes = $drivingDetails['duration_minutes'];
 
-        // Calculate fare using campus-specific pricing
-        $fareRp = $this->calculateFare($distanceKm, $durationMinutes, $passengerCount);
+        // Calculate fare breakdown using campus-specific pricing
+        $fareBreakdown = $this->calculateFareBreakdown($distanceKm, $durationMinutes, $passengerCount);
 
+        // Return mobile-friendly field names (camelCase)
         return [
+            'baseFare' => $fareBreakdown['base_fare'],
+            'distanceFare' => $fareBreakdown['distance_fare'],
+            'totalFare' => $fareBreakdown['total_fare'],
+            'estimatedDistance' => round($distanceKm, 2),
+            'estimatedDuration' => $durationMinutes,
+            'currency' => 'IDR',
+            'routeGeometry' => $drivingDetails['geometry'] ?? null, // GeoJSON for map display
+
+            // Keep old field names for backward compatibility (internal use)
             'distance_km' => round($distanceKm, 2),
             'duration_minutes' => $durationMinutes,
-            'fare_rp' => $fareRp,
+            'fare_rp' => $fareBreakdown['total_fare'],
             'estimated' => $drivingDetails['estimated'] ?? true,
         ];
     }
 
     /**
-     * Campus-specific fare calculation
+     * Campus-specific fare calculation with breakdown
      */
-    private function calculateFare(float $distanceKm, int $durationMinutes, int $passengerCount = 1): int
+    private function calculateFareBreakdown(float $distanceKm, int $durationMinutes, int $passengerCount = 1): array
     {
         // Campus fare structure:
         // - Base fare: Rp 3,000
@@ -465,7 +507,22 @@ class RideService
 
         // Minimum fare: Rp 5,000
         // Maximum fare: Rp 50,000 (for campus rides)
-        return max(5000, min(50000, (int) round($totalFare)));
+        $finalFare = max(5000, min(50000, (int) round($totalFare)));
+
+        return [
+            'base_fare' => (int) $baseFare,
+            'distance_fare' => (int) round($distanceFare + $timeFare),
+            'total_fare' => $finalFare,
+        ];
+    }
+
+    /**
+     * Campus-specific fare calculation (legacy method for backward compatibility)
+     */
+    private function calculateFare(float $distanceKm, int $durationMinutes, int $passengerCount = 1): int
+    {
+        $breakdown = $this->calculateFareBreakdown($distanceKm, $durationMinutes, $passengerCount);
+        return $breakdown['total_fare'];
     }
 
     /**
@@ -598,5 +655,66 @@ class RideService
                 'average_distance' => Ride::completed()->avg('actual_distance_km') ?? 0,
             ],
         ];
+    }
+
+    /**
+     * Rate a ride (rider rates driver or driver rates rider)
+     */
+    public function rateRide(
+        int $rideId,
+        int $raterId,
+        int $ratedUserId,
+        int $rating,
+        ?string $comment = null,
+        array $tags = []
+    ): ?\App\Models\Rating {
+        try {
+            $ride = Ride::find($rideId);
+
+            if (!$ride || $ride->status !== 'completed') {
+                return null;
+            }
+
+            // Verify the rater is part of this ride
+            if (!in_array($raterId, [$ride->rider_id, $ride->driver_id])) {
+                return null;
+            }
+
+            // Determine the type based on who is being rated
+            $type = $ratedUserId === $ride->driver_id ? 'driver' : 'rider';
+
+            // Create the rating with type field for model listeners/scopes
+            $ratingRecord = \App\Models\Rating::create([
+                'ride_id' => $rideId,
+                'rater_id' => $raterId,
+                'rated_user_id' => $ratedUserId,
+                'type' => $type,
+                'rating' => $rating,
+                'comment' => $comment,
+                'tags' => $tags,
+            ]);
+
+            // Note: Driver rating average is updated automatically by Rating model listener
+            // when type === 'driver' via the updateCachedRating() method
+
+            Log::info('Ride rated', [
+                'ride_id' => $rideId,
+                'rater_id' => $raterId,
+                'rated_user_id' => $ratedUserId,
+                'type' => $type,
+                'rating' => $rating,
+            ]);
+
+            return $ratingRecord;
+
+        } catch (\Exception $e) {
+            Log::error('Failed to rate ride', [
+                'ride_id' => $rideId,
+                'rater_id' => $raterId,
+                'error' => $e->getMessage()
+            ]);
+
+            return null;
+        }
     }
 }

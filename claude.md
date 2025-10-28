@@ -7,8 +7,8 @@ Building a campus ride-sharing platform with Flutter mobile apps (rider/driver v
 ## Active Development Phase
 
 **Current Sprint**: Flutter Mobile Implementation (CRITICAL PRIORITY)
-**Status**: Backend 83% complete (Phase 5 done) - Mobile 0% complete - 15 days to MVP
-**Last Updated**: October 1, 2025
+**Status**: Backend 83% complete (Phase 5 done) - Mobile Phase 1 complete + Driver KYC - 13 days to MVP
+**Last Updated**: October 3, 2025
 
 ### Backend Development Phases (Structured Approach)
 
@@ -47,6 +47,14 @@ Building a campus ride-sharing platform with Flutter mobile apps (rider/driver v
 ├── Event classes for all real-time features ✅
 └── Comprehensive real-time testing ✅
 
+**Phase 0: Mapbox Integration & Place Search (1.5 hours) - COMPLETED ✅**
+├── Full-text search index for locations table with Indonesian language support ✅
+├── PlaceSearchService: Local DB + Mapbox Search API fallback ✅
+├── PlaceController with /api/v1/places/search endpoint ✅
+├── EssentialLocationsSeeder: 27 campus locations (12 beacons + 15 destinations) ✅
+├── Mapbox configuration in services.php and .env ✅
+└── API documentation updated with place search endpoint ✅
+
 **Phase 6: Backend Testing & Polish (1-2 hours) - PENDING**
 ├── Feature tests for critical paths
 ├── Error handling improvements
@@ -56,7 +64,7 @@ Building a campus ride-sharing platform with Flutter mobile apps (rider/driver v
 
 **See `docs/FLUTTER_IMPLEMENTATION_GUIDE.md` for detailed implementation plan:**
 
-├── Phase 1: Core Setup & Authentication (8 hours) - ✅ COMPLETED
+├── Phase 1: Core Setup & Authentication + Driver KYC (8 hours) - ✅ COMPLETED
 ├── Phase 2: Rider App Core Flow (10 hours) - NEXT
 ├── Phase 3: Driver App Core Flow (10 hours)
 ├── Phase 4: Maps & Navigation (8 hours)
@@ -145,6 +153,7 @@ anjem/
 - [x] Implement Firebase authentication system
 - [x] Migrate from MySQL to PostgreSQL
 - [x] Add OAuth + Sanctum integration
+- [x] Add driver KYC verification with email validation
 - [ ] Configure DigitalOcean infrastructure
 - [ ] Setup CI/CD pipelines
 - [x] Add real-time WebSocket communication ✅
@@ -169,7 +178,8 @@ The PostgreSQL database is fully created with PostGIS spatial support and includ
 **Core Tables:**
 
 - `users` - Unified user model (riders + drivers)
-- `driver_profiles` - Driver-specific info with spatial location tracking
+- `driver_profiles` - Driver-specific info with spatial location tracking + KYC fields
+- `verification_codes` - Email verification codes for KYC (6-digit OTP, 10-min expiry)
 - `locations` - Beacon pickup points + cached P2P destinations (PostGIS POINT geometry)
 - `ride_requests` - Ride booking requests before matching
 - `rides` - Actual completed trips with status tracking
@@ -217,7 +227,15 @@ The PostgreSQL database is fully created with PostGIS spatial support and includ
 
 - PostGIS spatial queries for nearby beacon discovery
 - P2P destination caching and deduplication
-- Google Maps integration for distance/duration estimates
+- Mapbox Directions API integration for distance/duration estimates (optional for MVP)
+
+**PlaceSearchService** (`app/Services/PlaceSearchService.php`) - NEW ✅
+
+- Full-text search on local `locations` table (PostgreSQL + Indonesian language)
+- PostGIS proximity filtering with `ST_DWithin()`
+- Mapbox Search API fallback when < 5 local results
+- Auto-caching of API results back to database
+- Usage count tracking for popularity ranking
 
 ### Redis Caching Strategy
 
@@ -252,3 +270,6 @@ The PostgreSQL database is fully created with PostGIS spatial support and includ
 | [26/09] | Email-based authentication         | More reliable than SMS, better UX     |
 | [29/09] | Comprehensive edge case testing    | Security-first approach, 48 tests     |
 | [29/09] | Token-based authorization          | Sanctum abilities for role separation |
+| [03/10] | Driver KYC with email verification | Auto-approve on email confirm, domain-restricted |
+| [11/10] | **~~Google Maps~~ Mapbox Platform** | **$0 budget constraint, 10x cheaper, 100k free map loads/month** |
+| [11/10] | **Local DB + API fallback search** | **80% searches hit DB (free), Mapbox fallback for uncommon queries** |

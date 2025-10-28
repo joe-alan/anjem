@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'lat_lng.dart';
 
 enum LocationType { beacon, p2p }
 
