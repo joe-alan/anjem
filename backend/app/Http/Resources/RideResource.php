@@ -47,10 +47,12 @@ class RideResource extends JsonResource
                 $this->status === 'completed',
                 function () use ($request) {
                     $user = $request->user();
-                    if (!$user) return false;
+                    if (! $user) {
+                        return false;
+                    }
 
                     // Check if user already rated this ride
-                    return !$this->ratings()
+                    return ! $this->ratings()
                         ->where('rater_id', $user->id)
                         ->exists();
                 }

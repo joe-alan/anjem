@@ -1,11 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
-import 'dart:async';
 import '../../core/config/app_config.dart';
 import '../../core/models/lat_lng.dart';
 import '../../core/models/place_search_result.dart';
-import '../../core/providers/beacons_provider.dart';
 import '../../core/providers/place_search_provider.dart';
 import '../../core/providers/user_location_provider.dart';
 import '../../core/providers/ride_request_provider.dart';

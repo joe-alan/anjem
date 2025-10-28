@@ -31,7 +31,7 @@ class NotificationService
     public function sendRideMatchedToRider(Ride $ride): bool
     {
         $rider = $ride->rider;
-        if (!$rider || !$rider->fcm_token) {
+        if (! $rider || ! $rider->fcm_token) {
             return false;
         }
 
@@ -56,13 +56,13 @@ class NotificationService
     public function sendRideRequestToDriver(Ride $ride): bool
     {
         $driver = $ride->driver;
-        if (!$driver || !$driver->fcm_token) {
+        if (! $driver || ! $driver->fcm_token) {
             return false;
         }
 
         $message = [
             'title' => 'New Ride Request',
-            'body' => "Ride to {$ride->destinationLocation->name}. Fare: Rp " . number_format($ride->estimated_fare_rp),
+            'body' => "Ride to {$ride->destinationLocation->name}. Fare: Rp ".number_format($ride->estimated_fare_rp),
             'data' => [
                 'type' => 'ride_request',
                 'ride_id' => (string) $ride->id,
@@ -84,7 +84,7 @@ class NotificationService
     public function sendRideAcceptedToRider(Ride $ride): bool
     {
         $rider = $ride->rider;
-        if (!$rider || !$rider->fcm_token) {
+        if (! $rider || ! $rider->fcm_token) {
             return false;
         }
 
@@ -109,7 +109,7 @@ class NotificationService
     public function sendDriverArrivedToRider(Ride $ride): bool
     {
         $rider = $ride->rider;
-        if (!$rider || !$rider->fcm_token) {
+        if (! $rider || ! $rider->fcm_token) {
             return false;
         }
 
@@ -133,7 +133,7 @@ class NotificationService
     public function sendRideStartedToRider(Ride $ride): bool
     {
         $rider = $ride->rider;
-        if (!$rider || !$rider->fcm_token) {
+        if (! $rider || ! $rider->fcm_token) {
             return false;
         }
 
@@ -179,7 +179,7 @@ class NotificationService
         if ($ride->driver && $ride->driver->fcm_token) {
             $driverMessage = [
                 'title' => 'Ride Completed',
-                'body' => "Ride completed! You earned Rp " . number_format($ride->finalFare) . ". Please rate your rider!",
+                'body' => 'Ride completed! You earned Rp '.number_format($ride->finalFare).'. Please rate your rider!',
                 'data' => [
                     'type' => 'ride_completed',
                     'ride_id' => (string) $ride->id,
@@ -196,7 +196,7 @@ class NotificationService
     /**
      * Send ride cancelled notification
      */
-    public function sendRideCancelledNotification(Ride $ride, int $cancelledByUserId, string $reason = null): array
+    public function sendRideCancelledNotification(Ride $ride, int $cancelledByUserId, ?string $reason = null): array
     {
         $results = [
             'rider' => false,
@@ -210,7 +210,7 @@ class NotificationService
         if ($isCancelledByRider && $ride->driver && $ride->driver->fcm_token) {
             $message = [
                 'title' => 'Ride Cancelled',
-                'body' => 'The rider has cancelled the ride.' . ($reason ? " Reason: {$reason}" : ''),
+                'body' => 'The rider has cancelled the ride.'.($reason ? " Reason: {$reason}" : ''),
                 'data' => [
                     'type' => 'ride_cancelled',
                     'ride_id' => (string) $ride->id,
@@ -219,10 +219,10 @@ class NotificationService
                 ],
             ];
             $results['driver'] = $this->sendNotification($ride->driver->fcm_token, $message);
-        } elseif (!$isCancelledByRider && $ride->rider && $ride->rider->fcm_token) {
+        } elseif (! $isCancelledByRider && $ride->rider && $ride->rider->fcm_token) {
             $message = [
                 'title' => 'Ride Cancelled',
-                'body' => 'Your driver has cancelled the ride.' . ($reason ? " Reason: {$reason}" : ''),
+                'body' => 'Your driver has cancelled the ride.'.($reason ? " Reason: {$reason}" : ''),
                 'data' => [
                     'type' => 'ride_cancelled',
                     'ride_id' => (string) $ride->id,
@@ -241,7 +241,7 @@ class NotificationService
      */
     public function sendQueuePositionUpdate(User $driver, array $queueStatus): bool
     {
-        if (!$driver->fcm_token) {
+        if (! $driver->fcm_token) {
             return false;
         }
 
@@ -268,7 +268,7 @@ class NotificationService
     public function sendRideRequestTimeoutToRider(RideRequest $rideRequest): bool
     {
         $rider = $rideRequest->rider;
-        if (!$rider || !$rider->fcm_token) {
+        if (! $rider || ! $rider->fcm_token) {
             return false;
         }
 
@@ -315,7 +315,7 @@ class NotificationService
         Log::info('Announcement sent', [
             'title' => $title,
             'total_users' => count($users),
-            'successful_sends' => $successCount
+            'successful_sends' => $successCount,
         ]);
 
         return $successCount;
@@ -326,7 +326,7 @@ class NotificationService
      */
     public function sendToUser(User $user, string $title, string $body, array $data = []): bool
     {
-        if (!$user->fcm_token) {
+        if (! $user->fcm_token) {
             return false;
         }
 
@@ -346,7 +346,7 @@ class NotificationService
     {
         try {
             $user = User::find($userId);
-            if (!$user) {
+            if (! $user) {
                 return false;
             }
 
@@ -354,7 +354,7 @@ class NotificationService
 
             Log::info('FCM token updated', [
                 'user_id' => $userId,
-                'token_provided' => !empty($token)
+                'token_provided' => ! empty($token),
             ]);
 
             return true;
@@ -362,7 +362,7 @@ class NotificationService
         } catch (\Exception $e) {
             Log::error('Failed to update FCM token', [
                 'user_id' => $userId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return false;
@@ -388,7 +388,7 @@ class NotificationService
 
             Log::info('Notification sent successfully', [
                 'title' => $messageData['title'],
-                'type' => $messageData['data']['type'] ?? 'unknown'
+                'type' => $messageData['data']['type'] ?? 'unknown',
             ]);
 
             return true;
@@ -397,7 +397,7 @@ class NotificationService
             Log::error('Failed to send notification', [
                 'title' => $messageData['title'] ?? 'Unknown',
                 'error' => $e->getMessage(),
-                'token' => substr($fcmToken, 0, 20) . '...' // Log partial token for debugging
+                'token' => substr($fcmToken, 0, 20).'...', // Log partial token for debugging
             ]);
 
             return false;
@@ -410,7 +410,7 @@ class NotificationService
     public function isValidToken(string $token): bool
     {
         // Basic FCM token validation
-        return !empty($token) && strlen($token) > 50 && preg_match('/^[a-zA-Z0-9_-]+$/', $token);
+        return ! empty($token) && strlen($token) > 50 && preg_match('/^[a-zA-Z0-9_-]+$/', $token);
     }
 
     /**

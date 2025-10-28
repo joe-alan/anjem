@@ -95,6 +95,7 @@ Route::prefix('v1')->group(function () {
         // Locations/Beacons (read-only for now)
         Route::get('locations', function () {
             $locations = \App\Models\Location::active()->get();
+
             return response()->json([
                 'success' => true,
                 // Use resolve() to flatten the resource collection and avoid double-nesting

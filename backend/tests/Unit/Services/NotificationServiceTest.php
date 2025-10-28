@@ -10,7 +10,6 @@ use App\Services\NotificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Kreait\Firebase\Contract\Messaging;
 use Kreait\Firebase\Exception\Messaging\InvalidMessage;
-use Kreait\Firebase\Messaging\CloudMessage;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 use Mockery;
 use Tests\TestCase;
@@ -26,6 +25,7 @@ class NotificationServiceTest extends TestCase
     use RefreshDatabase;
 
     private NotificationService $notificationService;
+
     private $mockMessaging;
 
     protected function setUp(): void
@@ -559,11 +559,11 @@ class NotificationServiceTest extends TestCase
         $this->mockMessaging
             ->shouldReceive('send')
             ->times(3)
-            ->andReturnUsing(function() {
+            ->andReturnUsing(function () {
                 static $callCount = 0;
                 $callCount++;
                 if ($callCount <= 2) {
-                    return ['name' => 'projects/test/messages/' . $callCount];
+                    return ['name' => 'projects/test/messages/'.$callCount];
                 }
                 throw new \Exception('FCM error');
             });

@@ -198,7 +198,7 @@ class RateLimitingEdgeCasesTest extends TestCase
 
         for ($i = 0; $i < 10; $i++) {
             $response = $this->withHeaders([
-                'Authorization' => 'Bearer ' . $invalidToken,
+                'Authorization' => 'Bearer '.$invalidToken,
             ])->getJson('/api/v1/user');
 
             $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->status());
@@ -208,7 +208,7 @@ class RateLimitingEdgeCasesTest extends TestCase
     protected function withAuthToken(string $token)
     {
         return $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token,
+            'Authorization' => 'Bearer '.$token,
             'Accept' => 'application/json',
         ]);
     }

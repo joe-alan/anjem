@@ -2,17 +2,16 @@
 
 namespace Tests\Unit\Services;
 
+use App\Models\DriverProfile;
 use App\Models\DriverQueue;
 use App\Models\Location;
 use App\Models\Ride;
 use App\Models\RideRequest;
 use App\Models\User;
-use App\Models\DriverProfile;
 use App\Services\LocationService;
 use App\Services\QueueService;
 use App\Services\RideService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 use Mockery;
 use Tests\TestCase;
@@ -22,7 +21,9 @@ class RideServiceEdgeCasesTest extends TestCase
     use RefreshDatabase;
 
     private RideService $rideService;
+
     private $mockLocationService;
+
     private $mockQueueService;
 
     protected function setUp(): void

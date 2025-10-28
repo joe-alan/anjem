@@ -22,6 +22,7 @@ class LocationService
     {
         $this->mapboxService = $mapboxService;
     }
+
     /**
      * Find nearby beacon locations within walking distance
      */
@@ -34,10 +35,10 @@ class LocationService
                 'latitude' => $latitude,
                 'longitude' => $longitude,
                 'radius' => $radiusMeters,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
-            return new Collection();
+            return new Collection;
         }
     }
 
@@ -54,7 +55,7 @@ class LocationService
                 'address' => $address,
                 'latitude' => $latitude,
                 'longitude' => $longitude,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return null;
@@ -208,7 +209,7 @@ class LocationService
             return [
                 'beacon' => $beacon,
                 'score' => $score,
-                'distance' => $distance
+                'distance' => $distance,
             ];
         })->sortBy('score');
 
@@ -233,7 +234,7 @@ class LocationService
     {
         $location = Location::find($locationId);
 
-        if (!$location) {
+        if (! $location) {
             return [];
         }
 
@@ -270,10 +271,11 @@ class LocationService
         try {
             $user = \App\Models\User::find($driverId);
 
-            if (!$user || !$user->driverProfile) {
+            if (! $user || ! $user->driverProfile) {
                 Log::error('Cannot update location: Driver profile not found', [
-                    'driver_id' => $driverId
+                    'driver_id' => $driverId,
                 ]);
+
                 return false;
             }
 
@@ -305,7 +307,7 @@ class LocationService
                 'driver_id' => $driverId,
                 'latitude' => $latitude,
                 'longitude' => $longitude,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return false;

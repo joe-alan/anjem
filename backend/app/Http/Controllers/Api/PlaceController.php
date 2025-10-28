@@ -22,9 +22,6 @@ class PlaceController extends Controller
 
     /**
      * Search for places (beacons + P2P destinations)
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function search(Request $request): JsonResponse
     {
