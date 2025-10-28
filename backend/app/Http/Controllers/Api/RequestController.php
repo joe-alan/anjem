@@ -26,7 +26,7 @@ class RequestController extends Controller
         $user = $request->user();
 
         // Only riders can view their ride requests
-        if (!$user->tokenCan('rider:request-ride')) {
+        if (! $user->tokenCan('rider:request-ride')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized: Rider permissions required',
@@ -42,15 +42,15 @@ class RequestController extends Controller
         }
 
         // Show only active requests by default
-        if (!$request->has('include_expired')) {
+        if (! $request->has('include_expired')) {
             $query->where(function ($q) {
                 $q->whereNull('expires_at')
-                  ->orWhere('expires_at', '>', now());
+                    ->orWhere('expires_at', '>', now());
             });
         }
 
         $requests = $query->orderBy('created_at', 'desc')
-                         ->paginate(20);
+            ->paginate(20);
 
         return response()->json([
             'success' => true,
@@ -96,7 +96,7 @@ class RequestController extends Controller
             'special_requests' => $validatedData['special_requests'] ?? null,
         ]);
 
-        if (!$rideRequest) {
+        if (! $rideRequest) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unable to create ride request',
@@ -151,7 +151,7 @@ class RequestController extends Controller
         }
 
         // Check token permissions
-        if (!$user->tokenCan('rider:cancel-ride')) {
+        if (! $user->tokenCan('rider:cancel-ride')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized: Cancel ride permissions required',
@@ -159,7 +159,7 @@ class RequestController extends Controller
         }
 
         // Check if request can be cancelled
-        if (!in_array($ride_request->status, ['pending', 'matched'])) {
+        if (! in_array($ride_request->status, ['pending', 'matched'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Cannot cancel ride request in current status',
@@ -169,7 +169,7 @@ class RequestController extends Controller
 
         $success = $this->rideService->cancelRideRequest($ride_request->id, $user->id);
 
-        if (!$success) {
+        if (! $success) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unable to cancel ride request',
@@ -206,7 +206,7 @@ class RequestController extends Controller
         $user = $request->user();
 
         // Check rider permissions
-        if (!$user->tokenCan('rider:request-ride')) {
+        if (! $user->tokenCan('rider:request-ride')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized: Rider permissions required',
@@ -232,7 +232,7 @@ class RequestController extends Controller
             $request->passenger_count
         );
 
-        if (!$estimates) {
+        if (! $estimates) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unable to calculate estimates',

@@ -39,7 +39,7 @@ class RideController extends Controller
             // For 'both' user type, show all rides for this user
             $query->where(function ($q) use ($user) {
                 $q->where('rider_id', $user->id)
-                  ->orWhere('driver_id', $user->id);
+                    ->orWhere('driver_id', $user->id);
             });
         }
 
@@ -49,7 +49,7 @@ class RideController extends Controller
         }
 
         $rides = $query->orderBy('created_at', 'desc')
-                      ->paginate(20);
+            ->paginate(20);
 
         return response()->json([
             'success' => true,
@@ -94,7 +94,7 @@ class RideController extends Controller
         $driver = $request->user();
 
         // Validate driver permissions
-        if (!$driver->tokenCan('driver:accept-ride')) {
+        if (! $driver->tokenCan('driver:accept-ride')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized: Driver permissions required',
@@ -103,7 +103,7 @@ class RideController extends Controller
 
         $ride = $this->rideService->acceptRideRequest($rideRequest->id, $driver->id);
 
-        if (!$ride) {
+        if (! $ride) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unable to accept this ride request',
@@ -168,7 +168,7 @@ class RideController extends Controller
                         'actual_distance_km',
                         'actual_duration_minutes',
                         'actual_fare_rp',
-                        'driver_notes'
+                        'driver_notes',
                     ]);
 
                     $success = $this->rideService->completeRide($ride->id, $user->id, $completionData);
@@ -202,7 +202,7 @@ class RideController extends Controller
                 ], 400);
         }
 
-        if (!$success) {
+        if (! $success) {
             return response()->json([
                 'success' => false,
                 'message' => $message,
@@ -267,7 +267,7 @@ class RideController extends Controller
             $request->tags ?? []
         );
 
-        if (!$rating) {
+        if (! $rating) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unable to submit rating',

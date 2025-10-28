@@ -12,8 +12,8 @@ use App\Models\User;
 use App\Services\QueueService;
 use App\Services\RideService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 use Mockery;
@@ -27,6 +27,7 @@ class RealTimeDataIntegrityTest extends TestCase
     use RefreshDatabase;
 
     private $mockQueueService;
+
     private $mockRideService;
 
     protected function setUp(): void
@@ -236,7 +237,7 @@ class RealTimeDataIntegrityTest extends TestCase
         $statusProgression = [
             'accepted',
             'in_progress',
-            'completed'
+            'completed',
         ];
 
         $timestamps = [];
@@ -337,7 +338,7 @@ class RealTimeDataIntegrityTest extends TestCase
 
         // Memory increase should be reasonable (less than 10MB for 1000 events)
         $this->assertLessThan(10 * 1024 * 1024, $memoryIncrease,
-            'Memory usage increased too much: ' . ($memoryIncrease / 1024 / 1024) . 'MB');
+            'Memory usage increased too much: '.($memoryIncrease / 1024 / 1024).'MB');
     }
 
     /**

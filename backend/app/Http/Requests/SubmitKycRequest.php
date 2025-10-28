@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use App\Services\KycVerificationService;
 
 class SubmitKycRequest extends FormRequest
 {
@@ -31,8 +30,8 @@ class SubmitKycRequest extends FormRequest
                 'email',
                 'max:255',
                 function ($attribute, $value, $fail) use ($allowedDomain) {
-                    if (!str_ends_with($value, '@' . $allowedDomain)) {
-                        $fail('The student email must be from ' . $allowedDomain);
+                    if (! str_ends_with($value, '@'.$allowedDomain)) {
+                        $fail('The student email must be from '.$allowedDomain);
                     }
                 },
             ],

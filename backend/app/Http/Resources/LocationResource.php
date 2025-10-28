@@ -23,7 +23,7 @@ class LocationResource extends JsonResource
             'beacon_capacity' => $this->when($this->is_beacon, $this->beacon_capacity),
             'queue_count' => $this->when($this->is_beacon, $this->current_queue_size), // Mobile-friendly field name
             'current_queue_size' => $this->when($this->is_beacon, $this->current_queue_size), // Keep for backward compatibility
-            'has_capacity' => $this->when($this->is_beacon, function() {
+            'has_capacity' => $this->when($this->is_beacon, function () {
                 return $this->hasCapacity();
             }),
             'coordinates' => [

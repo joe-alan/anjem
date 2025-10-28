@@ -124,7 +124,7 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
                         Container(
                           padding: const EdgeInsets.all(16.0),
                           decoration: BoxDecoration(
-                            color: config.primaryColor.withValues(alpha: 0.1),
+                            color: config.primaryColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Column(

@@ -5,7 +5,6 @@ namespace Tests\Unit\Services;
 use App\Models\Location;
 use App\Services\LocationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Log;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 use Tests\TestCase;
 
@@ -18,7 +17,7 @@ class LocationServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->locationService = new LocationService();
+        $this->locationService = new LocationService;
     }
 
     /**

@@ -2,7 +2,6 @@
 
 namespace Tests\Unit\Services;
 
-use App\Models\DriverQueue;
 use App\Models\Location;
 use App\Models\Ride;
 use App\Models\RideRequest;
@@ -11,9 +10,6 @@ use App\Services\LocationService;
 use App\Services\QueueService;
 use App\Services\RideService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 use Tests\TestCase;
 
@@ -22,14 +18,16 @@ class RideServiceTest extends TestCase
     use RefreshDatabase;
 
     private RideService $rideService;
+
     private LocationService $locationService;
+
     private QueueService $queueService;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->locationService = new LocationService();
-        $this->queueService = new QueueService();
+        $this->locationService = new LocationService;
+        $this->queueService = new QueueService;
         $this->rideService = new RideService($this->locationService, $this->queueService);
     }
 
@@ -744,6 +742,7 @@ class RideServiceTest extends TestCase
             'status' => 'accepted',
             'driver_accepted_at' => now(),
         ]);
+
         return $ride;
     }
 
@@ -754,6 +753,7 @@ class RideServiceTest extends TestCase
             'status' => 'in_progress',
             'pickup_time' => now(),
         ]);
+
         return $ride;
     }
 
@@ -765,6 +765,7 @@ class RideServiceTest extends TestCase
             'dropoff_time' => now(),
             'actual_fare_rp' => 8000,
         ]);
+
         return $ride;
     }
 
@@ -772,6 +773,7 @@ class RideServiceTest extends TestCase
     {
         $ride = $this->createAcceptedRide($overrides);
         $ride->update(['status' => 'cancelled']);
+
         return $ride;
     }
 }

@@ -188,7 +188,7 @@ class AuthController extends Controller
             'locations:read',
         ];
 
-        $roleAbilities = match($user->user_type) {
+        $roleAbilities = match ($user->user_type) {
             'rider' => [
                 'rider:request-ride',
                 'rider:cancel-ride',

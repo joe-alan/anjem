@@ -8,7 +8,6 @@ use App\Models\User;
 use App\Services\QueueService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 use Tests\TestCase;
 
@@ -21,7 +20,7 @@ class QueueServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->queueService = new QueueService();
+        $this->queueService = new QueueService;
     }
 
     /**

@@ -6,7 +6,6 @@ use App\Models\Location;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 
 /**
@@ -28,11 +27,11 @@ class PlaceSearchService
     /**
      * Search for places using local database + Mapbox API fallback
      *
-     * @param string $query Search query string
-     * @param float|null $latitude User's latitude for proximity sorting
-     * @param float|null $longitude User's longitude for proximity sorting
-     * @param float $radiusKm Search radius in kilometers
-     * @param int $limit Maximum number of results
+     * @param  string  $query  Search query string
+     * @param  float|null  $latitude  User's latitude for proximity sorting
+     * @param  float|null  $longitude  User's longitude for proximity sorting
+     * @param  float  $radiusKm  Search radius in kilometers
+     * @param  int  $limit  Maximum number of results
      * @return array Search results with metadata
      */
     public function search(
@@ -116,10 +115,10 @@ class PlaceSearchService
         // }
 
         // Apply search only if query is not empty
-        if (!empty($query)) {
+        if (! empty($query)) {
             // Use hybrid approach: full-text search OR partial ILIKE matching
             // This allows "kanti" to match "kantin"
-            $searchPattern = '%' . $query . '%';
+            $searchPattern = '%'.$query.'%';
 
             $queryBuilder->where(function ($q) use ($query, $searchPattern) {
                 // Full-text search for complete words (more accurate)
@@ -128,9 +127,9 @@ class PlaceSearchService
                     [$query]
                 )
                 // OR partial match using ILIKE (case-insensitive LIKE)
-                ->orWhereRaw('LOWER(name) LIKE LOWER(?)', [$searchPattern])
-                ->orWhereRaw('LOWER(address) LIKE LOWER(?)', [$searchPattern])
-                ->orWhereRaw('LOWER(description) LIKE LOWER(?)', [$searchPattern]);
+                    ->orWhereRaw('LOWER(name) LIKE LOWER(?)', [$searchPattern])
+                    ->orWhereRaw('LOWER(address) LIKE LOWER(?)', [$searchPattern])
+                    ->orWhereRaw('LOWER(description) LIKE LOWER(?)', [$searchPattern]);
             });
         }
 
@@ -155,7 +154,7 @@ class PlaceSearchService
     {
         $publicToken = config('services.mapbox.public_token');
 
-        if (!$publicToken) {
+        if (! $publicToken) {
             throw new \Exception('Mapbox public token not configured');
         }
 
@@ -168,7 +167,7 @@ class PlaceSearchService
             'access_token' => $publicToken,
         ]);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             throw new \Exception("Mapbox API error: {$response->status()}");
         }
 
@@ -205,21 +204,21 @@ class PlaceSearchService
             'access_token' => $token,
         ]);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             return null;
         }
 
         $data = $response->json();
         $feature = $data['features'][0] ?? null;
 
-        if (!$feature) {
+        if (! $feature) {
             return null;
         }
 
         $coordinates = $feature['geometry']['coordinates'] ?? null;
         $properties = $feature['properties'] ?? [];
 
-        if (!$coordinates || count($coordinates) < 2) {
+        if (! $coordinates || count($coordinates) < 2) {
             return null;
         }
 
@@ -252,6 +251,7 @@ class PlaceSearchService
             if ($existing) {
                 // Update usage count if exists
                 $existing->increment('usage_count');
+
                 return $existing;
             }
 
@@ -276,6 +276,7 @@ class PlaceSearchService
                 'result' => $result,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -287,7 +288,7 @@ class PlaceSearchService
     {
         $ids = $locations->pluck('id')->toArray();
 
-        if (!empty($ids)) {
+        if (! empty($ids)) {
             Location::whereIn('id', $ids)->increment('usage_count');
         }
     }

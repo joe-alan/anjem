@@ -64,12 +64,12 @@ class CreateRideRequestRequest extends FormRequest
 
         // Map mobile field names to internal field names if they exist
         // Prefer the new names if both are present
-        if (isset($validated['pickup_beacon_id']) && !isset($validated['pickup_location_id'])) {
+        if (isset($validated['pickup_beacon_id']) && ! isset($validated['pickup_location_id'])) {
             $validated['pickup_location_id'] = $validated['pickup_beacon_id'];
         }
         unset($validated['pickup_beacon_id']);
 
-        if (isset($validated['destination_beacon_id']) && !isset($validated['destination_location_id'])) {
+        if (isset($validated['destination_beacon_id']) && ! isset($validated['destination_location_id'])) {
             $validated['destination_location_id'] = $validated['destination_beacon_id'];
         }
         unset($validated['destination_beacon_id']);

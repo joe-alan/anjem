@@ -186,7 +186,7 @@ class EssentialLocationsSeeder extends Seeder
             ]);
         }
 
-        $this->command->info('✓ Seeded ' . count($beacons) . ' beacon locations');
+        $this->command->info('✓ Seeded '.count($beacons).' beacon locations');
     }
 
     /**
@@ -346,6 +346,6 @@ class EssentialLocationsSeeder extends Seeder
             ]);
         }
 
-        $this->command->info('✓ Seeded ' . count($destinations) . ' destination locations');
+        $this->command->info('✓ Seeded '.count($destinations).' destination locations');
     }
 }

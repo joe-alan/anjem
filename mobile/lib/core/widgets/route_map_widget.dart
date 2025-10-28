@@ -173,7 +173,7 @@ class _RouteMapWidgetState extends State<RouteMapWidget> {
       final polyline = await _polylineAnnotationManager!.create(
         PolylineAnnotationOptions(
           geometry: LineString(coordinates: points),
-          lineColor: Colors.blue.toARGB32(),
+          lineColor: Colors.blue.value, // ARGB integer value
           lineWidth: 5.0,
         ),
       );

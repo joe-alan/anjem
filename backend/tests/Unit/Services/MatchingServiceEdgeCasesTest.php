@@ -2,10 +2,10 @@
 
 namespace Tests\Unit\Services;
 
+use App\Models\DriverProfile;
 use App\Models\Location;
 use App\Models\RideRequest;
 use App\Models\User;
-use App\Models\DriverProfile;
 use App\Services\MatchingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use MatanYadaev\EloquentSpatial\Objects\Point;
@@ -20,7 +20,7 @@ class MatchingServiceEdgeCasesTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->matchingService = new MatchingService();
+        $this->matchingService = new MatchingService;
     }
 
     public function test_find_best_driver_with_no_available_drivers()

@@ -14,13 +14,14 @@ use Illuminate\Support\Facades\Log;
 class MapboxService
 {
     private string $accessToken;
+
     private string $baseUrl = 'https://api.mapbox.com';
 
     public function __construct()
     {
         $this->accessToken = config('services.mapbox.public_token');
 
-        if (!$this->accessToken) {
+        if (! $this->accessToken) {
             throw new \Exception('Mapbox access token not configured');
         }
     }
@@ -29,10 +30,10 @@ class MapboxService
      * Get driving directions between two points
      * Uses Mapbox Directions API with driving-traffic profile
      *
-     * @param float $originLat Origin latitude
-     * @param float $originLng Origin longitude
-     * @param float $destLat Destination latitude
-     * @param float $destLng Destination longitude
+     * @param  float  $originLat  Origin latitude
+     * @param  float  $originLng  Origin longitude
+     * @param  float  $destLat  Destination latitude
+     * @param  float  $destLng  Destination longitude
      * @return array ['distance_meters' => int, 'duration_minutes' => int, 'geometry' => string, 'estimated' => bool]
      */
     public function getDirections(float $originLat, float $originLng, float $destLat, float $destLng): array
@@ -50,7 +51,7 @@ class MapboxService
                 // Don't include 'steps' or 'alternatives' - omit for defaults
             ]);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::error('Mapbox Directions API error', [
                     'status' => $response->status(),
                     'response' => $response->body(),

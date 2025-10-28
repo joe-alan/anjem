@@ -20,6 +20,7 @@ class DriverControllerTest extends TestCase
     use RefreshDatabase;
 
     private $mockQueueService;
+
     private $mockLocationService;
 
     protected function setUp(): void
@@ -63,16 +64,16 @@ class DriverControllerTest extends TestCase
         $token = $rider->createToken('mobile-app', ['rider:request-ride'])->plainTextToken;
 
         $response = $this->withToken($token)
-                        ->postJson('/api/v1/driver/online', [
-                            'beacon_id' => 1,
-                            'current_latitude' => -6.3605,
-                            'current_longitude' => 106.8271
-                        ]);
+            ->postJson('/api/v1/driver/online', [
+                'beacon_id' => 1,
+                'current_latitude' => -6.3605,
+                'current_longitude' => 106.8271,
+            ]);
 
         $response->assertStatus(Response::HTTP_FORBIDDEN)
-                ->assertJson([
-                    'message' => 'This action is unauthorized.'
-                ]);
+            ->assertJson([
+                'message' => 'This action is unauthorized.',
+            ]);
     }
 
     /**
@@ -93,17 +94,17 @@ class DriverControllerTest extends TestCase
             ->andReturn(['in_queue' => true, 'beacon_id' => $beacon->id, 'position' => 1]);
 
         $response = $this->withToken($token)
-                        ->postJson('/api/v1/driver/online', [
-                            'beacon_id' => $beacon->id,
-                            'current_latitude' => -6.3605,
-                            'current_longitude' => 106.8271
-                        ]);
+            ->postJson('/api/v1/driver/online', [
+                'beacon_id' => $beacon->id,
+                'current_latitude' => -6.3605,
+                'current_longitude' => 106.8271,
+            ]);
 
         $response->assertStatus(Response::HTTP_BAD_REQUEST)
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'Already in queue'
-                ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'Already in queue',
+            ]);
     }
 
     /**
@@ -127,22 +128,22 @@ class DriverControllerTest extends TestCase
             ->with($driver->id, $beacon->id)
             ->andReturn([
                 'can_join' => false,
-                'reasons' => ['Driver not verified', 'Too far from beacon']
+                'reasons' => ['Driver not verified', 'Too far from beacon'],
             ]);
 
         $response = $this->withToken($token)
-                        ->postJson('/api/v1/driver/online', [
-                            'beacon_id' => $beacon->id,
-                            'current_latitude' => -6.4000,
-                            'current_longitude' => 106.9000
-                        ]);
+            ->postJson('/api/v1/driver/online', [
+                'beacon_id' => $beacon->id,
+                'current_latitude' => -6.4000,
+                'current_longitude' => 106.9000,
+            ]);
 
         $response->assertStatus(Response::HTTP_BAD_REQUEST)
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'Cannot join beacon queue',
-                    'reasons' => ['Driver not verified', 'Too far from beacon']
-                ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'Cannot join beacon queue',
+                'reasons' => ['Driver not verified', 'Too far from beacon'],
+            ]);
     }
 
     /**
@@ -160,13 +161,13 @@ class DriverControllerTest extends TestCase
             ->andReturn(false);
 
         $response = $this->withToken($token)
-                        ->postJson('/api/v1/driver/offline');
+            ->postJson('/api/v1/driver/offline');
 
         $response->assertStatus(Response::HTTP_BAD_REQUEST)
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'Not currently in queue or failed to leave'
-                ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'Not currently in queue or failed to leave',
+            ]);
     }
 
     /**
@@ -179,23 +180,23 @@ class DriverControllerTest extends TestCase
 
         // Test invalid latitude (outside -90 to 90 range)
         $response = $this->withToken($token)
-                        ->postJson('/api/v1/driver/location', [
-                            'latitude' => 91.0,
-                            'longitude' => 106.8271,
-                            'heading' => 0,
-                            'speed' => 0
-                        ]);
+            ->postJson('/api/v1/driver/location', [
+                'latitude' => 91.0,
+                'longitude' => 106.8271,
+                'heading' => 0,
+                'speed' => 0,
+            ]);
 
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
 
         // Test invalid longitude (outside -180 to 180 range)
         $response = $this->withToken($token)
-                        ->postJson('/api/v1/driver/location', [
-                            'latitude' => -6.3605,
-                            'longitude' => 181.0,
-                            'heading' => 0,
-                            'speed' => 0
-                        ]);
+            ->postJson('/api/v1/driver/location', [
+                'latitude' => -6.3605,
+                'longitude' => 181.0,
+                'heading' => 0,
+                'speed' => 0,
+            ]);
 
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
     }
@@ -215,18 +216,18 @@ class DriverControllerTest extends TestCase
             ->andReturn(false);
 
         $response = $this->withToken($token)
-                        ->postJson('/api/v1/driver/location', [
-                            'latitude' => -6.3605,
-                            'longitude' => 106.8271,
-                            'heading' => 0,
-                            'speed' => 0
-                        ]);
+            ->postJson('/api/v1/driver/location', [
+                'latitude' => -6.3605,
+                'longitude' => 106.8271,
+                'heading' => 0,
+                'speed' => 0,
+            ]);
 
         $response->assertStatus(Response::HTTP_INTERNAL_SERVER_ERROR)
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'Failed to update location'
-                ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'Failed to update location',
+            ]);
     }
 
     /**
@@ -239,13 +240,13 @@ class DriverControllerTest extends TestCase
         // Don't create driver profile - method returns early without calling queue service
 
         $response = $this->withToken($token)
-                        ->getJson('/api/v1/driver/statistics');
+            ->getJson('/api/v1/driver/statistics');
 
         $response->assertStatus(Response::HTTP_NOT_FOUND)
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'Driver profile not found'
-                ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'Driver profile not found',
+            ]);
     }
 
     /**
@@ -283,17 +284,17 @@ class DriverControllerTest extends TestCase
             ->andReturn(null);
 
         $response = $this->withToken($token)
-                        ->postJson('/api/v1/driver/online', [
-                            'beacon_id' => $beacon->id,
-                            'current_latitude' => -6.3605,
-                            'current_longitude' => 106.8271
-                        ]);
+            ->postJson('/api/v1/driver/online', [
+                'beacon_id' => $beacon->id,
+                'current_latitude' => -6.3605,
+                'current_longitude' => 106.8271,
+            ]);
 
         $response->assertStatus(Response::HTTP_INTERNAL_SERVER_ERROR)
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'Failed to join queue'
-                ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'Failed to join queue',
+            ]);
     }
 
     /**
@@ -305,10 +306,10 @@ class DriverControllerTest extends TestCase
         $token = $driver->createToken('mobile-app', ['driver:go-online'])->plainTextToken;
 
         $response = $this->withToken($token)
-                        ->postJson('/api/v1/driver/online', [
-                            'beacon_id' => 1,
-                            // Missing current_latitude and current_longitude
-                        ]);
+            ->postJson('/api/v1/driver/online', [
+                'beacon_id' => 1,
+                // Missing current_latitude and current_longitude
+            ]);
 
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
     }
@@ -322,11 +323,11 @@ class DriverControllerTest extends TestCase
         $token = $driver->createToken('mobile-app', ['driver:go-online'])->plainTextToken;
 
         $response = $this->withToken($token)
-                        ->postJson('/api/v1/driver/online', [
-                            'beacon_id' => 99999, // Non-existent beacon
-                            'current_latitude' => -6.3605,
-                            'current_longitude' => 106.8271
-                        ]);
+            ->postJson('/api/v1/driver/online', [
+                'beacon_id' => 99999, // Non-existent beacon
+                'current_latitude' => -6.3605,
+                'current_longitude' => 106.8271,
+            ]);
 
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
     }
