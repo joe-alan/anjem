@@ -41,7 +41,7 @@ class DriverController extends Controller
 
         // Check if driver can join the beacon
         $canJoin = $this->queueService->canDriverJoinBeacon($driver->id, $request->beacon_id);
-        if (!$canJoin['can_join']) {
+        if (! $canJoin['can_join']) {
             return response()->json([
                 'success' => false,
                 'message' => 'Cannot join beacon queue',
@@ -59,7 +59,7 @@ class DriverController extends Controller
         // Join the queue
         $queueEntry = $this->queueService->joinQueue($driver->id, $request->beacon_id);
 
-        if (!$queueEntry) {
+        if (! $queueEntry) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to join queue',
@@ -105,7 +105,7 @@ class DriverController extends Controller
         $driver = $request->user();
 
         // Check driver permissions
-        if (!$driver->tokenCan('driver:go-online')) {
+        if (! $driver->tokenCan('driver:go-online')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized: Driver permissions required',
@@ -121,7 +121,7 @@ class DriverController extends Controller
 
         $success = $this->queueService->leaveQueue($driver->id);
 
-        if (!$success) {
+        if (! $success) {
             return response()->json([
                 'success' => false,
                 'message' => 'Not currently in queue or failed to leave',
@@ -157,7 +157,7 @@ class DriverController extends Controller
         $driver = $request->user();
 
         // Check driver permissions
-        if (!$driver->tokenCan('driver:go-online')) {
+        if (! $driver->tokenCan('driver:go-online')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized: Driver permissions required',
@@ -187,7 +187,7 @@ class DriverController extends Controller
             $request->speed
         );
 
-        if (!$success) {
+        if (! $success) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update location',
@@ -234,7 +234,7 @@ class DriverController extends Controller
         $driver = $request->user();
 
         // Check driver permissions
-        if (!$driver->tokenCan('driver:go-online')) {
+        if (! $driver->tokenCan('driver:go-online')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized: Driver permissions required',
@@ -257,7 +257,7 @@ class DriverController extends Controller
         $driver = $request->user();
 
         // Check driver permissions
-        if (!$driver->tokenCan('driver:go-online')) {
+        if (! $driver->tokenCan('driver:go-online')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized: Driver permissions required',
@@ -266,7 +266,7 @@ class DriverController extends Controller
 
         // Get basic driver stats from driver profile
         $driverProfile = $driver->driverProfile;
-        if (!$driverProfile) {
+        if (! $driverProfile) {
             return response()->json([
                 'success' => false,
                 'message' => 'Driver profile not found',

@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\DriverQueue;
 use App\Models\Location;
 use App\Models\Ride;
 use App\Models\RideRequest;
@@ -21,6 +20,7 @@ use Illuminate\Support\Facades\Log;
 class RideService
 {
     private LocationService $locationService;
+
     private QueueService $queueService;
 
     public function __construct(LocationService $locationService, QueueService $queueService)
@@ -39,19 +39,19 @@ class RideService
 
             // Validate rider
             $rider = User::find($requestData['rider_id']);
-            if (!$rider || !$rider->is_active) {
+            if (! $rider || ! $rider->is_active) {
                 throw new \Exception('Invalid or inactive rider');
             }
 
             // Find or create pickup location
             $pickupLocation = $this->resolvePickupLocation($requestData);
-            if (!$pickupLocation) {
+            if (! $pickupLocation) {
                 throw new \Exception('Invalid pickup location');
             }
 
             // Find or create destination location
             $destinationLocation = $this->resolveDestinationLocation($requestData);
-            if (!$destinationLocation) {
+            if (! $destinationLocation) {
                 throw new \Exception('Invalid destination location');
             }
 
@@ -88,7 +88,7 @@ class RideService
                 'rider_id' => $requestData['rider_id'],
                 'pickup_location_id' => $pickupLocation->id,
                 'destination_location_id' => $destinationLocation->id,
-                'estimated_fare_rp' => $estimates['fare_rp']
+                'estimated_fare_rp' => $estimates['fare_rp'],
             ]);
 
             return $rideRequest;
@@ -97,7 +97,7 @@ class RideService
             DB::rollBack();
             Log::error('Failed to create ride request', [
                 'error' => $e->getMessage(),
-                'request_data' => $requestData
+                'request_data' => $requestData,
             ]);
 
             return null;
@@ -115,13 +115,13 @@ class RideService
             $rideRequest = RideRequest::with(['pickupLocation', 'destinationLocation', 'rider'])
                 ->find($rideRequestId);
 
-            if (!$rideRequest || !$rideRequest->isActive()) {
+            if (! $rideRequest || ! $rideRequest->isActive()) {
                 return null;
             }
 
             // Find the best driver for this request
             $driver = $this->findBestDriver($rideRequest);
-            if (!$driver) {
+            if (! $driver) {
                 return null;
             }
 
@@ -153,7 +153,7 @@ class RideService
                 'ride_id' => $ride->id,
                 'ride_request_id' => $rideRequest->id,
                 'driver_id' => $driver->id,
-                'rider_id' => $rideRequest->rider_id
+                'rider_id' => $rideRequest->rider_id,
             ]);
 
             return $ride;
@@ -162,7 +162,7 @@ class RideService
             DB::rollBack();
             Log::error('Failed to match driver', [
                 'ride_request_id' => $rideRequestId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return null;
@@ -179,8 +179,9 @@ class RideService
 
             // First create the ride from the request
             $ride = $this->matchDriver($rideRequestId);
-            if (!$ride) {
+            if (! $ride) {
                 DB::rollBack();
+
                 return null;
             }
 
@@ -192,13 +193,14 @@ class RideService
                 Log::info('Ride request accepted by driver', [
                     'ride_request_id' => $rideRequestId,
                     'ride_id' => $ride->id,
-                    'driver_id' => $driverId
+                    'driver_id' => $driverId,
                 ]);
 
                 return $ride;
             }
 
             DB::rollBack();
+
             return null;
 
         } catch (\Exception $e) {
@@ -206,7 +208,7 @@ class RideService
             Log::error('Failed to accept ride request', [
                 'ride_request_id' => $rideRequestId,
                 'driver_id' => $driverId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return null;
@@ -221,7 +223,7 @@ class RideService
         try {
             $ride = Ride::find($rideId);
 
-            if (!$ride || $ride->driver_id !== $driverId || $ride->status !== 'matched') {
+            if (! $ride || $ride->driver_id !== $driverId || $ride->status !== 'matched') {
                 return false;
             }
 
@@ -229,7 +231,7 @@ class RideService
 
             Log::info('Ride accepted by driver', [
                 'ride_id' => $rideId,
-                'driver_id' => $driverId
+                'driver_id' => $driverId,
             ]);
 
             return true;
@@ -238,7 +240,7 @@ class RideService
             Log::error('Failed to accept ride', [
                 'ride_id' => $rideId,
                 'driver_id' => $driverId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return false;
@@ -253,7 +255,7 @@ class RideService
         try {
             $ride = Ride::find($rideId);
 
-            if (!$ride || $ride->driver_id !== $driverId || $ride->status !== 'accepted') {
+            if (! $ride || $ride->driver_id !== $driverId || $ride->status !== 'accepted') {
                 return false;
             }
 
@@ -261,7 +263,7 @@ class RideService
 
             Log::info('Ride started', [
                 'ride_id' => $rideId,
-                'driver_id' => $driverId
+                'driver_id' => $driverId,
             ]);
 
             return true;
@@ -270,7 +272,7 @@ class RideService
             Log::error('Failed to start ride', [
                 'ride_id' => $rideId,
                 'driver_id' => $driverId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return false;
@@ -285,7 +287,7 @@ class RideService
         try {
             $ride = Ride::find($rideId);
 
-            if (!$ride || $ride->driver_id !== $driverId || $ride->status !== 'in_progress') {
+            if (! $ride || $ride->driver_id !== $driverId || $ride->status !== 'in_progress') {
                 return false;
             }
 
@@ -302,7 +304,7 @@ class RideService
             Log::info('Ride completed', [
                 'ride_id' => $rideId,
                 'driver_id' => $driverId,
-                'actual_fare_rp' => $actualFare
+                'actual_fare_rp' => $actualFare,
             ]);
 
             return true;
@@ -311,7 +313,7 @@ class RideService
             Log::error('Failed to complete ride', [
                 'ride_id' => $rideId,
                 'driver_id' => $driverId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return false;
@@ -326,7 +328,7 @@ class RideService
         try {
             $rideRequest = RideRequest::find($rideRequestId);
 
-            if (!$rideRequest || $rideRequest->rider_id !== $riderId) {
+            if (! $rideRequest || $rideRequest->rider_id !== $riderId) {
                 return false;
             }
 
@@ -335,7 +337,7 @@ class RideService
 
             Log::info('Ride request cancelled by rider', [
                 'ride_request_id' => $rideRequestId,
-                'rider_id' => $riderId
+                'rider_id' => $riderId,
             ]);
 
             return true;
@@ -344,7 +346,7 @@ class RideService
             Log::error('Failed to cancel ride request', [
                 'ride_request_id' => $rideRequestId,
                 'rider_id' => $riderId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return false;
@@ -354,16 +356,16 @@ class RideService
     /**
      * Cancel an active ride
      */
-    public function cancelRide(int $rideId, int $userId, string $reason = null): bool
+    public function cancelRide(int $rideId, int $userId, ?string $reason = null): bool
     {
         try {
             $ride = Ride::find($rideId);
 
-            if (!$ride || !in_array($userId, [$ride->rider_id, $ride->driver_id])) {
+            if (! $ride || ! in_array($userId, [$ride->rider_id, $ride->driver_id])) {
                 return false;
             }
 
-            if (!$ride->isActive()) {
+            if (! $ride->isActive()) {
                 return false; // Can't cancel completed rides
             }
 
@@ -372,7 +374,7 @@ class RideService
             Log::info('Ride cancelled', [
                 'ride_id' => $rideId,
                 'cancelled_by_user_id' => $userId,
-                'reason' => $reason
+                'reason' => $reason,
             ]);
 
             return true;
@@ -381,7 +383,7 @@ class RideService
             Log::error('Failed to cancel ride', [
                 'ride_id' => $rideId,
                 'user_id' => $userId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return false;
@@ -395,11 +397,11 @@ class RideService
     {
         return Ride::where(function ($query) use ($userId) {
             $query->where('rider_id', $userId)
-                  ->orWhere('driver_id', $userId);
+                ->orWhere('driver_id', $userId);
         })
-        ->whereIn('status', ['matched', 'accepted', 'in_progress'])
-        ->with(['rider', 'driver', 'pickupLocation', 'destinationLocation'])
-        ->first();
+            ->whereIn('status', ['matched', 'accepted', 'in_progress'])
+            ->with(['rider', 'driver', 'pickupLocation', 'destinationLocation'])
+            ->first();
     }
 
     /**
@@ -409,41 +411,83 @@ class RideService
     {
         return Ride::where(function ($query) use ($userId) {
             $query->where('rider_id', $userId)
-                  ->orWhere('driver_id', $userId);
+                ->orWhere('driver_id', $userId);
         })
-        ->whereIn('status', ['completed', 'cancelled'])
-        ->with(['rider', 'driver', 'pickupLocation', 'destinationLocation'])
-        ->orderBy('created_at', 'desc')
-        ->limit($limit)
-        ->get();
+            ->whereIn('status', ['completed', 'cancelled'])
+            ->with(['rider', 'driver', 'pickupLocation', 'destinationLocation'])
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get();
+    }
+
+    /**
+     * Get ride estimates by location IDs
+     */
+    public function getRideEstimates(int $pickupLocationId, int $destinationLocationId, int $passengerCount = 1): ?array
+    {
+        try {
+            $pickupLocation = Location::find($pickupLocationId);
+            $destinationLocation = Location::find($destinationLocationId);
+
+            if (! $pickupLocation || ! $destinationLocation) {
+                return null;
+            }
+
+            return $this->calculateRideEstimates(
+                $pickupLocation->coordinates->latitude,
+                $pickupLocation->coordinates->longitude,
+                $destinationLocation->coordinates->latitude,
+                $destinationLocation->coordinates->longitude,
+                $passengerCount
+            );
+        } catch (\Exception $e) {
+            Log::error('Failed to get ride estimates', [
+                'pickup_location_id' => $pickupLocationId,
+                'destination_location_id' => $destinationLocationId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 
     /**
      * Calculate ride estimates (distance, duration, fare)
+     * Returns mobile-friendly field names with route geometry
      */
     public function calculateRideEstimates(float $pickupLat, float $pickupLng, float $destLat, float $destLng, int $passengerCount = 1): array
     {
-        // Get driving details
+        // Get driving details with route geometry
         $drivingDetails = $this->locationService->getDrivingDetails($pickupLat, $pickupLng, $destLat, $destLng);
 
         $distanceKm = $drivingDetails['distance_meters'] / 1000;
         $durationMinutes = $drivingDetails['duration_minutes'];
 
-        // Calculate fare using campus-specific pricing
-        $fareRp = $this->calculateFare($distanceKm, $durationMinutes, $passengerCount);
+        // Calculate fare breakdown using campus-specific pricing
+        $fareBreakdown = $this->calculateFareBreakdown($distanceKm, $durationMinutes, $passengerCount);
 
+        // Return mobile-friendly field names (camelCase)
         return [
+            'baseFare' => $fareBreakdown['base_fare'],
+            'distanceFare' => $fareBreakdown['distance_fare'],
+            'totalFare' => $fareBreakdown['total_fare'],
+            'estimatedDistance' => round($distanceKm, 2),
+            'estimatedDuration' => $durationMinutes,
+            'currency' => 'IDR',
+            'routeGeometry' => $drivingDetails['geometry'] ?? null, // GeoJSON for map display
+
+            // Keep old field names for backward compatibility (internal use)
             'distance_km' => round($distanceKm, 2),
             'duration_minutes' => $durationMinutes,
-            'fare_rp' => $fareRp,
+            'fare_rp' => $fareBreakdown['total_fare'],
             'estimated' => $drivingDetails['estimated'] ?? true,
         ];
     }
 
     /**
-     * Campus-specific fare calculation
+     * Campus-specific fare calculation with breakdown
      */
-    private function calculateFare(float $distanceKm, int $durationMinutes, int $passengerCount = 1): int
+    private function calculateFareBreakdown(float $distanceKm, int $durationMinutes, int $passengerCount = 1): array
     {
         // Campus fare structure:
         // - Base fare: Rp 3,000
@@ -465,7 +509,23 @@ class RideService
 
         // Minimum fare: Rp 5,000
         // Maximum fare: Rp 50,000 (for campus rides)
-        return max(5000, min(50000, (int) round($totalFare)));
+        $finalFare = max(5000, min(50000, (int) round($totalFare)));
+
+        return [
+            'base_fare' => (int) $baseFare,
+            'distance_fare' => (int) round($distanceFare + $timeFare),
+            'total_fare' => $finalFare,
+        ];
+    }
+
+    /**
+     * Campus-specific fare calculation (legacy method for backward compatibility)
+     */
+    private function calculateFare(float $distanceKm, int $durationMinutes, int $passengerCount = 1): int
+    {
+        $breakdown = $this->calculateFareBreakdown($distanceKm, $durationMinutes, $passengerCount);
+
+        return $breakdown['total_fare'];
     }
 
     /**
@@ -473,14 +533,14 @@ class RideService
      */
     private function findBestDriver(RideRequest $rideRequest): ?User
     {
-        if (!$rideRequest->pickupLocation->isBeacon()) {
+        if (! $rideRequest->pickupLocation->isBeacon()) {
             return null; // For MVP, only support beacon pickups
         }
 
         // Get the next driver in queue at the pickup beacon
         $queueEntry = $this->queueService->getNextDriverAtBeacon($rideRequest->pickup_location_id);
 
-        if (!$queueEntry) {
+        if (! $queueEntry) {
             return null; // No drivers available
         }
 
@@ -573,6 +633,7 @@ class RideService
 
         } catch (\Exception $e) {
             Log::error('Failed to cleanup expired requests', ['error' => $e->getMessage()]);
+
             return 0;
         }
     }
@@ -598,5 +659,66 @@ class RideService
                 'average_distance' => Ride::completed()->avg('actual_distance_km') ?? 0,
             ],
         ];
+    }
+
+    /**
+     * Rate a ride (rider rates driver or driver rates rider)
+     */
+    public function rateRide(
+        int $rideId,
+        int $raterId,
+        int $ratedUserId,
+        int $rating,
+        ?string $comment = null,
+        array $tags = []
+    ): ?\App\Models\Rating {
+        try {
+            $ride = Ride::find($rideId);
+
+            if (! $ride || $ride->status !== 'completed') {
+                return null;
+            }
+
+            // Verify the rater is part of this ride
+            if (! in_array($raterId, [$ride->rider_id, $ride->driver_id])) {
+                return null;
+            }
+
+            // Determine the type based on who is being rated
+            $type = $ratedUserId === $ride->driver_id ? 'driver' : 'rider';
+
+            // Create the rating with type field for model listeners/scopes
+            $ratingRecord = \App\Models\Rating::create([
+                'ride_id' => $rideId,
+                'rater_id' => $raterId,
+                'rated_user_id' => $ratedUserId,
+                'type' => $type,
+                'rating' => $rating,
+                'comment' => $comment,
+                'tags' => $tags,
+            ]);
+
+            // Note: Driver rating average is updated automatically by Rating model listener
+            // when type === 'driver' via the updateCachedRating() method
+
+            Log::info('Ride rated', [
+                'ride_id' => $rideId,
+                'rater_id' => $raterId,
+                'rated_user_id' => $ratedUserId,
+                'type' => $type,
+                'rating' => $rating,
+            ]);
+
+            return $ratingRecord;
+
+        } catch (\Exception $e) {
+            Log::error('Failed to rate ride', [
+                'ride_id' => $rideId,
+                'rater_id' => $raterId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 }

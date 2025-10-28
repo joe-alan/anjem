@@ -71,6 +71,7 @@ return [
         'driver:complete-ride' => 'Can complete rides',
         'driver:view-queue' => 'Can view driver queue status',
         'driver:update-location' => 'Can update current location',
+        'driver:rate-rider' => 'Can rate riders after rides',
 
         // Shared abilities
         'profile:read' => 'Can read own profile',

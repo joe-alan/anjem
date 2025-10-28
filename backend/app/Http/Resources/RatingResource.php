@@ -24,7 +24,7 @@ class RatingResource extends JsonResource
             // Relationships
             'rater' => new UserResource($this->whenLoaded('rater')),
             'rated_user' => new UserResource($this->whenLoaded('ratedUser')),
-            'ride' => $this->when($this->relationLoaded('ride'), function() {
+            'ride' => $this->when($this->relationLoaded('ride'), function () {
                 return ['id' => $this->ride->id, 'status' => $this->ride->status];
             }),
         ];

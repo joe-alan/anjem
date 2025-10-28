@@ -97,11 +97,14 @@ class AuthService {
 
   /// Check if user is authenticated
   Future<bool> isAuthenticated() async {
-    // Check if we have both Firebase user and Sanctum token
-    final hasFirebaseUser = _firebaseAuth.currentUser != null;
-    final hasSanctumToken = await _apiService.hasToken();
-
-    return hasFirebaseUser && hasSanctumToken;
+    // Only check Sanctum token - Firebase is just for initial login
+    final hasToken = await _apiService.hasToken();
+    print('AuthService: isAuthenticated check - hasToken: $hasToken');
+    if (hasToken) {
+      final token = await _apiService.getToken();
+      print('AuthService: Token exists (length: ${token?.length ?? 0})');
+    }
+    return hasToken;
   }
 
   /// Get current Firebase user
@@ -110,7 +113,10 @@ class AuthService {
   /// Get current user from backend
   Future<User> getCurrentUser() async {
     try {
+      print('AuthService: Fetching current user from /user endpoint');
       final response = await _apiService.get('/user');
+
+      print('AuthService: User fetch response - status: ${response.statusCode}');
 
       if (response.data['success'] != true) {
         throw ApiException(
@@ -119,10 +125,14 @@ class AuthService {
         );
       }
 
-      return User.fromJson(response.data['data']);
-    } on ApiException {
+      final user = User.fromJson(response.data['data']);
+      print('AuthService: User fetched successfully - id: ${user.id}, email: ${user.email}');
+      return user;
+    } on ApiException catch (e) {
+      print('AuthService: ApiException fetching user - ${e.message}');
       rethrow;
     } catch (e) {
+      print('AuthService: Exception fetching user - ${e.toString()}');
       throw ApiException(
         message: 'Failed to get current user: ${e.toString()}',
         statusCode: null,

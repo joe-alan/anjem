@@ -43,7 +43,7 @@ return new class extends Migration
                 'assigned_at',
                 'started_at',
                 'completed_at',
-                'cancelled_at'
+                'cancelled_at',
             ]);
 
             // Update status enum
@@ -80,7 +80,7 @@ return new class extends Migration
                 'dropoff_time',
                 'special_requests',
                 'driver_notes',
-                'status'
+                'status',
             ]);
 
             // Add back original columns

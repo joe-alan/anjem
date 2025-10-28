@@ -21,6 +21,7 @@ class RequestControllerTest extends TestCase
     use RefreshDatabase;
 
     private $mockRideService;
+
     private $mockNotificationService;
 
     protected function setUp(): void
@@ -64,13 +65,13 @@ class RequestControllerTest extends TestCase
         $token = $driver->createToken('mobile-app', ['driver:go-online'])->plainTextToken;
 
         $response = $this->withToken($token)
-                        ->getJson('/api/v1/requests');
+            ->getJson('/api/v1/requests');
 
         $response->assertStatus(Response::HTTP_FORBIDDEN)
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'Unauthorized: Rider permissions required'
-                ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'Unauthorized: Rider permissions required',
+            ]);
     }
 
     /**
@@ -89,21 +90,21 @@ class RequestControllerTest extends TestCase
             'pickup_location_id' => $pickup->id,
             'destination_location_id' => $destination->id,
             'status' => 'pending',
-            'expires_at' => now()->addMinutes(30)
+            'expires_at' => now()->addMinutes(30),
         ]);
 
         $response = $this->withToken($token)
-                        ->postJson('/api/v1/requests', [
-                            'pickup_location_id' => $pickup->id,
-                            'destination_location_id' => $destination->id,
-                            'passenger_count' => 1,
-                        ]);
+            ->postJson('/api/v1/requests', [
+                'pickup_location_id' => $pickup->id,
+                'destination_location_id' => $destination->id,
+                'passenger_count' => 1,
+            ]);
 
         $response->assertStatus(Response::HTTP_BAD_REQUEST)
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'You already have an active ride request'
-                ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'You already have an active ride request',
+            ]);
     }
 
     /**
@@ -117,21 +118,21 @@ class RequestControllerTest extends TestCase
         $location = $this->createTestLocation('Same Location', true);
 
         $response = $this->actingAs($rider, 'sanctum')
-                        ->postJson('/api/v1/requests', [
-                            'pickup_location_id' => $location->id,
-                            'destination_location_id' => $location->id,
-                            'passenger_count' => 1,
-                        ]);
+            ->postJson('/api/v1/requests', [
+                'pickup_location_id' => $location->id,
+                'destination_location_id' => $location->id,
+                'passenger_count' => 1,
+            ]);
 
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
 
         // Test with non-existent locations
         $response = $this->actingAs($rider, 'sanctum')
-                        ->postJson('/api/v1/requests', [
-                            'pickup_location_id' => 99999,
-                            'destination_location_id' => 99998,
-                            'passenger_count' => 1,
-                        ]);
+            ->postJson('/api/v1/requests', [
+                'pickup_location_id' => 99999,
+                'destination_location_id' => 99998,
+                'passenger_count' => 1,
+            ]);
 
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
     }
@@ -147,21 +148,21 @@ class RequestControllerTest extends TestCase
 
         // Test with 0 passengers
         $response = $this->actingAs($rider, 'sanctum')
-                        ->postJson('/api/v1/requests', [
-                            'pickup_location_id' => $pickup->id,
-                            'destination_location_id' => $destination->id,
-                            'passenger_count' => 0,
-                        ]);
+            ->postJson('/api/v1/requests', [
+                'pickup_location_id' => $pickup->id,
+                'destination_location_id' => $destination->id,
+                'passenger_count' => 0,
+            ]);
 
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
 
         // Test with too many passengers
         $response = $this->actingAs($rider, 'sanctum')
-                        ->postJson('/api/v1/requests', [
-                            'pickup_location_id' => $pickup->id,
-                            'destination_location_id' => $destination->id,
-                            'passenger_count' => 5,
-                        ]);
+            ->postJson('/api/v1/requests', [
+                'pickup_location_id' => $pickup->id,
+                'destination_location_id' => $destination->id,
+                'passenger_count' => 5,
+            ]);
 
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
     }
@@ -181,17 +182,17 @@ class RequestControllerTest extends TestCase
             ->andReturn(null);
 
         $response = $this->actingAs($rider, 'sanctum')
-                        ->postJson('/api/v1/requests', [
-                            'pickup_location_id' => $pickup->id,
-                            'destination_location_id' => $destination->id,
-                            'passenger_count' => 1,
-                        ]);
+            ->postJson('/api/v1/requests', [
+                'pickup_location_id' => $pickup->id,
+                'destination_location_id' => $destination->id,
+                'passenger_count' => 1,
+            ]);
 
         $response->assertStatus(Response::HTTP_INTERNAL_SERVER_ERROR)
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'Unable to create ride request'
-                ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'Unable to create ride request',
+            ]);
     }
 
     /**
@@ -205,13 +206,13 @@ class RequestControllerTest extends TestCase
         $otherRequest = $this->createTestRideRequest(['rider_id' => $otherRider->id]);
 
         $response = $this->actingAs($rider, 'sanctum')
-                        ->getJson("/api/v1/requests/{$otherRequest->id}");
+            ->getJson("/api/v1/requests/{$otherRequest->id}");
 
         $response->assertStatus(Response::HTTP_FORBIDDEN)
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'Unauthorized to view this ride request'
-                ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'Unauthorized to view this ride request',
+            ]);
     }
 
     /**
@@ -226,13 +227,13 @@ class RequestControllerTest extends TestCase
         $token = $rider->createToken('mobile-app', ['rider:request-ride'])->plainTextToken;
 
         $response = $this->withToken($token)
-                        ->patchJson("/api/v1/requests/{$rideRequest->id}/cancel");
+            ->patchJson("/api/v1/requests/{$rideRequest->id}/cancel");
 
         $response->assertStatus(Response::HTTP_FORBIDDEN)
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'Unauthorized: Cancel ride permissions required'
-                ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'Unauthorized: Cancel ride permissions required',
+            ]);
     }
 
     /**
@@ -243,18 +244,18 @@ class RequestControllerTest extends TestCase
         $rider = User::factory()->rider()->create();
         $rideRequest = $this->createTestRideRequest([
             'rider_id' => $rider->id,
-            'status' => 'completed'
+            'status' => 'completed',
         ]);
 
         $response = $this->actingAs($rider, 'sanctum')
-                        ->patchJson("/api/v1/requests/{$rideRequest->id}/cancel");
+            ->patchJson("/api/v1/requests/{$rideRequest->id}/cancel");
 
         $response->assertStatus(Response::HTTP_BAD_REQUEST)
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'Cannot cancel ride request in current status',
-                    'current_status' => 'completed'
-                ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'Cannot cancel ride request in current status',
+                'current_status' => 'completed',
+            ]);
     }
 
     /**
@@ -265,7 +266,7 @@ class RequestControllerTest extends TestCase
         $rider = User::factory()->rider()->create();
         $rideRequest = $this->createTestRideRequest([
             'rider_id' => $rider->id,
-            'status' => 'pending'
+            'status' => 'pending',
         ]);
 
         $this->mockRideService
@@ -275,13 +276,13 @@ class RequestControllerTest extends TestCase
             ->andReturn(false);
 
         $response = $this->actingAs($rider, 'sanctum')
-                        ->patchJson("/api/v1/requests/{$rideRequest->id}/cancel");
+            ->patchJson("/api/v1/requests/{$rideRequest->id}/cancel");
 
         $response->assertStatus(Response::HTTP_INTERNAL_SERVER_ERROR)
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'Unable to cancel ride request'
-                ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'Unable to cancel ride request',
+            ]);
     }
 
     /**
@@ -293,17 +294,17 @@ class RequestControllerTest extends TestCase
 
         // Missing required fields
         $response = $this->actingAs($rider, 'sanctum')
-                        ->getJson('/api/v1/requests/estimates');
+            ->getJson('/api/v1/requests/estimates');
 
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
 
         // Invalid location IDs
         $response = $this->actingAs($rider, 'sanctum')
-                        ->getJson('/api/v1/requests/estimates?' . http_build_query([
-                            'pickup_location_id' => 99999,
-                            'destination_location_id' => 99998,
-                            'passenger_count' => 1,
-                        ]));
+            ->getJson('/api/v1/requests/estimates?'.http_build_query([
+                'pickup_location_id' => 99999,
+                'destination_location_id' => 99998,
+                'passenger_count' => 1,
+            ]));
 
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
     }
@@ -324,17 +325,17 @@ class RequestControllerTest extends TestCase
             ->andReturn(null);
 
         $response = $this->actingAs($rider, 'sanctum')
-                        ->getJson('/api/v1/requests/estimates?' . http_build_query([
-                            'pickup_location_id' => $pickup->id,
-                            'destination_location_id' => $destination->id,
-                            'passenger_count' => 1,
-                        ]));
+            ->getJson('/api/v1/requests/estimates?'.http_build_query([
+                'pickup_location_id' => $pickup->id,
+                'destination_location_id' => $destination->id,
+                'passenger_count' => 1,
+            ]));
 
         $response->assertStatus(Response::HTTP_BAD_REQUEST)
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'Unable to calculate estimates'
-                ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'Unable to calculate estimates',
+            ]);
     }
 
     /**
@@ -357,27 +358,27 @@ class RequestControllerTest extends TestCase
             ]));
 
         $response1 = $this->actingAs($rider, 'sanctum')
-                         ->postJson('/api/v1/requests', [
-                             'pickup_location_id' => $pickup->id,
-                             'destination_location_id' => $destination->id,
-                             'passenger_count' => 1,
-                         ]);
+            ->postJson('/api/v1/requests', [
+                'pickup_location_id' => $pickup->id,
+                'destination_location_id' => $destination->id,
+                'passenger_count' => 1,
+            ]);
 
         $response1->assertStatus(Response::HTTP_CREATED);
 
         // Second request should fail due to existing active request
         $response2 = $this->actingAs($rider, 'sanctum')
-                         ->postJson('/api/v1/requests', [
-                             'pickup_location_id' => $pickup->id,
-                             'destination_location_id' => $destination->id,
-                             'passenger_count' => 1,
-                         ]);
+            ->postJson('/api/v1/requests', [
+                'pickup_location_id' => $pickup->id,
+                'destination_location_id' => $destination->id,
+                'passenger_count' => 1,
+            ]);
 
         $response2->assertStatus(Response::HTTP_BAD_REQUEST)
-                  ->assertJson([
-                      'success' => false,
-                      'message' => 'You already have an active ride request'
-                  ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'You already have an active ride request',
+            ]);
     }
 
     // Helper methods

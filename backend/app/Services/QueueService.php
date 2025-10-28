@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\DriverQueue;
 use App\Models\Location;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
@@ -19,7 +18,9 @@ use Illuminate\Support\Facades\Redis;
 class QueueService
 {
     private const CACHE_TTL = 3600; // 1 hour
+
     private const QUEUE_KEY_PREFIX = 'beacon_queue:';
+
     private const DRIVER_STATUS_PREFIX = 'driver_status:';
 
     /**
@@ -30,13 +31,13 @@ class QueueService
         try {
             // Check if beacon exists and has capacity
             $beacon = Location::find($beaconId);
-            if (!$beacon || !$beacon->isBeacon() || !$beacon->hasCapacity()) {
+            if (! $beacon || ! $beacon->isBeacon() || ! $beacon->hasCapacity()) {
                 return null;
             }
 
             // Check if driver can be a driver
             $driver = User::find($driverId);
-            if (!$driver || !$driver->canBeDriver() || !$driver->is_active) {
+            if (! $driver || ! $driver->canBeDriver() || ! $driver->is_active) {
                 return null;
             }
 
@@ -51,7 +52,7 @@ class QueueService
                 Log::info('Driver joined queue', [
                     'driver_id' => $driverId,
                     'beacon_id' => $beaconId,
-                    'position' => $queueEntry->position
+                    'position' => $queueEntry->position,
                 ]);
             }
 
@@ -61,7 +62,7 @@ class QueueService
             Log::error('Failed to join queue', [
                 'driver_id' => $driverId,
                 'beacon_id' => $beaconId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return null;
@@ -78,7 +79,7 @@ class QueueService
                 ->active()
                 ->first();
 
-            if (!$queueEntry) {
+            if (! $queueEntry) {
                 return false; // Driver not in any queue
             }
 
@@ -91,7 +92,7 @@ class QueueService
 
             Log::info('Driver left queue', [
                 'driver_id' => $driverId,
-                'beacon_id' => $beaconId
+                'beacon_id' => $beaconId,
             ]);
 
             return true;
@@ -99,7 +100,7 @@ class QueueService
         } catch (\Exception $e) {
             Log::error('Failed to leave queue', [
                 'driver_id' => $driverId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return false;
@@ -111,10 +112,10 @@ class QueueService
      */
     public function getDriverQueueStatus(int $driverId): array
     {
-        $cacheKey = self::DRIVER_STATUS_PREFIX . $driverId;
+        $cacheKey = self::DRIVER_STATUS_PREFIX.$driverId;
 
         // Try Redis cache first (skip in tests)
-        if (!app()->environment('testing')) {
+        if (! app()->environment('testing')) {
             $cached = Cache::get($cacheKey);
             if ($cached && isset($cached['beacon_name'])) {
                 return $cached;
@@ -156,7 +157,7 @@ class QueueService
      */
     public function getBeaconQueueStatus(int $beaconId): array
     {
-        $cacheKey = self::QUEUE_KEY_PREFIX . $beaconId;
+        $cacheKey = self::QUEUE_KEY_PREFIX.$beaconId;
 
         // Try Redis cache first
         $cached = Cache::get($cacheKey);
@@ -191,7 +192,7 @@ class QueueService
                 ->waiting()
                 ->first();
 
-            if (!$queueEntry) {
+            if (! $queueEntry) {
                 return false;
             }
 
@@ -203,7 +204,7 @@ class QueueService
 
             Log::info('Driver called for ride', [
                 'driver_id' => $driverId,
-                'beacon_id' => $queueEntry->beacon_id
+                'beacon_id' => $queueEntry->beacon_id,
             ]);
 
             return true;
@@ -211,7 +212,7 @@ class QueueService
         } catch (\Exception $e) {
             Log::error('Failed to call driver', [
                 'driver_id' => $driverId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return false;
@@ -228,7 +229,7 @@ class QueueService
                 ->whereIn('status', ['waiting', 'called'])
                 ->first();
 
-            if (!$queueEntry) {
+            if (! $queueEntry) {
                 return false;
             }
 
@@ -241,7 +242,7 @@ class QueueService
 
             Log::info('Driver marked as served', [
                 'driver_id' => $driverId,
-                'beacon_id' => $beaconId
+                'beacon_id' => $beaconId,
             ]);
 
             return true;
@@ -249,7 +250,7 @@ class QueueService
         } catch (\Exception $e) {
             Log::error('Failed to mark driver as served', [
                 'driver_id' => $driverId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return false;
@@ -333,7 +334,7 @@ class QueueService
      */
     private function cacheQueueStatus(int $beaconId): void
     {
-        $cacheKey = self::QUEUE_KEY_PREFIX . $beaconId;
+        $cacheKey = self::QUEUE_KEY_PREFIX.$beaconId;
         $status = DriverQueue::getQueueStatusAtBeacon($beaconId);
         Cache::put($cacheKey, $status, self::CACHE_TTL);
     }
@@ -345,7 +346,7 @@ class QueueService
     {
         // For complex status info, let the getDriverQueueStatus method handle it
         // and cache the complete result there
-        $cacheKey = self::DRIVER_STATUS_PREFIX . $driverId;
+        $cacheKey = self::DRIVER_STATUS_PREFIX.$driverId;
         Cache::forget($cacheKey);
     }
 
@@ -354,7 +355,7 @@ class QueueService
      */
     private function refreshBeaconCache(int $beaconId): void
     {
-        $cacheKey = self::QUEUE_KEY_PREFIX . $beaconId;
+        $cacheKey = self::QUEUE_KEY_PREFIX.$beaconId;
         Cache::forget($cacheKey);
         $this->cacheQueueStatus($beaconId);
     }
@@ -389,27 +390,27 @@ class QueueService
 
         $reasons = [];
 
-        if (!$beacon) {
+        if (! $beacon) {
             $reasons[] = 'Beacon not found';
         } else {
-            if (!$beacon->isBeacon()) {
+            if (! $beacon->isBeacon()) {
                 $reasons[] = 'Location is not a beacon';
             }
-            if (!$beacon->is_active) {
+            if (! $beacon->is_active) {
                 $reasons[] = 'Beacon is not active';
             }
-            if (!$beacon->hasCapacity()) {
+            if (! $beacon->hasCapacity()) {
                 $reasons[] = 'Beacon queue is full';
             }
         }
 
-        if (!$driver) {
+        if (! $driver) {
             $reasons[] = 'Driver not found';
         } else {
-            if (!$driver->canBeDriver()) {
+            if (! $driver->canBeDriver()) {
                 $reasons[] = 'User cannot be a driver';
             }
-            if (!$driver->is_active) {
+            if (! $driver->is_active) {
                 $reasons[] = 'Driver account is not active';
             }
         }

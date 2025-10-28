@@ -27,7 +27,7 @@ class UserFactory extends Factory
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'password' => static::$password ??= Hash::make('password'),
-            'firebase_uid' => 'firebase_' . Str::random(20),
+            'firebase_uid' => 'firebase_'.Str::random(20),
             'user_type' => fake()->randomElement(['rider', 'driver', 'both']),
             'phone_number' => fake()->phoneNumber(),
             'phone_verified_at' => fake()->optional(0.8)->dateTimeBetween('-1 month', 'now'),

@@ -42,7 +42,7 @@ return new class extends Migration
             $table->dropSoftDeletes();
             $table->dropColumn([
                 'passenger_count', 'special_requests', 'pickup_address',
-                'dropoff_address', 'current_fare_estimate', 'estimated_duration_minutes'
+                'dropoff_address', 'current_fare_estimate', 'estimated_duration_minutes',
             ]);
         });
     }

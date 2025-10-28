@@ -72,7 +72,7 @@ class RealTimeEdgeCasesTest extends TestCase
         ];
 
         foreach ($invalidCoordinates as [$lat, $lng]) {
-            $event = new DriverLocationUpdated($driver, (float)$lat, (float)$lng);
+            $event = new DriverLocationUpdated($driver, (float) $lat, (float) $lng);
 
             // Event should handle invalid coordinates gracefully
             $broadcastData = $event->broadcastWith();
@@ -235,7 +235,7 @@ class RealTimeEdgeCasesTest extends TestCase
         $malformedPickupTimes = [-1, 999999, 0];
 
         foreach ($malformedPickupTimes as $pickupTime) {
-            $event = new RideRequestMatched($rideRequest, $ride, (int)$pickupTime);
+            $event = new RideRequestMatched($rideRequest, $ride, (int) $pickupTime);
 
             $broadcastData = $event->broadcastWith();
 
@@ -298,7 +298,7 @@ class RealTimeEdgeCasesTest extends TestCase
         $channels = $event->broadcastOn();
         $this->assertCount(3, $channels);
 
-        $channelNames = array_map(fn($channel) => $channel->name, $channels);
+        $channelNames = array_map(fn ($channel) => $channel->name, $channels);
         $this->assertContains("private-ride.{$ride->id}", $channelNames);
     }
 
