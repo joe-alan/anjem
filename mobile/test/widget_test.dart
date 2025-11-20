@@ -20,6 +20,10 @@ void main() {
       apiBaseUrl: 'http://localhost:8000/api/v1',
       wsUrl: 'ws://localhost:8000',
       primaryColor: const Color(0xFF2196F3),
+      pusherKey: 'test-key',
+      pusherHost: 'localhost',
+      pusherPort: 8080,
+      pusherScheme: 'http',
     );
 
     // Build our app and trigger a frame.
@@ -42,6 +46,10 @@ void main() {
       apiBaseUrl: 'http://localhost:8000/api/v1',
       wsUrl: 'ws://localhost:8000',
       primaryColor: const Color(0xFF4CAF50),
+      pusherKey: 'test-key',
+      pusherHost: 'localhost',
+      pusherPort: 8080,
+      pusherScheme: 'http',
     );
 
     // Build our app and trigger a frame.

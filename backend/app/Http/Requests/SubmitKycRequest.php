@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class SubmitKycRequest extends FormRequest
 {
@@ -23,22 +24,38 @@ class SubmitKycRequest extends FormRequest
     public function rules(): array
     {
         $allowedDomain = config('app.allowed_student_email_domain');
+        $userId = $this->user()->id;
 
         return [
             'student_email' => [
                 'required',
                 'email',
                 'max:255',
+                // Unique email constraint (ignore current user's profile if updating)
+                Rule::unique('driver_profiles', 'student_email')->ignore($userId, 'user_id'),
+                // Domain validation
                 function ($attribute, $value, $fail) use ($allowedDomain) {
                     if (! str_ends_with($value, '@'.$allowedDomain)) {
                         $fail('The student email must be from '.$allowedDomain);
                     }
                 },
             ],
-            'student_id' => 'required|string|max:50',
+            'student_id' => [
+                'required',
+                'string',
+                'max:50',
+                // Unique student ID constraint (ignore current user's profile if updating)
+                Rule::unique('driver_profiles', 'student_id')->ignore($userId, 'user_id'),
+            ],
             'student_name' => 'required|string|max:255',
             'vehicle_type' => 'required|string|in:motorcycle,car',
-            'vehicle_plate' => 'required|string|max:20',
+            'vehicle_plate' => [
+                'required',
+                'string',
+                'max:20',
+                // Unique vehicle plate constraint (ignore current user's profile if updating)
+                Rule::unique('driver_profiles', 'vehicle_plate')->ignore($userId, 'user_id'),
+            ],
             'vehicle_color' => 'required|string|max:50',
             'ktm_photo' => 'required|image|mimes:jpeg,jpg,png|max:5120', // 5MB max
         ];
@@ -52,11 +69,14 @@ class SubmitKycRequest extends FormRequest
         return [
             'student_email.required' => 'Student email is required',
             'student_email.email' => 'Student email must be a valid email address',
+            'student_email.unique' => 'This student email is already registered',
             'student_id.required' => 'Student ID is required',
+            'student_id.unique' => 'This student ID is already registered',
             'student_name.required' => 'Student name is required',
             'vehicle_type.required' => 'Vehicle type is required',
             'vehicle_type.in' => 'Vehicle type must be either motorcycle or car',
             'vehicle_plate.required' => 'Vehicle license plate is required',
+            'vehicle_plate.unique' => 'This vehicle license plate is already registered',
             'vehicle_color.required' => 'Vehicle color is required',
             'ktm_photo.required' => 'KTM photo is required',
             'ktm_photo.image' => 'KTM photo must be an image',

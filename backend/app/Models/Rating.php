@@ -16,6 +16,12 @@ class Rating extends Model
     use HasFactory;
 
     /**
+     * Indicates if the model should be timestamped.
+     * The ratings table only has created_at, not updated_at
+     */
+    const UPDATED_AT = null;  // ✅ Disable updated_at timestamp
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
@@ -23,10 +29,10 @@ class Rating extends Model
     protected $fillable = [
         'ride_id',
         'rater_id',
-        'rated_user_id',
-        'type',
-        'rating',
-        'comment',
+        'rated_id',        // ✅ Match database column name
+        'rating_type',     // ✅ Match database column name
+        'score',           // ✅ Match database column name
+        'feedback',        // ✅ Match database column name
         'tags',
     ];
 
@@ -36,10 +42,9 @@ class Rating extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'rating' => 'integer',
+        'score' => 'integer',    // ✅ Match database column name
         'tags' => 'json',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime',
     ];
 
     /**
@@ -63,7 +68,7 @@ class Rating extends Model
      */
     public function ratedUser(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'rated_user_id');
+        return $this->belongsTo(User::class, 'rated_id');  // ✅ Match database column name
     }
 
     /**
@@ -71,7 +76,7 @@ class Rating extends Model
      */
     public function scopeDriverRatings($query)
     {
-        return $query->where('type', 'driver');
+        return $query->where('rating_type', 'rider_to_driver');  // ✅ Match database constraint
     }
 
     /**
@@ -79,7 +84,7 @@ class Rating extends Model
      */
     public function scopeRiderRatings($query)
     {
-        return $query->where('type', 'rider');
+        return $query->where('rating_type', 'driver_to_rider');  // ✅ Match database constraint
     }
 
     /**
@@ -87,7 +92,7 @@ class Rating extends Model
      */
     public function scopeForUser($query, int $userId)
     {
-        return $query->where('rated_user_id', $userId);
+        return $query->where('rated_id', $userId);  // ✅ Match database column name
     }
 
     /**
@@ -103,7 +108,7 @@ class Rating extends Model
      */
     public function scopeHighRatings($query)
     {
-        return $query->whereIn('rating', [4, 5]);
+        return $query->whereIn('score', [4, 5]);  // ✅ Match database column name
     }
 
     /**
@@ -111,7 +116,7 @@ class Rating extends Model
      */
     public function scopeLowRatings($query)
     {
-        return $query->whereIn('rating', [1, 2]);
+        return $query->whereIn('score', [1, 2]);  // ✅ Match database column name
     }
 
     /**
@@ -119,7 +124,7 @@ class Rating extends Model
      */
     public function isPositive(): bool
     {
-        return $this->rating >= 4;
+        return $this->score >= 4;  // ✅ Match database column name
     }
 
     /**
@@ -127,7 +132,7 @@ class Rating extends Model
      */
     public function isNegative(): bool
     {
-        return $this->rating <= 2;
+        return $this->score <= 2;  // ✅ Match database column name
     }
 
     /**
@@ -135,7 +140,7 @@ class Rating extends Model
      */
     public function getStarsAttribute(): string
     {
-        return str_repeat('★', $this->rating).str_repeat('☆', 5 - $this->rating);
+        return str_repeat('★', $this->score).str_repeat('☆', 5 - $this->score);  // ✅ Match database column name
     }
 
     /**
@@ -168,13 +173,14 @@ class Rating extends Model
     {
         $ratedUser = $this->ratedUser;
 
-        if ($this->type === 'driver' && $ratedUser->driverProfile) {
-            $ratings = static::forUser($this->rated_user_id)
-                ->where('type', 'driver')
+        // ✅ Check if this is a rating for a driver (rider_to_driver)
+        if ($this->rating_type === 'rider_to_driver' && $ratedUser->driverProfile) {
+            $ratings = static::forUser($this->rated_id)  // ✅ Match database column name
+                ->where('rating_type', 'rider_to_driver')  // ✅ Match database column name
                 ->get();
 
             if ($ratings->count() > 0) {
-                $average = $ratings->avg('rating');
+                $average = $ratings->avg('score');  // ✅ Match database column name
                 $ratedUser->driverProfile->update([
                     'rating_average' => round($average, 2),
                     'rating_count' => $ratings->count(),
@@ -259,7 +265,9 @@ class Rating extends Model
             return true; // No tags is valid
         }
 
-        $allowedTags = static::getAvailableTags($this->type);
+        // ✅ Determine type from rating_type (rider_to_driver = driver rating, driver_to_rider = rider rating)
+        $type = $this->rating_type === 'rider_to_driver' ? 'driver' : 'rider';
+        $allowedTags = static::getAvailableTags($type);
         $providedTags = is_array($this->tags) ? $this->tags : [];
 
         foreach ($providedTags as $tag) {

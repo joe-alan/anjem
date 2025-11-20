@@ -24,6 +24,23 @@ class KycVerificationService
     }
 
     /**
+     * Check if email is available for registration
+     * Returns true if email is not already registered
+     * Excludes current user's email if userId is provided (for updates)
+     */
+    public function isEmailAvailable(string $email, ?int $userId = null): bool
+    {
+        $query = DriverProfile::where('student_email', $email);
+
+        // Exclude current user if updating their own KYC
+        if ($userId) {
+            $query->where('user_id', '!=', $userId);
+        }
+
+        return ! $query->exists();
+    }
+
+    /**
      * Generate a 6-digit verification code
      */
     public function generateCode(): string

@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\NewRideRequest;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateRideRequestRequest;
 use App\Http\Resources\RideRequestResource;
+use App\Models\DriverProfile;
 use App\Models\RideRequest;
 use App\Services\NotificationService;
 use App\Services\RideService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class RequestController extends Controller
 {
@@ -71,6 +74,14 @@ class RequestController extends Controller
     {
         $rider = $request->user();
 
+        // ✅ Check if user is currently online as driver
+        if ($rider->driverProfile && $rider->driverProfile->went_online_at !== null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You cannot request a ride while you are online as a driver. Please go offline first.',
+            ], 400);
+        }
+
         // Check if rider has any active ride requests
         $activeRequest = RideRequest::where('rider_id', $rider->id)
             ->whereIn('status', ['pending', 'matched'])
@@ -103,13 +114,38 @@ class RequestController extends Controller
             ], 500);
         }
 
-        $rideRequest->load(['pickupLocation', 'destinationLocation']);
+        $rideRequest->load(['pickupLocation', 'destinationLocation', 'rider']);
+
+        $this->broadcastNewRideRequest($rideRequest);
 
         return response()->json([
             'success' => true,
             'message' => 'Ride request created successfully',
             'data' => new RideRequestResource($rideRequest),
         ], 201);
+    }
+
+    private function broadcastNewRideRequest(RideRequest $rideRequest): void
+    {
+        $driverIds = DriverProfile::query()
+            ->available()
+            ->whereHas('user', function ($query) {
+                $query->where('is_active', true)
+                    ->whereIn('user_type', ['driver', 'both']);
+            })
+            ->limit(50)
+            ->pluck('user_id')
+            ->all();
+
+        if (empty($driverIds)) {
+            Log::info('No online drivers available for new ride request broadcast', [
+                'ride_request_id' => $rideRequest->id,
+            ]);
+
+            return;
+        }
+
+        broadcast(new NewRideRequest($rideRequest, $driverIds));
     }
 
     /**
@@ -178,7 +214,7 @@ class RequestController extends Controller
 
         // If the request was matched, notify the driver
         if ($ride_request->status === 'matched') {
-            $ride = $ride_request->rides()->first();
+            $ride = $ride_request->ride;
             if ($ride && $ride->driver) {
                 $this->notificationService->sendRideCancelledNotification(
                     $ride,

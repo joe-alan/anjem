@@ -68,6 +68,7 @@ Route::prefix('v1')->group(function () {
         Route::prefix('driver')->group(function () {
             // KYC verification routes
             Route::prefix('kyc')->group(function () {
+                Route::post('check-email', [\App\Http\Controllers\Api\DriverKycController::class, 'checkEmailAvailability']);
                 Route::post('submit', [\App\Http\Controllers\Api\DriverKycController::class, 'submitKyc']);
                 Route::post('send-code', [\App\Http\Controllers\Api\DriverKycController::class, 'sendVerificationCode']);
                 Route::post('verify-email', [\App\Http\Controllers\Api\DriverKycController::class, 'verifyEmail']);
@@ -85,7 +86,7 @@ Route::prefix('v1')->group(function () {
 
         // Ride management
         Route::prefix('rides')->group(function () {
-            Route::post('{request}/accept', [RideController::class, 'accept']);
+            Route::post('{rideRequest}/accept', [RideController::class, 'accept']);
             Route::patch('{ride}/status', [RideController::class, 'updateStatus']);
             Route::post('{ride}/rate', [RideController::class, 'rate']);
             Route::get('{ride}', [RideController::class, 'show']);
