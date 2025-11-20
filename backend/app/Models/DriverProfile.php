@@ -37,12 +37,12 @@ class DriverProfile extends Model
         'vehicle_plate', // Fixed: matches database column name
         'driver_license_number',
         'current_location',
-        'status',
+        'went_online_at',
         'is_verified',
         'email_verified_at',
         'rating_average',
         'rating_count',
-        'total_rides',
+        'total_rides_given',
         'last_location_update',
         'notes',
     ];
@@ -65,9 +65,10 @@ class DriverProfile extends Model
         'current_location' => Point::class,
         'is_verified' => 'boolean',
         'email_verified_at' => 'datetime',
+        'went_online_at' => 'datetime',
         'rating_average' => 'decimal:2',
         'rating_count' => 'integer',
-        'total_rides' => 'integer',
+        'total_rides_given' => 'integer',
         'last_location_update' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -104,7 +105,7 @@ class DriverProfile extends Model
      */
     public function isOnline(): bool
     {
-        return $this->status === 'online';
+        return $this->went_online_at !== null;
     }
 
     /**
@@ -112,7 +113,7 @@ class DriverProfile extends Model
      */
     public function isAvailable(): bool
     {
-        return $this->status === 'online' && $this->is_verified;
+        return $this->went_online_at !== null && $this->is_verified;
     }
 
     /**
@@ -120,7 +121,7 @@ class DriverProfile extends Model
      */
     public function scopeOnline($query)
     {
-        return $query->where('status', 'online');
+        return $query->whereNotNull('went_online_at');
     }
 
     /**
@@ -180,7 +181,7 @@ class DriverProfile extends Model
      */
     public function incrementRideCount(): void
     {
-        $this->increment('total_rides');
+        $this->increment('total_rides_given');
     }
 
     /**

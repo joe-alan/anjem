@@ -17,7 +17,8 @@ class ApiService {
       receiveTimeout: const Duration(seconds: 30),
       headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json',
+        // Don't set Content-Type here - let Dio automatically set it based on the request data
+        // (application/json for JSON, multipart/form-data for FormData, etc.)
       },
     ));
 

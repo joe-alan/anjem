@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/auth/auth_service.dart';
 import '../services/api/api_exception.dart';
 import '../models/user.dart';
+import '../services/websocket/websocket_service.dart';
 import 'api_provider.dart';
 
 // Auth Service Provider
@@ -10,11 +11,18 @@ final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService(apiService: apiService);
 });
 
+// WebSocket Service Provider
+final websocketServiceProvider = Provider<WebSocketService>((ref) {
+  final apiService = ref.watch(apiServiceProvider);
+  return WebSocketService(apiService: apiService);
+});
+
 // Auth State Provider
 final authStateProvider = StateNotifierProvider<AuthStateNotifier, AuthState>(
   (ref) {
     final authService = ref.watch(authServiceProvider);
-    return AuthStateNotifier(authService);
+    final wsService = ref.watch(websocketServiceProvider);
+    return AuthStateNotifier(authService, wsService);
   },
 );
 
@@ -50,8 +58,9 @@ class AuthState {
 // Auth State Notifier
 class AuthStateNotifier extends StateNotifier<AuthState> {
   final AuthService _authService;
+  final WebSocketService _wsService;
 
-  AuthStateNotifier(this._authService) : super(const AuthState()) {
+  AuthStateNotifier(this._authService, this._wsService) : super(const AuthState()) {
     _checkAuthStatus();
   }
 
@@ -65,12 +74,18 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
         // Token exists, try to get user data
         try {
           final user = await _authService.getCurrentUser();
+          print('AuthProvider: User fetched, about to initialize WebSocket');
           state = state.copyWith(
             isLoading: false,
             isAuthenticated: true,
             user: user,
             error: null,
           );
+
+          // Initialize WebSocket connection
+          print('AuthProvider: Calling _initializeWebSocket()');
+          await _initializeWebSocket();
+          print('AuthProvider: _initializeWebSocket() completed');
         } catch (e) {
           // If user fetch fails with 401, token is expired - log them out
           print('Failed to fetch user data: $e');
@@ -128,6 +143,9 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
         user: user,
         error: null,
       );
+
+      // Initialize WebSocket connection
+      await _initializeWebSocket();
     } on ApiException catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -149,6 +167,9 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true);
 
     try {
+      // Disconnect WebSocket
+      await _wsService.disconnect();
+
       await _authService.signOut();
 
       state = const AuthState(
@@ -182,6 +203,30 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
 
   void clearError() {
     state = state.copyWith(error: null);
+  }
+
+  Future<void> _initializeWebSocket() async {
+    print('======================================');
+    print('WEBSOCKET INIT START - THIS MUST PRINT!!!');
+    print('======================================');
+
+    try {
+      print('Step 1: About to call _wsService.initialize()');
+      await _wsService.initialize();
+
+      print('Step 2: About to call _wsService.connect()');
+      await _wsService.connect();
+
+      print('Step 3: WebSocket initialized and connected successfully!');
+    } catch (e, stackTrace) {
+      print('WEBSOCKET ERROR: $e');
+      print('STACK TRACE: $stackTrace');
+      // Don't throw - WebSocket is not critical for initial app function
+    }
+
+    print('======================================');
+    print('WEBSOCKET INIT END');
+    print('======================================');
   }
 }
 

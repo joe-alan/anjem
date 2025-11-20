@@ -170,38 +170,91 @@ class RideService
     }
 
     /**
-     * Accept a ride request by driver (creates and accepts ride)
+     * Accept a ride request by driver (standard ride-sharing model)
+     * Any online driver can accept any pending request
      */
     public function acceptRideRequest(int $rideRequestId, int $driverId): ?Ride
     {
         try {
             DB::beginTransaction();
 
-            // First create the ride from the request
-            $ride = $this->matchDriver($rideRequestId);
-            if (! $ride) {
+            // ✅ FIX: Add row locking with status filter to prevent race condition
+            $rideRequest = RideRequest::lockForUpdate()
+                ->where('id', $rideRequestId)
+                ->where('status', 'pending')  // Only lock if pending
+                ->with(['pickupLocation', 'destinationLocation', 'rider'])
+                ->first();
+
+            // ✅ FIX: Throw specific exceptions instead of returning null
+            if (! $rideRequest) {
                 DB::rollBack();
-
-                return null;
+                throw new \Exception('This ride request has already been accepted by another driver', 409);
             }
 
-            // Then accept it if the driver matches
-            if ($ride->driver_id === $driverId) {
-                $ride->markAsAccepted();
-                DB::commit();
-
-                Log::info('Ride request accepted by driver', [
-                    'ride_request_id' => $rideRequestId,
-                    'ride_id' => $ride->id,
-                    'driver_id' => $driverId,
-                ]);
-
-                return $ride;
+            if (! $rideRequest->isActive()) {
+                DB::rollBack();
+                throw new \Exception('This ride request is no longer available', 404);
             }
 
-            DB::rollBack();
+            // Verify driver is valid and online
+            $driver = User::with('driverProfile')->find($driverId);
+            if (
+                ! $driver ||
+                ! $driver->is_active ||
+                ! in_array($driver->user_type, ['driver', 'both'])
+            ) {
+                DB::rollBack();
+                throw new \Exception('Invalid driver credentials', 403);
+            }
 
-            return null;
+            // Check if driver already has an active ride
+            $existingRide = $this->getActiveRide($driverId);
+            if ($existingRide) {
+                DB::rollBack();
+                throw new \Exception('You already have an active ride. Complete it before accepting another.', 400);
+            }
+
+            // Check if driver has active rides as rider
+            $activeRiderRide = $driver->riderRides()
+                ->whereIn('status', ['matched', 'accepted', 'driver_arrived', 'in_progress'])
+                ->exists();
+
+            if ($activeRiderRide) {
+                DB::rollBack();
+                throw new \Exception('You cannot accept a ride while you have an active ride as a rider.', 400);
+            }
+
+            // Create the ride
+            $ride = Ride::create([
+                'ride_request_id' => $rideRequest->id,
+                'rider_id' => $rideRequest->rider_id,
+                'driver_id' => $driver->id,
+                'pickup_location_id' => $rideRequest->pickup_location_id,
+                'destination_location_id' => $rideRequest->destination_location_id,
+                'status' => 'accepted',  // Direct to accepted status
+                'passenger_count' => $rideRequest->passenger_count,
+                'estimated_fare_rp' => $rideRequest->estimated_fare_rp,
+                'special_requests' => $rideRequest->special_requests,
+            ]);
+
+            $ride->markAsAccepted();
+
+            // Update ride request status
+            $rideRequest->markAsMatched();
+
+            // Remove from active requests cache
+            $this->removeActiveRequestCache($rideRequest->id);
+
+            DB::commit();
+
+            Log::info('Ride request accepted by driver', [
+                'ride_id' => $ride->id,
+                'ride_request_id' => $rideRequestId,
+                'driver_id' => $driverId,
+                'rider_id' => $rideRequest->rider_id,
+            ]);
+
+            return $ride;
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -209,9 +262,11 @@ class RideService
                 'ride_request_id' => $rideRequestId,
                 'driver_id' => $driverId,
                 'error' => $e->getMessage(),
+                'code' => $e->getCode(),
             ]);
 
-            return null;
+            // ✅ FIX: Re-throw exception for controller to handle
+            throw $e;
         }
     }
 
@@ -248,9 +303,9 @@ class RideService
     }
 
     /**
-     * Start a ride (driver picked up rider)
+     * Mark driver as arrived at pickup location
      */
-    public function startRide(int $rideId, int $driverId): bool
+    public function markDriverArrived(int $rideId, int $driverId): bool
     {
         try {
             $ride = Ride::find($rideId);
@@ -259,7 +314,51 @@ class RideService
                 return false;
             }
 
+            $ride->status = 'driver_arrived';
+            $ride->arrived_at = now();
+            $ride->save();
+
+            Log::info('Driver marked as arrived', [
+                'ride_id' => $rideId,
+                'driver_id' => $driverId,
+            ]);
+
+            return true;
+
+        } catch (\Exception $e) {
+            Log::error('Failed to mark driver as arrived', [
+                'ride_id' => $rideId,
+                'driver_id' => $driverId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    /**
+     * Start a ride (driver picked up rider)
+     */
+    public function startRide(int $rideId, int $driverId): bool
+    {
+        try {
+            $ride = Ride::find($rideId);
+
+            if (! $ride || $ride->driver_id !== $driverId) {
+                return false;
+            }
+
+            // Allow starting from either 'accepted' or 'driver_arrived' status
+            if (! in_array($ride->status, ['accepted', 'driver_arrived'])) {
+                return false;
+            }
+
             $ride->startRide();
+
+            // Keep the parent ride request in sync so riders can resume their session
+            if ($ride->rideRequest) {
+                $ride->rideRequest->markAsInProgress();
+            }
 
             Log::info('Ride started', [
                 'ride_id' => $rideId,
@@ -300,6 +399,12 @@ class RideService
             }
 
             $ride->completeRide($actualDistance, $actualFare);
+
+            if ($ride->rideRequest) {
+                $ride->rideRequest->markAsCompleted();
+            }
+
+            $this->removeActiveRequestCache($ride->ride_request_id);
 
             Log::info('Ride completed', [
                 'ride_id' => $rideId,
@@ -370,6 +475,12 @@ class RideService
             }
 
             $ride->cancelRide($reason);
+
+            if ($ride->rideRequest) {
+                $ride->rideRequest->markAsCancelled();
+            }
+
+            $this->removeActiveRequestCache($ride->ride_request_id);
 
             Log::info('Ride cancelled', [
                 'ride_id' => $rideId,
@@ -529,22 +640,38 @@ class RideService
     }
 
     /**
-     * Find the best available driver for a ride request
+     * Find the best available driver for a ride request (proximity-based)
+     * NOTE: For standard model, drivers accept requests directly
+     * This method is kept for potential auto-matching features
      */
     private function findBestDriver(RideRequest $rideRequest): ?User
     {
-        if (! $rideRequest->pickupLocation->isBeacon()) {
-            return null; // For MVP, only support beacon pickups
+        // Get online drivers near the pickup location
+        $pickupLat = $rideRequest->pickupLocation->coordinates->latitude;
+        $pickupLng = $rideRequest->pickupLocation->coordinates->longitude;
+
+        // Find drivers within 5km radius
+        $nearbyDrivers = User::where('user_type', 'driver')
+            ->where('is_active', true)
+            ->whereHas('driverProfile', function ($query) use ($pickupLat, $pickupLng) {
+                $query->whereNotNull('current_location')
+                    ->whereRaw('ST_DWithin(current_location::geography, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)', [
+                        $pickupLng,
+                        $pickupLat,
+                        5000, // 5km radius
+                    ]);
+            })
+            ->get();
+
+        // Filter out drivers with active rides
+        foreach ($nearbyDrivers as $driver) {
+            $activeRide = $this->getActiveRide($driver->id);
+            if (! $activeRide) {
+                return $driver; // Return first available driver
+            }
         }
 
-        // Get the next driver in queue at the pickup beacon
-        $queueEntry = $this->queueService->getNextDriverAtBeacon($rideRequest->pickup_location_id);
-
-        if (! $queueEntry) {
-            return null; // No drivers available
-        }
-
-        return $queueEntry->driver;
+        return null; // No drivers available
     }
 
     /**
@@ -669,7 +796,7 @@ class RideService
         int $raterId,
         int $ratedUserId,
         int $rating,
-        ?string $comment = null,
+        ?string $feedback = null,  // ✅ Renamed from $comment to match database and API
         array $tags = []
     ): ?\App\Models\Rating {
         try {
@@ -684,29 +811,30 @@ class RideService
                 return null;
             }
 
-            // Determine the type based on who is being rated
-            $type = $ratedUserId === $ride->driver_id ? 'driver' : 'rider';
+            // ✅ Determine the rating_type based on who is being rated
+            // Database constraint expects: 'rider_to_driver' or 'driver_to_rider'
+            $ratingType = $ratedUserId === $ride->driver_id ? 'rider_to_driver' : 'driver_to_rider';
 
-            // Create the rating with type field for model listeners/scopes
+            // ✅ Create the rating with correct database column names
             $ratingRecord = \App\Models\Rating::create([
                 'ride_id' => $rideId,
                 'rater_id' => $raterId,
-                'rated_user_id' => $ratedUserId,
-                'type' => $type,
-                'rating' => $rating,
-                'comment' => $comment,
+                'rated_id' => $ratedUserId,     // ✅ Match database column name
+                'rating_type' => $ratingType,   // ✅ Match database column name and constraint
+                'score' => $rating,             // ✅ Match database column name
+                'feedback' => $feedback,        // ✅ Match database column name
                 'tags' => $tags,
             ]);
 
             // Note: Driver rating average is updated automatically by Rating model listener
-            // when type === 'driver' via the updateCachedRating() method
+            // when rating_type === 'rider_to_driver' via the updateCachedRating() method
 
             Log::info('Ride rated', [
                 'ride_id' => $rideId,
                 'rater_id' => $raterId,
-                'rated_user_id' => $ratedUserId,
-                'type' => $type,
-                'rating' => $rating,
+                'rated_id' => $ratedUserId,
+                'rating_type' => $ratingType,
+                'score' => $rating,
             ]);
 
             return $ratingRecord;

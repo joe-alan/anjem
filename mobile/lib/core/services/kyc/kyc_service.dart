@@ -12,21 +12,67 @@ class KycService {
   /// Get current KYC status
   Future<KycSubmission> getKycStatus() async {
     try {
+      print('KYC Service: Getting KYC status from /driver/kyc/status');
       final response = await _apiService.get('/driver/kyc/status');
 
+      print('KYC Service: getKycStatus response - ${response.statusCode}');
+      print('KYC Service: getKycStatus data - ${response.data}');
+
       if (response.data['success'] != true) {
+        print('KYC Service: getKycStatus failed - ${response.data['message']}');
         throw ApiException(
           message: response.data['message'] ?? 'Failed to get KYC status',
           statusCode: response.statusCode,
         );
       }
 
-      return KycSubmission.fromJson(response.data['data']);
+      final kycData = response.data['data'];
+      print('KYC Service: KYC status data - $kycData');
+      print('KYC Service: is_verified = ${kycData['is_verified']}');
+      print('KYC Service: email_verified = ${kycData['email_verified']}');
+      print('KYC Service: kyc_submitted = ${kycData['kyc_submitted']}');
+
+      final submission = KycSubmission.fromJson(kycData);
+      print('KYC Service: KycSubmission created - isVerified=${submission.isVerified}');
+      return submission;
     } on ApiException {
       rethrow;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('KYC Service: getKycStatus exception - $e');
+      print('KYC Service: Stack trace - $stackTrace');
       throw ApiException(
         message: 'Failed to get KYC status: ${e.toString()}',
+        statusCode: null,
+      );
+    }
+  }
+
+  /// Check if student email is available for registration
+  Future<bool> checkEmailAvailability(String studentEmail) async {
+    try {
+      print('KYC Service: Checking email availability for $studentEmail');
+      final response = await _apiService.post(
+        '/driver/kyc/check-email',
+        data: {'student_email': studentEmail},
+      );
+
+      print('KYC Service: Email availability response - ${response.data}');
+
+      if (response.data['success'] != true) {
+        // If success is false, return the available status anyway
+        // (handles cases like invalid domain)
+        return response.data['available'] ?? false;
+      }
+
+      return response.data['available'] ?? false;
+    } on ApiException catch (e) {
+      print('KYC Service: ApiException checking email - ${e.message}');
+      // On error, assume email is unavailable to be safe
+      rethrow;
+    } catch (e) {
+      print('KYC Service: Error checking email availability - $e');
+      throw ApiException(
+        message: 'Failed to check email availability: ${e.toString()}',
         statusCode: null,
       );
     }
@@ -44,6 +90,24 @@ class KycService {
   }) async {
     try {
       print('KYC Service: Preparing form data...');
+      print('KYC Service: KTM photo path - ${ktmPhoto.path}');
+      print('KYC Service: File exists - ${await ktmPhoto.exists()}');
+
+      // Create MultipartFile for the KTM photo
+      MultipartFile ktmPhotoFile;
+      try {
+        ktmPhotoFile = await MultipartFile.fromFile(
+          ktmPhoto.path,
+          filename: 'ktm_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        );
+        print('KYC Service: MultipartFile created successfully - ${ktmPhotoFile.filename}');
+      } catch (e) {
+        print('KYC Service: Error creating MultipartFile - ${e.toString()}');
+        throw ApiException(
+          message: 'Failed to read KTM photo file: ${e.toString()}',
+          statusCode: null,
+        );
+      }
 
       // Create multipart form data
       final formData = FormData.fromMap({
@@ -53,13 +117,11 @@ class KycService {
         'vehicle_type': vehicleType,
         'vehicle_plate': vehiclePlate,
         'vehicle_color': vehicleColor,
-        'ktm_photo': await MultipartFile.fromFile(
-          ktmPhoto.path,
-          filename: 'ktm_${DateTime.now().millisecondsSinceEpoch}.jpg',
-        ),
+        'ktm_photo': ktmPhotoFile,
       });
 
       print('KYC Service: Sending request to /driver/kyc/submit');
+      print('KYC Service: Request data - Fields: ${formData.fields.map((e) => e.key).join(", ")}, Files: ${formData.files.map((e) => e.key).join(", ")}');
 
       final response = await _apiService.post(
         '/driver/kyc/submit',
@@ -67,34 +129,84 @@ class KycService {
       );
 
       print('KYC Service: Response received - ${response.statusCode}');
+      print('KYC Service: Response data type - ${response.data.runtimeType}');
       print('KYC Service: Response data - ${response.data}');
 
-      if (response.data['success'] != true) {
-        final errorMsg = response.data['error'] ?? response.data['message'] ?? 'Failed to submit KYC';
+      if (response.data == null) {
+        throw ApiException(
+          message: 'Server returned empty response',
+          statusCode: response.statusCode,
+        );
+      }
+
+      if (response.data is! Map) {
+        print('KYC Service: Response is not a Map! It is: ${response.data.runtimeType}');
+        throw ApiException(
+          message: 'Invalid response format from server',
+          statusCode: response.statusCode,
+        );
+      }
+
+      final responseData = response.data as Map<String, dynamic>;
+      print('KYC Service: Response success field - ${responseData['success']}');
+
+      if (responseData['success'] != true) {
+        final errorMsg = responseData['error'] ?? responseData['message'] ?? 'Failed to submit KYC';
+        print('KYC Service: Server returned success=false with message: $errorMsg');
         throw ApiException(
           message: errorMsg,
           statusCode: response.statusCode,
         );
       }
 
-      return KycSubmission.fromJson(response.data['data']);
+      print('KYC Service: Parsing response data...');
+      final kycData = responseData['data'];
+      print('KYC Service: KYC data - $kycData');
+      print('KYC Service: KYC data type - ${kycData.runtimeType}');
+
+      try {
+        final submission = KycSubmission.fromJson(kycData);
+        print('KYC Service: KycSubmission parsed successfully!');
+        return submission;
+      } catch (e, stackTrace) {
+        print('KYC Service: Error parsing KycSubmission - $e');
+        print('KYC Service: Stack trace - $stackTrace');
+        throw ApiException(
+          message: 'Failed to parse KYC response: $e',
+          statusCode: response.statusCode,
+        );
+      }
     } on ApiException {
       rethrow;
     } on DioException catch (e) {
-      print('KYC Service: DioException - ${e.message}');
+      print('KYC Service: DioException caught!');
+      print('KYC Service: Error type - ${e.type}');
+      print('KYC Service: Error message - ${e.message}');
+      print('KYC Service: Status code - ${e.response?.statusCode}');
       print('KYC Service: Response data - ${e.response?.data}');
+      print('KYC Service: Response headers - ${e.response?.headers}');
 
-      final errorMsg = e.response?.data?['error'] ??
-                       e.response?.data?['message'] ??
-                       e.message ??
-                       'Failed to submit KYC';
+      String errorMsg;
+      if (e.response?.data != null && e.response!.data is Map) {
+        errorMsg = e.response!.data['error'] ??
+                   e.response!.data['message'] ??
+                   'Failed to submit KYC';
+
+        // Log validation errors if present
+        if (e.response!.data['errors'] != null) {
+          print('KYC Service: Validation errors - ${e.response!.data['errors']}');
+        }
+      } else {
+        errorMsg = e.message ?? 'Failed to submit KYC';
+      }
 
       throw ApiException(
         message: errorMsg,
         statusCode: e.response?.statusCode,
       );
-    } catch (e) {
-      print('KYC Service: Exception - ${e.toString()}');
+    } catch (e, stackTrace) {
+      print('KYC Service: Unexpected exception - ${e.toString()}');
+      print('KYC Service: Stack trace - ${stackTrace.toString()}');
       throw ApiException(
         message: 'Failed to submit KYC: ${e.toString()}',
         statusCode: null,

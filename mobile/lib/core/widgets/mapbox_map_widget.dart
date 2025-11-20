@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import '../config/mapbox_config.dart';
+import '../models/lat_lng.dart';
 
 /// A wrapper widget for Mapbox Maps that provides a similar API to Google Maps
 ///
@@ -13,6 +14,9 @@ class MapboxMapWidget extends StatefulWidget {
 
   /// Map markers to display
   final Set<MapMarker> markers;
+
+  /// Polylines to display
+  final Set<MapPolyline> polylines;
 
   /// Whether to show user's current location
   final bool myLocationEnabled;
@@ -47,6 +51,7 @@ class MapboxMapWidget extends StatefulWidget {
   const MapboxMapWidget({
     required this.initialCameraPosition,
     this.markers = const {},
+    this.polylines = const {},
     this.myLocationEnabled = false,
     this.myLocationButtonEnabled = true,
     this.zoomControlsEnabled = true,
@@ -67,7 +72,9 @@ class MapboxMapWidget extends StatefulWidget {
 class _MapboxMapWidgetState extends State<MapboxMapWidget> {
   MapboxMap? _mapboxMap;
   PointAnnotationManager? _pointAnnotationManager;
+  PolylineAnnotationManager? _polylineAnnotationManager;
   final Map<String, PointAnnotation> _annotations = {};
+  final Map<String, PolylineAnnotation> _polylines = {};
 
   @override
   Widget build(BuildContext context) {
@@ -102,11 +109,13 @@ class _MapboxMapWidgetState extends State<MapboxMapWidget> {
     // Min/max zoom are handled in the initial camera options
     // No separate API calls needed
 
-    // Create annotation manager for markers
+    // Create annotation managers
     _pointAnnotationManager = await mapboxMap.annotations.createPointAnnotationManager();
+    _polylineAnnotationManager = await mapboxMap.annotations.createPolylineAnnotationManager();
 
-    // Add initial markers
+    // Add initial markers and polylines
     await _updateMarkers();
+    await _updatePolylines();
 
     // TODO: Setup marker tap listener
     // Note: Mapbox SDK tap events API may have changed
@@ -179,6 +188,33 @@ class _MapboxMapWidgetState extends State<MapboxMapWidget> {
     }
   }
 
+  Future<void> _updatePolylines() async {
+    if (_polylineAnnotationManager == null) return;
+
+    // Clear existing polylines
+    if (_polylines.isNotEmpty) {
+      await _polylineAnnotationManager!.deleteAll();
+      _polylines.clear();
+    }
+
+    // Add new polylines
+    for (final polyline in widget.polylines) {
+      final options = PolylineAnnotationOptions(
+        geometry: LineString(
+          coordinates: polyline.points
+              .map((point) => Position(point.longitude, point.latitude))
+              .toList(),
+        ),
+        lineColor: polyline.color.value,
+        lineWidth: polyline.width,
+        lineOpacity: polyline.opacity,
+      );
+
+      final annotation = await _polylineAnnotationManager!.create(options);
+      _polylines[polyline.id] = annotation;
+    }
+  }
+
   @override
   void didUpdateWidget(MapboxMapWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -186,6 +222,11 @@ class _MapboxMapWidgetState extends State<MapboxMapWidget> {
     // Update markers if they changed
     if (widget.markers != oldWidget.markers) {
       _updateMarkers();
+    }
+
+    // Update polylines if they changed
+    if (widget.polylines != oldWidget.polylines) {
+      _updatePolylines();
     }
   }
 }
@@ -240,6 +281,33 @@ class MapMarker {
 
   @override
   int get hashCode => id.hashCode ^ latitude.hashCode ^ longitude.hashCode;
+}
+
+/// Polyline for Mapbox map
+class MapPolyline {
+  final String id;
+  final List<LatLng> points;
+  final Color color;
+  final double width;
+  final double opacity;
+
+  const MapPolyline({
+    required this.id,
+    required this.points,
+    this.color = Colors.blue,
+    this.width = 3.0,
+    this.opacity = 1.0,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MapPolyline &&
+          runtimeType == other.runtimeType &&
+          id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }
 
 /// Controller for Mapbox map
