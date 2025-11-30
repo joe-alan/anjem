@@ -52,7 +52,7 @@ class AuthController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'user_type' => $user->user_type,
+                    'user_type' => $user->role, // API backward compatibility: fetch from role
                     'firebase_uid' => $user->firebase_uid,
                     'is_active' => $user->is_active,
                 ],
@@ -101,7 +101,7 @@ class AuthController extends Controller
                     'name' => $user->name,
                     'email' => $user->email,
                     'firebase_uid' => $user->firebase_uid,
-                    'user_type' => $user->user_type,
+                    'user_type' => $user->role, // API backward compatibility: fetch from role
                     'is_active' => $user->is_active,
                 ],
                 'token' => $token,
@@ -188,7 +188,7 @@ class AuthController extends Controller
             'locations:read',
         ];
 
-        $roleAbilities = match ($user->user_type) {
+        $roleAbilities = match ($user->role) {
             'rider' => [
                 'rider:request-ride',
                 'rider:cancel-ride',
@@ -202,6 +202,16 @@ class AuthController extends Controller
                 'driver:rate-rider',
             ],
             'both' => [
+                'rider:request-ride',
+                'rider:cancel-ride',
+                'rider:rate-driver',
+                'driver:go-online',
+                'driver:accept-ride',
+                'driver:complete-ride',
+                'driver:update-location',
+                'driver:rate-rider',
+            ],
+            'admin' => [ // Admin has all abilities
                 'rider:request-ride',
                 'rider:cancel-ride',
                 'rider:rate-driver',

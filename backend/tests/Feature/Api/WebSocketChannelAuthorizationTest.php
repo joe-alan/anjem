@@ -55,7 +55,7 @@ class WebSocketChannelAuthorizationTest extends TestCase
         $this->assertFalse($result);
 
         // Test 'both' user type can access driver channel
-        $bothUser = User::factory()->create(['user_type' => 'both']);
+        $bothUser = User::factory()->create(['role' => 'both']);
         $result = $this->callChannelAuth('driver.'.$bothUser->id, $bothUser, $bothUser->id);
         $this->assertTrue($result);
     }

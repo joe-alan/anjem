@@ -292,8 +292,8 @@ class Ride extends Model
     {
         return $this->ratings()
             ->where('rater_id', $this->rider_id)
-            ->where('rated_user_id', $this->driver_id)
-            ->where('type', 'driver')
+            ->where('rated_id', $this->driver_id)
+            ->where('rating_type', 'rider_to_driver')
             ->first();
     }
 
@@ -304,8 +304,8 @@ class Ride extends Model
     {
         return $this->ratings()
             ->where('rater_id', $this->driver_id)
-            ->where('rated_user_id', $this->rider_id)
-            ->where('type', 'rider')
+            ->where('rated_id', $this->rider_id)
+            ->where('rating_type', 'driver_to_rider')
             ->first();
     }
 }

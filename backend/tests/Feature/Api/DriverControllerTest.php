@@ -235,7 +235,7 @@ class DriverControllerTest extends TestCase
      */
     public function test_statistics_without_driver_profile()
     {
-        $driver = User::factory()->create(['user_type' => 'driver']);
+        $driver = User::factory()->create(['role' => 'driver']);
         $token = $driver->createToken('mobile-app', ['driver:go-online'])->plainTextToken;
         // Don't create driver profile - method returns early without calling queue service
 

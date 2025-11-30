@@ -201,7 +201,7 @@ class RideService
             if (
                 ! $driver ||
                 ! $driver->is_active ||
-                ! in_array($driver->user_type, ['driver', 'both'])
+                ! in_array($driver->role, ['driver', 'both', 'admin'])
             ) {
                 DB::rollBack();
                 throw new \Exception('Invalid driver credentials', 403);
@@ -544,12 +544,15 @@ class RideService
                 return null;
             }
 
+            // Pass location IDs to enable route caching
             return $this->calculateRideEstimates(
                 $pickupLocation->coordinates->latitude,
                 $pickupLocation->coordinates->longitude,
                 $destinationLocation->coordinates->latitude,
                 $destinationLocation->coordinates->longitude,
-                $passengerCount
+                $passengerCount,
+                $pickupLocationId,          // NEW: Enable caching
+                $destinationLocationId       // NEW: Enable caching
             );
         } catch (\Exception $e) {
             Log::error('Failed to get ride estimates', [
@@ -565,11 +568,34 @@ class RideService
     /**
      * Calculate ride estimates (distance, duration, fare)
      * Returns mobile-friendly field names with route geometry
+     *
+     * @param  float  $pickupLat  Pickup latitude
+     * @param  float  $pickupLng  Pickup longitude
+     * @param  float  $destLat  Destination latitude
+     * @param  float  $destLng  Destination longitude
+     * @param  int  $passengerCount  Number of passengers
+     * @param  int|null  $pickupLocationId  Optional pickup location ID for caching
+     * @param  int|null  $destLocationId  Optional destination location ID for caching
+     * @return array Ride estimates with fare breakdown and route geometry
      */
-    public function calculateRideEstimates(float $pickupLat, float $pickupLng, float $destLat, float $destLng, int $passengerCount = 1): array
-    {
-        // Get driving details with route geometry
-        $drivingDetails = $this->locationService->getDrivingDetails($pickupLat, $pickupLng, $destLat, $destLng);
+    public function calculateRideEstimates(
+        float $pickupLat,
+        float $pickupLng,
+        float $destLat,
+        float $destLng,
+        int $passengerCount = 1,
+        ?int $pickupLocationId = null,
+        ?int $destLocationId = null
+    ): array {
+        // Get driving details with route geometry (uses caching if IDs provided)
+        $drivingDetails = $this->locationService->getDrivingDetails(
+            $pickupLat,
+            $pickupLng,
+            $destLat,
+            $destLng,
+            $pickupLocationId,
+            $destLocationId
+        );
 
         $distanceKm = $drivingDetails['distance_meters'] / 1000;
         $durationMinutes = $drivingDetails['duration_minutes'];
@@ -651,7 +677,7 @@ class RideService
         $pickupLng = $rideRequest->pickupLocation->coordinates->longitude;
 
         // Find drivers within 5km radius
-        $nearbyDrivers = User::where('user_type', 'driver')
+        $nearbyDrivers = User::whereIn('role', ['driver', 'both'])
             ->where('is_active', true)
             ->whereHas('driverProfile', function ($query) use ($pickupLat, $pickupLng) {
                 $query->whereNotNull('current_location')

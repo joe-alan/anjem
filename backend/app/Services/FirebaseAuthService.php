@@ -52,13 +52,13 @@ class FirebaseAuthService
                 'email' => $firebaseUser['email'],
                 'firebase_uid' => $firebaseUser['uid'],
                 'email_verified_at' => now(),
-                'user_type' => $deviceType, // 'rider' or 'driver'
+                'role' => $deviceType, // 'rider' or 'driver'
             ]);
 
             Log::info('Created new user from Firebase auth', [
                 'user_id' => $user->id,
                 'email' => $user->email,
-                'user_type' => $deviceType,
+                'role' => $deviceType,
             ]);
         } else {
             // Update Firebase UID if not set
@@ -66,16 +66,16 @@ class FirebaseAuthService
                 $user->update(['firebase_uid' => $firebaseUser['uid']]);
             }
 
-            // Upgrade user_type to 'both' if they sign in from different app
-            if ($user->user_type !== 'both' && $user->user_type !== $deviceType) {
-                $oldType = $user->user_type;
-                $user->update(['user_type' => 'both']);
+            // Upgrade role to 'both' if they sign in from different app
+            if ($user->role !== 'both' && $user->role !== $deviceType) {
+                $oldRole = $user->role;
+                $user->update(['role' => 'both']);
 
                 Log::info('Upgraded user to both rider and driver', [
                     'user_id' => $user->id,
                     'email' => $user->email,
-                    'old_type' => $oldType,
-                    'new_type' => 'both',
+                    'old_role' => $oldRole,
+                    'new_role' => 'both',
                     'signed_in_from' => $deviceType,
                 ]);
             }
@@ -86,7 +86,7 @@ class FirebaseAuthService
             Log::info('Existing user logged in via Firebase', [
                 'user_id' => $user->id,
                 'email' => $user->email,
-                'user_type' => $user->user_type,
+                'role' => $user->role,
             ]);
         }
 
