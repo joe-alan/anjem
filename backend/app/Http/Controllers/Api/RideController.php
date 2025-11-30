@@ -31,12 +31,12 @@ class RideController extends Controller
         $query = Ride::with(['rider', 'driver', 'pickupLocation', 'destinationLocation']);
 
         // Filter by user role
-        if ($user->user_type === 'rider') {
+        if ($user->role === 'rider') {
             $query->where('rider_id', $user->id);
-        } elseif ($user->user_type === 'driver') {
+        } elseif ($user->role === 'driver') {
             $query->where('driver_id', $user->id);
         } else {
-            // For 'both' user type, show all rides for this user
+            // For 'both' and 'admin' roles, show all rides for this user
             $query->where(function ($q) use ($user) {
                 $q->where('rider_id', $user->id)
                     ->orWhere('driver_id', $user->id);

@@ -19,7 +19,7 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'firebase_uid' => $this->firebase_uid, // Mobile expects this field
-            'user_type' => $this->user_type,
+            'user_type' => $this->role, // API backward compatibility: fetch from role
             'is_active' => $this->is_active,
             'email_verified_at' => $this->email_verified_at?->toISOString(),
             'last_active_at' => $this->last_active_at?->toISOString(),
@@ -28,7 +28,7 @@ class UserResource extends JsonResource
 
             // Include driver profile if user is a driver
             'driver_profile' => $this->when(
-                $this->user_type === 'driver' || $this->user_type === 'both',
+                in_array($this->role, ['driver', 'both', 'admin']),
                 function () {
                     return $this->driverProfile ? [
                         'id' => $this->driverProfile->id,

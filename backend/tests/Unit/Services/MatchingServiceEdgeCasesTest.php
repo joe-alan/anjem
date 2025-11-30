@@ -37,7 +37,7 @@ class MatchingServiceEdgeCasesTest extends TestCase
         $rideRequest = $this->createTestRideRequest();
 
         $inactiveDriver = User::factory()->create([
-            'user_type' => 'driver',
+            'role' => 'driver',
             'is_active' => false,
         ]);
         $this->createDriverProfile($inactiveDriver);
@@ -52,7 +52,7 @@ class MatchingServiceEdgeCasesTest extends TestCase
         $rideRequest = $this->createTestRideRequest();
 
         User::factory()->create([
-            'user_type' => 'rider',
+            'role' => 'rider',
             'is_active' => true,
         ]);
 
@@ -66,7 +66,7 @@ class MatchingServiceEdgeCasesTest extends TestCase
         $rideRequest = $this->createTestRideRequest();
 
         $busyDriver = User::factory()->create([
-            'user_type' => 'driver',
+            'role' => 'driver',
             'is_active' => true,
         ]);
         $this->createDriverProfile($busyDriver);
@@ -103,7 +103,7 @@ class MatchingServiceEdgeCasesTest extends TestCase
         $rideRequest = $this->createTestRideRequest();
 
         $driver = User::factory()->create([
-            'user_type' => 'driver',
+            'role' => 'driver',
             'is_active' => true,
         ]);
 
@@ -125,7 +125,7 @@ class MatchingServiceEdgeCasesTest extends TestCase
         $rideRequest = $this->createTestRideRequest();
 
         $highScoreDriver = User::factory()->create([
-            'user_type' => 'driver',
+            'role' => 'driver',
             'is_active' => true,
         ]);
         $this->createDriverProfile($highScoreDriver, [
@@ -136,7 +136,7 @@ class MatchingServiceEdgeCasesTest extends TestCase
         ]);
 
         $lowScoreDriver = User::factory()->create([
-            'user_type' => 'driver',
+            'role' => 'driver',
             'is_active' => true,
         ]);
         $this->createDriverProfile($lowScoreDriver, [
@@ -157,7 +157,7 @@ class MatchingServiceEdgeCasesTest extends TestCase
         $rideRequest = $this->createTestRideRequest(['status' => 'pending']);
 
         $driver = User::factory()->create([
-            'user_type' => 'driver',
+            'role' => 'driver',
             'is_active' => true,
         ]);
         $this->createDriverProfile($driver);
@@ -180,7 +180,7 @@ class MatchingServiceEdgeCasesTest extends TestCase
         ]);
 
         $driver = User::factory()->create([
-            'user_type' => 'driver',
+            'role' => 'driver',
             'is_active' => true,
         ]);
         $this->createDriverProfile($driver);
@@ -199,7 +199,7 @@ class MatchingServiceEdgeCasesTest extends TestCase
         $rideRequest = $this->createTestRideRequest();
 
         $driver = User::factory()->create([
-            'user_type' => 'driver',
+            'role' => 'driver',
             'is_active' => true,
         ]);
 

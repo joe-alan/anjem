@@ -131,7 +131,7 @@ class RequestController extends Controller
             ->available()
             ->whereHas('user', function ($query) {
                 $query->where('is_active', true)
-                    ->whereIn('user_type', ['driver', 'both']);
+                    ->whereIn('role', ['driver', 'both']);
             })
             ->limit(50)
             ->pluck('user_id')

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DriverController;
 use App\Http\Controllers\Api\PlaceController;
@@ -104,4 +105,34 @@ Route::prefix('v1')->group(function () {
             ]);
         });
     });
+});
+
+// Admin Dashboard Routes - Protected by auth:sanctum + admin middleware
+Route::prefix('admin')->middleware(['auth:sanctum', 'admin', 'throttle:100,1'])->group(function () {
+
+    // Driver Management
+    Route::get('drivers', [AdminController::class, 'listDrivers']);
+    Route::get('drivers/{id}', [AdminController::class, 'getDriver']);
+    Route::post('drivers/{id}/suspend', [AdminController::class, 'suspendDriver']);
+
+    // Rider Management
+    Route::get('riders', [AdminController::class, 'listRiders']);
+    Route::get('riders/{id}', [AdminController::class, 'getRider']);
+    Route::post('riders/{id}/suspend', [AdminController::class, 'suspendRider']);
+
+    // Analytics & Statistics
+    Route::get('analytics/overview', [AdminController::class, 'getOverview']);
+    Route::get('analytics/rides', [AdminController::class, 'getRideAnalytics']);
+    Route::get('analytics/popular-routes', [AdminController::class, 'getPopularRoutes']);
+    Route::get('analytics/driver-performance', [AdminController::class, 'getDriverPerformance']);
+
+    // Real-time Monitoring
+    Route::get('monitoring/active-rides', [AdminController::class, 'getActiveRides']);
+    Route::get('monitoring/online-drivers', [AdminController::class, 'getOnlineDrivers']);
+    Route::get('monitoring/pending-requests', [AdminController::class, 'getPendingRequests']);
+
+    // Admin Actions
+    Route::delete('monitoring/requests/{id}', [AdminController::class, 'cancelRequest']);
+    Route::post('monitoring/rides/{id}/cancel', [AdminController::class, 'cancelRide']);
+    Route::post('monitoring/rides/{id}/complete', [AdminController::class, 'completeRide']);
 });

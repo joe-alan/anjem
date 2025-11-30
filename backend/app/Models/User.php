@@ -30,7 +30,7 @@ class User extends Authenticatable
         'email',
         'password',
         'firebase_uid',
-        'user_type',
+        'role', // admin, rider, driver, both
         'phone_number',
         'phone_verified_at',
         'fcm_token',
@@ -65,6 +65,7 @@ class User extends Authenticatable
         'rider_rating_avg' => 'decimal:2',
         'total_rides_taken' => 'integer',
         'password' => 'hashed',
+        'role' => 'string', // admin, rider, driver, both
     ];
 
     /**
@@ -112,7 +113,7 @@ class User extends Authenticatable
      */
     public function ratingsReceived(): HasMany
     {
-        return $this->hasMany(Rating::class, 'rated_user_id');
+        return $this->hasMany(Rating::class, 'rated_id');
     }
 
     /**
@@ -136,7 +137,7 @@ class User extends Authenticatable
      */
     public function canBeDriver(): bool
     {
-        return in_array($this->user_type, ['driver', 'both']);
+        return in_array($this->role, ['driver', 'both', 'admin']);
     }
 
     /**
@@ -145,6 +146,46 @@ class User extends Authenticatable
     public function isDriverOnline(): bool
     {
         return $this->isDriver() && $this->driverProfile->went_online_at !== null;
+    }
+
+    /**
+     * Check if user is an admin
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Check if user has a specific role
+     */
+    public function hasRole(string $role): bool
+    {
+        return $this->role === $role;
+    }
+
+    /**
+     * Check if user can access admin panel
+     */
+    public function canAccessAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Check if user can act as rider
+     */
+    public function canBeRider(): bool
+    {
+        return in_array($this->role, ['rider', 'both', 'admin']);
+    }
+
+    /**
+     * Check if user can act as driver (updated to use role)
+     */
+    public function canActAsDriver(): bool
+    {
+        return in_array($this->role, ['driver', 'both']) && $this->driverProfile()->exists();
     }
 
     /**
@@ -157,8 +198,8 @@ class User extends Authenticatable
         }
 
         return $this->ratingsReceived()
-            ->where('type', 'driver')
-            ->avg('rating');
+            ->where('rating_type', 'driver')
+            ->avg('score');
     }
 
     /**
@@ -167,8 +208,8 @@ class User extends Authenticatable
     public function getRiderRatingAttribute(): ?float
     {
         return $this->ratingsReceived()
-            ->where('type', 'rider')
-            ->avg('rating');
+            ->where('rating_type', 'rider')
+            ->avg('score');
     }
 
     /**
@@ -182,7 +223,7 @@ class User extends Authenticatable
     /**
      * Create Sanctum token with appropriate abilities based on user role
      */
-    public function createTokenWithAbilities(bool $asDriver = false): string
+    public function createTokenWithAbilities(bool $asDriver = false, bool $asAdmin = false): string
     {
         $abilities = [
             'profile:read',
@@ -191,7 +232,32 @@ class User extends Authenticatable
             'notifications:read',
         ];
 
-        if ($asDriver && $this->canBeDriver()) {
+        // Admin gets all abilities
+        if ($asAdmin && $this->isAdmin()) {
+            $abilities = array_merge($abilities, [
+                // Admin-specific abilities
+                'admin:view-users',
+                'admin:manage-users',
+                'admin:view-rides',
+                'admin:manage-rides',
+                'admin:view-analytics',
+                'admin:view-monitoring',
+                'admin:manage-drivers',
+                'admin:manage-riders',
+                'admin:suspend-users',
+                // Plus all rider and driver abilities
+                'rider:request-ride',
+                'rider:cancel-ride',
+                'rider:rate-driver',
+                'rider:view-history',
+                'driver:go-online',
+                'driver:accept-ride',
+                'driver:complete-ride',
+                'driver:view-queue',
+                'driver:update-location',
+            ]);
+            $tokenName = 'admin-token';
+        } elseif ($asDriver && $this->canBeDriver()) {
             $abilities = array_merge($abilities, [
                 'driver:go-online',
                 'driver:accept-ride',

@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anjem Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .hidden { display: none; }
+        .active-nav { background-color: #3B82F6; color: white; }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3B82F6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Login Page -->
+    <div id="loginPage" class="min-h-screen flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-lg w-96">
+            <h1 class="text-2xl font-bold mb-6 text-center">Anjem Admin Login</h1>
+            <div id="loginError" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4"></div>
+            <form id="loginForm">
+                <div class="mb-4">
+                    <label class="block text-gray-700 mb-2">Email</label>
+                    <input type="email" id="loginEmail" value="admin@anjem.app"
+                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                           required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 mb-2">Password</label>
+                    <input type="password" id="loginPassword" value="admin123"
+                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                           required>
+                </div>
+                <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">
+                    Login
+                </button>
+            </form>
+            <p class="text-sm text-gray-600 mt-4 text-center">
+                Test credentials: admin@anjem.app / admin123
+            </p>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="hidden">
+        <!-- Header -->
+        <header class="bg-white shadow-sm">
+            <div class="flex justify-between items-center px-6 py-4">
+                <h1 class="text-2xl font-bold text-gray-800">Anjem Admin Dashboard</h1>
+                <div class="flex items-center gap-4">
+                    <span class="text-sm text-gray-600" id="adminName"></span>
+                    <button onclick="refreshCurrentPage()" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600" title="Refresh">
+                        🔄
+                    </button>
+                    <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex">
+            <!-- Sidebar -->
+            <aside class="w-64 bg-white h-screen shadow-sm">
+                <nav class="p-4">
+                    <a href="#" onclick="showPage('overview')" class="nav-item block px-4 py-3 rounded mb-2 hover:bg-gray-100">
+                        📊 Overview
+                    </a>
+                    <a href="#" onclick="showPage('drivers')" class="nav-item block px-4 py-3 rounded mb-2 hover:bg-gray-100">
+                        🚗 Drivers
+                    </a>
+                    <a href="#" onclick="showPage('riders')" class="nav-item block px-4 py-3 rounded mb-2 hover:bg-gray-100">
+                        👥 Riders
+                    </a>
+                    <a href="#" onclick="showPage('analytics')" class="nav-item block px-4 py-3 rounded mb-2 hover:bg-gray-100">
+                        📈 Analytics
+                    </a>
+                    <a href="#" onclick="showPage('monitoring')" class="nav-item block px-4 py-3 rounded mb-2 hover:bg-gray-100">
+                        🔴 Live Monitoring
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="flex-1 p-6">
+                <!-- Overview Page -->
+                <div id="overviewPage" class="page">
+                    <h2 class="text-2xl font-bold mb-6">Platform Overview</h2>
+                    <div id="overviewContent"></div>
+                </div>
+
+                <!-- Drivers Page -->
+                <div id="driversPage" class="page hidden">
+                    <h2 class="text-2xl font-bold mb-6">Driver Management</h2>
+                    <div class="mb-4 flex gap-4">
+                        <input type="text" id="driverSearch" placeholder="Search by name or email..."
+                               class="flex-1 px-4 py-2 border rounded-lg"
+                               onkeyup="searchDrivers()">
+                        <select id="driverKycFilter" class="px-4 py-2 border rounded-lg" onchange="loadDrivers()">
+                            <option value="">All KYC Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                        <select id="driverOnlineFilter" class="px-4 py-2 border rounded-lg" onchange="loadDrivers()">
+                            <option value="">All Drivers</option>
+                            <option value="true">Online Only</option>
+                            <option value="false">Offline Only</option>
+                        </select>
+                    </div>
+                    <div id="driversContent"></div>
+                </div>
+
+                <!-- Riders Page -->
+                <div id="ridersPage" class="page hidden">
+                    <h2 class="text-2xl font-bold mb-6">Rider Management</h2>
+                    <div class="mb-4">
+                        <input type="text" id="riderSearch" placeholder="Search by name or email..."
+                               class="w-full px-4 py-2 border rounded-lg"
+                               onkeyup="searchRiders()">
+                    </div>
+                    <div id="ridersContent"></div>
+                </div>
+
+                <!-- Analytics Page -->
+                <div id="analyticsPage" class="page hidden">
+                    <h2 class="text-2xl font-bold mb-6">Analytics & Statistics</h2>
+
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold mb-4">Ride Analytics</h3>
+                        <div class="flex gap-4 mb-4">
+                            <input type="date" id="analyticsFrom" class="px-4 py-2 border rounded-lg">
+                            <input type="date" id="analyticsTo" class="px-4 py-2 border rounded-lg">
+                            <button onclick="loadRideAnalytics()" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">
+                                Apply Filter
+                            </button>
+                        </div>
+                        <div id="rideAnalyticsContent"></div>
+                    </div>
+
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold mb-4">Popular Routes</h3>
+                        <div id="popularRoutesContent"></div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xl font-semibold mb-4">Top Drivers Performance</h3>
+                        <div id="driverPerformanceContent"></div>
+                    </div>
+                </div>
+
+                <!-- Monitoring Page -->
+                <div id="monitoringPage" class="page hidden">
+                    <h2 class="text-2xl font-bold mb-6">Real-time Monitoring</h2>
+
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold mb-4">Active Rides</h3>
+                        <div id="activeRidesContent"></div>
+                    </div>
+
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold mb-4">Online Drivers</h3>
+                        <div id="onlineDriversContent"></div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xl font-semibold mb-4">Pending Requests</h3>
+                        <div id="pendingRequestsContent"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Driver Detail Modal -->
+    <div id="driverModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 w-3/4 max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold">Driver Details</h3>
+                <button onclick="closeModal('driverModal')" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <div id="driverDetailContent"></div>
+        </div>
+    </div>
+
+    <!-- Rider Detail Modal -->
+    <div id="riderModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 w-3/4 max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold">Rider Details</h3>
+                <button onclick="closeModal('riderModal')" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <div id="riderDetailContent"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+        let adminToken = localStorage.getItem('adminToken');
+        let adminUser = null;
+
+        // Initialize
+        if (adminToken) {
+            showDashboard();
+        }
+
+        // Login
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                // Note: You'll need to create a login endpoint or use Firebase auth
+                // For now, we'll use tinker to generate token and store it manually
+                const response = await fetch(`${API_BASE}/v1/user`, {
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Invalid credentials');
+                }
+
+                const data = await response.json();
+                adminUser = data.data;
+
+                if (!adminUser.role || adminUser.role !== 'admin') {
+                    throw new Error('Not authorized. Admin role required.');
+                }
+
+                showDashboard();
+            } catch (error) {
+                document.getElementById('loginError').textContent = error.message;
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        });
+
+        function showDashboard() {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            loadAdminInfo();
+            showPage('overview');
+        }
+
+        function logout() {
+            localStorage.removeItem('adminToken');
+            adminToken = null;
+            adminUser = null;
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('loginPage').classList.remove('hidden');
+        }
+
+        async function loadAdminInfo() {
+            try {
+                const response = await apiCall('/v1/user');
+                adminUser = response.data;
+                document.getElementById('adminName').textContent = adminUser.name;
+            } catch (error) {
+                console.error('Failed to load admin info:', error);
+            }
+        }
+
+        function refreshCurrentPage() {
+            // Find currently visible page
+            const pages = ['overview', 'drivers', 'riders', 'analytics', 'monitoring'];
+            for (const page of pages) {
+                const pageMap = {
+                    'overview': 'overviewPage',
+                    'drivers': 'driversPage',
+                    'riders': 'ridersPage',
+                    'analytics': 'analyticsPage',
+                    'monitoring': 'monitoringPage'
+                };
+
+                const pageElement = document.getElementById(pageMap[page]);
+                if (pageElement && !pageElement.classList.contains('hidden')) {
+                    // Reload current page data
+                    switch(page) {
+                        case 'overview': loadOverview(); break;
+                        case 'drivers': loadDrivers(); break;
+                        case 'riders': loadRiders(); break;
+                        case 'analytics': loadAnalytics(); break;
+                        case 'monitoring': loadMonitoring(); break;
+                    }
+                    break;
+                }
+            }
+        }
+
+        function showPage(page) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            // Remove active class from nav items
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
+
+            // Show selected page
+            const pageMap = {
+                'overview': 'overviewPage',
+                'drivers': 'driversPage',
+                'riders': 'ridersPage',
+                'analytics': 'analyticsPage',
+                'monitoring': 'monitoringPage'
+            };
+
+            document.getElementById(pageMap[page]).classList.remove('hidden');
+
+            // Add active class to nav item
+            event.target.classList.add('active-nav');
+
+            // Load page data
+            switch(page) {
+                case 'overview': loadOverview(); break;
+                case 'drivers': loadDrivers(); break;
+                case 'riders': loadRiders(); break;
+                case 'analytics': loadAnalytics(); break;
+                case 'monitoring': loadMonitoring(); break;
+            }
+        }
+
+        async function apiCall(endpoint, options = {}) {
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                headers: {
+                    'Authorization': `Bearer ${adminToken}`,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'API request failed');
+            }
+
+            return await response.json();
+        }
+
+        // Overview Page
+        async function loadOverview() {
+            const content = document.getElementById('overviewContent');
+            content.innerHTML = '<div class="loader"></div>';
+
+            try {
+                const data = await apiCall('/admin/analytics/overview');
+                const stats = data.data;
+
+                content.innerHTML = `
+                    <div class="grid grid-cols-4 gap-4 mb-6">
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-gray-500 text-sm">Total Users</h3>
+                            <p class="text-3xl font-bold">${stats.total_users}</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-gray-500 text-sm">Total Drivers</h3>
+                            <p class="text-3xl font-bold">${stats.total_drivers}</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-gray-500 text-sm">Online Drivers</h3>
+                            <p class="text-3xl font-bold text-green-600">${stats.online_drivers}</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-gray-500 text-sm">Active Rides</h3>
+                            <p class="text-3xl font-bold text-blue-600">${stats.active_rides}</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-gray-500 text-sm">Total Rides</h3>
+                            <p class="text-3xl font-bold">${stats.total_rides}</p>
+                            <p class="text-sm text-green-600">✓ ${stats.completed_rides} completed</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-gray-500 text-sm">Total Revenue</h3>
+                            <p class="text-3xl font-bold">Rp ${stats.total_revenue.toLocaleString()}</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-gray-500 text-sm">Revenue (30 days)</h3>
+                            <p class="text-3xl font-bold">Rp ${stats.revenue_in_period.toLocaleString()}</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-lg font-semibold mb-4">Route Cache Statistics (Phase 1)</h3>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <p class="text-gray-500 text-sm">Cached Routes</p>
+                                <p class="text-2xl font-bold">${stats.route_cache.total_cached_routes}</p>
+                                <p class="text-sm text-gray-600">Fresh: ${stats.route_cache.fresh_routes}</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-500 text-sm">Cache Hits</p>
+                                <p class="text-2xl font-bold">${stats.route_cache.total_cache_hits}</p>
+                                <p class="text-sm text-gray-600">Avg reuse: ${stats.route_cache.avg_reuse_per_route}x</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-500 text-sm">Cache Hit Rate</p>
+                                <p class="text-2xl font-bold text-green-600">${stats.route_cache.cache_hit_rate}%</p>
+                                <p class="text-sm text-gray-600">API cost savings: ${Math.round(stats.route_cache.cache_hit_rate)}%</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                content.innerHTML = `<div class="bg-red-100 text-red-700 p-4 rounded">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Drivers Page
+        let driverSearchTimeout;
+        async function loadDrivers() {
+            const content = document.getElementById('driversContent');
+            content.innerHTML = '<div class="loader"></div>';
+
+            try {
+                const kycFilter = document.getElementById('driverKycFilter').value;
+                const onlineFilter = document.getElementById('driverOnlineFilter').value;
+                const searchQuery = document.getElementById('driverSearch').value;
+
+                let url = '/admin/drivers?per_page=20';
+                if (kycFilter) url += `&kyc_status=${kycFilter}`;
+                if (onlineFilter) url += `&is_online=${onlineFilter}`;
+                if (searchQuery) url += `&search=${searchQuery}`;
+
+                const data = await apiCall(url);
+                const drivers = data.data;
+
+                if (drivers.length === 0) {
+                    content.innerHTML = '<p class="text-gray-500 text-center py-8">No drivers found</p>';
+                    return;
+                }
+
+                content.innerHTML = `
+                    <div class="bg-white rounded-lg shadow overflow-hidden">
+                        <table class="min-w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">KYC Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rating</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                ${drivers.map(driver => `
+                                    <tr>
+                                        <td class="px-6 py-4">${driver.name}</td>
+                                        <td class="px-6 py-4">${driver.email}</td>
+                                        <td class="px-6 py-4">
+                                            <span class="px-2 py-1 text-xs rounded ${
+                                                driver.kyc_status === 'approved' ? 'bg-green-100 text-green-800' :
+                                                driver.kyc_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                'bg-red-100 text-red-800'
+                                            }">
+                                                ${driver.kyc_status}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            ${driver.rating ? `⭐ ${driver.rating} (${driver.rating_count})` : 'No ratings'}
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            ${driver.is_online
+                                                ? '<span class="text-green-600">🟢 Online</span>'
+                                                : '<span class="text-gray-500">⚫ Offline</span>'}
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <button onclick="viewDriver(${driver.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                                                View
+                                            </button>
+                                            <button onclick="suspendDriver(${driver.id}, ${driver.is_active})"
+                                                    class="${driver.is_active ? 'text-red-600 hover:text-red-800' : 'text-green-600 hover:text-green-800'}">
+                                                ${driver.is_active ? 'Suspend' : 'Unsuspend'}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (error) {
+                content.innerHTML = `<div class="bg-red-100 text-red-700 p-4 rounded">Error: ${error.message}</div>`;
+            }
+        }
+
+        function searchDrivers() {
+            clearTimeout(driverSearchTimeout);
+            driverSearchTimeout = setTimeout(() => {
+                loadDrivers();
+            }, 500);
+        }
+
+        async function viewDriver(driverId) {
+            const modal = document.getElementById('driverModal');
+            const content = document.getElementById('driverDetailContent');
+
+            modal.classList.remove('hidden');
+            content.innerHTML = '<div class="loader"></div>';
+
+            try {
+                const data = await apiCall(`/admin/drivers/${driverId}`);
+                const driver = data.data;
+
+                content.innerHTML = `
+                    <div class="grid grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <h4 class="font-semibold mb-2">Personal Info</h4>
+                            <p><strong>Name:</strong> ${driver.name}</p>
+                            <p><strong>Email:</strong> ${driver.email}</p>
+                            <p><strong>Phone:</strong> ${driver.phone || 'N/A'}</p>
+                            <p><strong>Role:</strong> ${driver.role}</p>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold mb-2">Vehicle Info</h4>
+                            <p><strong>Make:</strong> ${driver.vehicle_make || 'N/A'}</p>
+                            <p><strong>Model:</strong> ${driver.vehicle_model || 'N/A'}</p>
+                            <p><strong>Plate:</strong> ${driver.license_plate || 'N/A'}</p>
+                            <p><strong>KYC:</strong> ${driver.kyc_status}</p>
+                            ${driver.ktm_url ? `<p><strong>KTM:</strong> <a href="${driver.ktm_url}" target="_blank" class="text-blue-600 hover:underline">View Document</a></p>` : ''}
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-4 mb-6">
+                        <div class="bg-gray-50 p-4 rounded">
+                            <p class="text-gray-500 text-sm">Total Rides</p>
+                            <p class="text-2xl font-bold">${driver.stats.total_rides}</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded">
+                            <p class="text-gray-500 text-sm">Total Earnings</p>
+                            <p class="text-2xl font-bold">Rp ${driver.stats.total_earnings.toLocaleString()}</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded">
+                            <p class="text-gray-500 text-sm">Rating</p>
+                            <p class="text-2xl font-bold">⭐ ${driver.stats.average_rating || 'N/A'}</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded">
+                            <p class="text-gray-500 text-sm">Acceptance</p>
+                            <p class="text-2xl font-bold">${driver.stats.acceptance_rate}%</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="font-semibold mb-2">Recent Rides</h4>
+                        <div class="bg-gray-50 rounded p-4">
+                            ${driver.stats.recent_rides && driver.stats.recent_rides.length > 0
+                                ? driver.stats.recent_rides.map(ride => `
+                                    <div class="mb-2 pb-2 border-b">
+                                        <p class="text-sm"><strong>${ride.pickup}</strong> → ${ride.destination}</p>
+                                        <p class="text-xs text-gray-600">${new Date(ride.completed_at).toLocaleString()} - Rp ${ride.fare.toLocaleString()}</p>
+                                    </div>
+                                `).join('')
+                                : '<p class="text-gray-500">No recent rides</p>'
+                            }
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                content.innerHTML = `<div class="bg-red-100 text-red-700 p-4 rounded">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function suspendDriver(driverId, isActive) {
+            if (!confirm(`Are you sure you want to ${isActive ? 'suspend' : 'unsuspend'} this driver?`)) {
+                return;
+            }
+
+            try {
+                await apiCall(`/admin/drivers/${driverId}/suspend`, {
+                    method: 'POST',
+                    body: JSON.stringify({ suspend: isActive })
+                });
+
+                alert(`Driver ${isActive ? 'suspended' : 'unsuspended'} successfully`);
+                loadDrivers();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Riders Page
+        let riderSearchTimeout;
+        async function loadRiders() {
+            const content = document.getElementById('ridersContent');
+            content.innerHTML = '<div class="loader"></div>';
+
+            try {
+                const searchQuery = document.getElementById('riderSearch').value;
+                let url = '/admin/riders?per_page=20';
+                if (searchQuery) url += `&search=${searchQuery}`;
+
+                const data = await apiCall(url);
+                const riders = data.data;
+
+                if (riders.length === 0) {
+                    content.innerHTML = '<p class="text-gray-500 text-center py-8">No riders found</p>';
+                    return;
+                }
+
+                content.innerHTML = `
+                    <div class="bg-white rounded-lg shadow overflow-hidden">
+                        <table class="min-w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Rides</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rating</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                ${riders.map(rider => `
+                                    <tr>
+                                        <td class="px-6 py-4">${rider.name}</td>
+                                        <td class="px-6 py-4">${rider.email}</td>
+                                        <td class="px-6 py-4">${rider.total_rides || 0}</td>
+                                        <td class="px-6 py-4">
+                                            ${rider.rating ? `⭐ ${rider.rating}` : 'No ratings'}
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            ${rider.is_active
+                                                ? '<span class="text-green-600">Active</span>'
+                                                : '<span class="text-red-600">Suspended</span>'}
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <button onclick="viewRider(${rider.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                                                View
+                                            </button>
+                                            <button onclick="suspendRider(${rider.id}, ${rider.is_active})"
+                                                    class="${rider.is_active ? 'text-red-600 hover:text-red-800' : 'text-green-600 hover:text-green-800'}">
+                                                ${rider.is_active ? 'Suspend' : 'Unsuspend'}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (error) {
+                content.innerHTML = `<div class="bg-red-100 text-red-700 p-4 rounded">Error: ${error.message}</div>`;
+            }
+        }
+
+        function searchRiders() {
+            clearTimeout(riderSearchTimeout);
+            riderSearchTimeout = setTimeout(() => {
+                loadRiders();
+            }, 500);
+        }
+
+        async function viewRider(riderId) {
+            const modal = document.getElementById('riderModal');
+            const content = document.getElementById('riderDetailContent');
+
+            modal.classList.remove('hidden');
+            content.innerHTML = '<div class="loader"></div>';
+
+            try {
+                const data = await apiCall(`/admin/riders/${riderId}`);
+                const rider = data.data;
+
+                content.innerHTML = `
+                    <div class="grid grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <h4 class="font-semibold mb-2">Personal Info</h4>
+                            <p><strong>Name:</strong> ${rider.name}</p>
+                            <p><strong>Email:</strong> ${rider.email}</p>
+                            <p><strong>Phone:</strong> ${rider.phone || 'N/A'}</p>
+                            <p><strong>Role:</strong> ${rider.role}</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-gray-50 p-4 rounded">
+                                <p class="text-gray-500 text-sm">Total Rides</p>
+                                <p class="text-2xl font-bold">${rider.stats.total_rides}</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded">
+                                <p class="text-gray-500 text-sm">Total Spent</p>
+                                <p class="text-2xl font-bold">Rp ${rider.stats.total_spent.toLocaleString()}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="font-semibold mb-2">Recent Rides</h4>
+                        <div class="bg-gray-50 rounded p-4">
+                            ${rider.stats.recent_rides && rider.stats.recent_rides.length > 0
+                                ? rider.stats.recent_rides.map(ride => `
+                                    <div class="mb-2 pb-2 border-b">
+                                        <p class="text-sm"><strong>${ride.pickup}</strong> → ${ride.destination}</p>
+                                        <p class="text-xs text-gray-600">${new Date(ride.completed_at).toLocaleString()} - Rp ${ride.fare.toLocaleString()}</p>
+                                    </div>
+                                `).join('')
+                                : '<p class="text-gray-500">No recent rides</p>'
+                            }
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                content.innerHTML = `<div class="bg-red-100 text-red-700 p-4 rounded">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function suspendRider(riderId, isActive) {
+            if (!confirm(`Are you sure you want to ${isActive ? 'suspend' : 'unsuspend'} this rider?`)) {
+                return;
+            }
+
+            try {
+                await apiCall(`/admin/riders/${riderId}/suspend`, {
+                    method: 'POST',
+                    body: JSON.stringify({ suspend: isActive })
+                });
+
+                alert(`Rider ${isActive ? 'suspended' : 'unsuspended'} successfully`);
+                loadRiders();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Analytics Page
+        async function loadAnalytics() {
+            // Set default dates (last 30 days)
+            const today = new Date().toISOString().split('T')[0];
+            const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+            document.getElementById('analyticsFrom').value = monthAgo;
+            document.getElementById('analyticsTo').value = today;
+
+            loadRideAnalytics();
+            loadPopularRoutes();
+            loadDriverPerformance();
+        }
+
+        async function loadRideAnalytics() {
+            const content = document.getElementById('rideAnalyticsContent');
+            content.innerHTML = '<div class="loader"></div>';
+
+            try {
+                const from = document.getElementById('analyticsFrom').value;
+                const to = document.getElementById('analyticsTo').value;
+
+                const data = await apiCall(`/admin/analytics/rides?from=${from}&to=${to}`);
+                const analytics = data.data;
+
+                content.innerHTML = `
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="grid grid-cols-4 gap-4 mb-6">
+                            <div class="bg-gray-50 p-4 rounded">
+                                <p class="text-gray-500 text-sm">Total Rides</p>
+                                <p class="text-2xl font-bold">${analytics.summary.total_rides}</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded">
+                                <p class="text-gray-500 text-sm">Avg Fare</p>
+                                <p class="text-2xl font-bold">Rp ${Math.round(analytics.summary.avg_fare).toLocaleString()}</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded">
+                                <p class="text-gray-500 text-sm">Avg Distance</p>
+                                <p class="text-2xl font-bold">${analytics.summary.avg_distance.toFixed(1)} km</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded">
+                                <p class="text-gray-500 text-sm">Avg Duration</p>
+                                <p class="text-2xl font-bold">${Math.round(analytics.summary.avg_duration)} min</p>
+                            </div>
+                        </div>
+
+                        <h5 class="font-semibold mb-2">Rides by Status</h5>
+                        <div class="grid grid-cols-5 gap-2">
+                            ${Object.entries(analytics.rides_by_status).map(([status, count]) => `
+                                <div class="bg-gray-50 p-3 rounded text-center">
+                                    <p class="text-xs text-gray-500">${status}</p>
+                                    <p class="text-xl font-bold">${count}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                content.innerHTML = `<div class="bg-red-100 text-red-700 p-4 rounded">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function loadPopularRoutes() {
+            const content = document.getElementById('popularRoutesContent');
+            content.innerHTML = '<div class="loader"></div>';
+
+            try {
+                const data = await apiCall('/admin/analytics/popular-routes?limit=5');
+
+                content.innerHTML = `
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h5 class="font-semibold mb-4">Cached Routes (API Optimization)</h5>
+                        <div class="overflow-x-auto mb-6">
+                            <table class="min-w-full text-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left">Origin</th>
+                                        <th class="px-4 py-2 text-left">Destination</th>
+                                        <th class="px-4 py-2 text-right">Cache Hits</th>
+                                        <th class="px-4 py-2 text-right">Distance</th>
+                                        <th class="px-4 py-2 text-right">Duration</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${data.data.cached_routes.map(route => `
+                                        <tr class="border-t">
+                                            <td class="px-4 py-2">${route.origin}</td>
+                                            <td class="px-4 py-2">${route.destination}</td>
+                                            <td class="px-4 py-2 text-right font-semibold">${route.fetch_count}</td>
+                                            <td class="px-4 py-2 text-right">${route.distance_km} km</td>
+                                            <td class="px-4 py-2 text-right">${route.duration_min} min</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h5 class="font-semibold mb-4">Most Popular Routes (Actual Rides)</h5>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left">Pickup</th>
+                                        <th class="px-4 py-2 text-left">Destination</th>
+                                        <th class="px-4 py-2 text-right">Total Rides</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${data.data.actual_rides.map(route => `
+                                        <tr class="border-t">
+                                            <td class="px-4 py-2">${route.pickup}</td>
+                                            <td class="px-4 py-2">${route.destination}</td>
+                                            <td class="px-4 py-2 text-right font-semibold">${route.ride_count}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                content.innerHTML = `<div class="bg-red-100 text-red-700 p-4 rounded">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function loadDriverPerformance() {
+            const content = document.getElementById('driverPerformanceContent');
+            content.innerHTML = '<div class="loader"></div>';
+
+            try {
+                const data = await apiCall('/admin/analytics/driver-performance?limit=10');
+
+                content.innerHTML = `
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rank</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Driver</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Rides</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Earnings</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Rating</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    ${data.data.map((driver, index) => `
+                                        <tr>
+                                            <td class="px-6 py-4 text-2xl">${index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}</td>
+                                            <td class="px-6 py-4">${driver.name}</td>
+                                            <td class="px-6 py-4 text-right font-semibold">${driver.total_rides}</td>
+                                            <td class="px-6 py-4 text-right font-semibold">Rp ${driver.total_earnings.toLocaleString()}</td>
+                                            <td class="px-6 py-4 text-right">⭐ ${driver.average_rating || 'N/A'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                content.innerHTML = `<div class="bg-red-100 text-red-700 p-4 rounded">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Monitoring Page
+        async function loadMonitoring() {
+            loadActiveRides();
+            loadOnlineDrivers();
+            loadPendingRequests();
+        }
+
+        async function loadActiveRides() {
+            const content = document.getElementById('activeRidesContent');
+            content.innerHTML = '<div class="loader"></div>';
+
+            try {
+                const data = await apiCall('/admin/monitoring/active-rides');
+                const rides = data.data;
+
+                if (rides.length === 0) {
+                    content.innerHTML = '<p class="text-gray-500 text-center py-8 bg-white rounded-lg">No active rides</p>';
+                    return;
+                }
+
+                content.innerHTML = `
+                    <div class="bg-white rounded-lg shadow overflow-hidden">
+                        <table class="min-w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ride ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Driver</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rider</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Route</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                ${rides.map(ride => `
+                                    <tr>
+                                        <td class="px-6 py-4">#${ride.id}</td>
+                                        <td class="px-6 py-4">${ride.driver_name}</td>
+                                        <td class="px-6 py-4">${ride.rider_name}</td>
+                                        <td class="px-6 py-4 text-sm">
+                                            ${ride.pickup_location}<br>
+                                            → ${ride.destination_location}
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800">
+                                                ${ride.status}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4">${ride.duration_minutes} min</td>
+                                        <td class="px-6 py-4">
+                                            <button onclick="forceCompleteRide(${ride.id})" class="text-green-600 hover:text-green-800 mr-2 text-sm">
+                                                Complete
+                                            </button>
+                                            <button onclick="forceCancelRide(${ride.id})" class="text-red-600 hover:text-red-800 text-sm">
+                                                Cancel
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (error) {
+                content.innerHTML = `<div class="bg-red-100 text-red-700 p-4 rounded">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function loadOnlineDrivers() {
+            const content = document.getElementById('onlineDriversContent');
+            content.innerHTML = '<div class="loader"></div>';
+
+            try {
+                const data = await apiCall('/admin/monitoring/online-drivers');
+                const drivers = data.data;
+
+                if (drivers.length === 0) {
+                    content.innerHTML = '<p class="text-gray-500 text-center py-8 bg-white rounded-lg">No online drivers</p>';
+                    return;
+                }
+
+                content.innerHTML = `
+                    <div class="bg-white rounded-lg shadow overflow-hidden">
+                        <table class="min-w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Driver</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Online Since</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                ${drivers.map(driver => `
+                                    <tr>
+                                        <td class="px-6 py-4">${driver.name}</td>
+                                        <td class="px-6 py-4">${new Date(driver.went_online_at).toLocaleString()}</td>
+                                        <td class="px-6 py-4">${driver.online_duration_minutes} min</td>
+                                        <td class="px-6 py-4 text-sm">
+                                            ${driver.current_location ?
+                                                `${driver.current_location.latitude.toFixed(5)}, ${driver.current_location.longitude.toFixed(5)}`
+                                                : 'Unknown'}
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            ${driver.has_active_ride
+                                                ? '<span class="text-blue-600">🚗 On ride</span>'
+                                                : '<span class="text-green-600">✓ Available</span>'}
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-2">Total online drivers: ${data.count}</p>
+                `;
+            } catch (error) {
+                content.innerHTML = `<div class="bg-red-100 text-red-700 p-4 rounded">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function loadPendingRequests() {
+            const content = document.getElementById('pendingRequestsContent');
+            content.innerHTML = '<div class="loader"></div>';
+
+            try {
+                const data = await apiCall('/admin/monitoring/pending-requests');
+                const requests = data.data;
+
+                if (requests.length === 0) {
+                    content.innerHTML = '<p class="text-gray-500 text-center py-8 bg-white rounded-lg">No pending requests</p>';
+                    return;
+                }
+
+                content.innerHTML = `
+                    <div class="bg-white rounded-lg shadow overflow-hidden">
+                        <table class="min-w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Request ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rider</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Route</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fare</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Wait Time</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                ${requests.map(req => `
+                                    <tr>
+                                        <td class="px-6 py-4">#${req.id}</td>
+                                        <td class="px-6 py-4">${req.rider_name}</td>
+                                        <td class="px-6 py-4 text-sm">
+                                            ${req.pickup_location}<br>
+                                            → ${req.destination_location}
+                                        </td>
+                                        <td class="px-6 py-4">Rp ${req.estimated_fare.toLocaleString()}</td>
+                                        <td class="px-6 py-4">${req.wait_time_minutes} min</td>
+                                        <td class="px-6 py-4">
+                                            <button onclick="forceCancelRequest(${req.id})" class="text-red-600 hover:text-red-800 text-sm">
+                                                Cancel
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-2">Total pending: ${data.count}</p>
+                `;
+            } catch (error) {
+                content.innerHTML = `<div class="bg-red-100 text-red-700 p-4 rounded">Error: ${error.message}</div>`;
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        // Admin Actions
+        async function forceCancelRequest(requestId) {
+            if (!confirm('Are you sure you want to cancel this ride request?')) {
+                return;
+            }
+
+            try {
+                await apiCall(`/admin/monitoring/requests/${requestId}`, {
+                    method: 'DELETE'
+                });
+
+                alert('Ride request cancelled successfully');
+                loadPendingRequests();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function forceCancelRide(rideId) {
+            if (!confirm('Are you sure you want to cancel this active ride?')) {
+                return;
+            }
+
+            try {
+                await apiCall(`/admin/monitoring/rides/${rideId}/cancel`, {
+                    method: 'POST'
+                });
+
+                alert('Ride cancelled successfully');
+                loadActiveRides();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function forceCompleteRide(rideId) {
+            if (!confirm('Are you sure you want to mark this ride as completed?')) {
+                return;
+            }
+
+            try {
+                await apiCall(`/admin/monitoring/rides/${rideId}/complete`, {
+                    method: 'POST'
+                });
+
+                alert('Ride marked as completed successfully');
+                loadActiveRides();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Auto-refresh monitoring page every 30 seconds
+        setInterval(() => {
+            const monitoringPage = document.getElementById('monitoringPage');
+            if (!monitoringPage.classList.contains('hidden')) {
+                loadMonitoring();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>

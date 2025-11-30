@@ -103,7 +103,7 @@ class TokenPermissionsTest extends TestCase
      */
     public function test_wildcard_permissions()
     {
-        $user = User::factory()->create(['user_type' => 'both']);
+        $user = User::factory()->create(['role' => 'both']);
 
         // Token with all permissions
         $token = $user->createToken('admin-app', ['*'])->plainTextToken;
@@ -125,7 +125,7 @@ class TokenPermissionsTest extends TestCase
      */
     public function test_role_based_permission_inheritance()
     {
-        $driverRider = User::factory()->create(['user_type' => 'both']);
+        $driverRider = User::factory()->create(['role' => 'both']);
 
         // Token with both driver and rider permissions
         $token = $driverRider->createToken('mobile-app', [

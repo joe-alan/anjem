@@ -28,7 +28,7 @@ class UserFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'password' => static::$password ??= Hash::make('password'),
             'firebase_uid' => 'firebase_'.Str::random(20),
-            'user_type' => fake()->randomElement(['rider', 'driver', 'both']),
+            'role' => fake()->randomElement(['rider', 'driver', 'both']),
             'phone_number' => fake()->phoneNumber(),
             'phone_verified_at' => fake()->optional(0.8)->dateTimeBetween('-1 month', 'now'),
             'email_verified_at' => now(),
@@ -59,7 +59,7 @@ class UserFactory extends Factory
     public function rider(): static
     {
         return $this->state(fn (array $attributes) => [
-            'user_type' => 'rider',
+            'role' => 'rider',
         ]);
     }
 
@@ -69,7 +69,7 @@ class UserFactory extends Factory
     public function driver(): static
     {
         return $this->state(fn (array $attributes) => [
-            'user_type' => 'driver',
+            'role' => 'driver',
         ]);
     }
 
@@ -79,7 +79,17 @@ class UserFactory extends Factory
     public function both(): static
     {
         return $this->state(fn (array $attributes) => [
-            'user_type' => 'both',
+            'role' => 'both',
+        ]);
+    }
+
+    /**
+     * Create an admin user.
+     */
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'admin',
         ]);
     }
 
