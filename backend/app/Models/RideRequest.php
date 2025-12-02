@@ -161,6 +161,26 @@ class RideRequest extends Model
     }
 
     /**
+     * Mark the ride request as actively in progress
+     */
+    public function markAsInProgress(): void
+    {
+        $this->update([
+            'status' => 'in_progress',
+            // Ensure matched_at has a value so analytics stay intact
+            'matched_at' => $this->matched_at ?? now(),
+        ]);
+    }
+
+    /**
+     * Mark the ride request as completed
+     */
+    public function markAsCompleted(): void
+    {
+        $this->update(['status' => 'completed']);
+    }
+
+    /**
      * Mark the ride request as expired
      */
     public function markAsExpired(): void

@@ -56,11 +56,19 @@ class Ride extends Equatable {
   });
 
   factory Ride.fromJson(Map<String, dynamic> json) {
+    // Extract rider and driver objects first
+    final riderObj = json['rider'] != null
+        ? User.fromJson(json['rider'] as Map<String, dynamic>)
+        : null;
+    final driverObj = json['driver'] != null
+        ? User.fromJson(json['driver'] as Map<String, dynamic>)
+        : null;
+
     return Ride(
       id: json['id'] as int,
-      requestId: json['request_id'] as int,
-      riderId: json['rider_id'] as int,
-      driverId: json['driver_id'] as int,
+      requestId: json['ride_request_id'] as int,
+      riderId: riderObj?.id ?? 0, // Fallback to 0 if not provided
+      driverId: driverObj?.id ?? 0, // Fallback to 0 if not provided
       pickupLocation: Location.fromJson(
         json['pickup_location'] as Map<String, dynamic>,
       ),
@@ -68,26 +76,21 @@ class Ride extends Equatable {
         json['destination_location'] as Map<String, dynamic>,
       ),
       status: _parseStatus(json['status'] as String),
-      fare: (json['fare'] as num).toDouble(),
+      fare: (json['final_fare_rp'] as num?)?.toDouble() ??
+            (json['estimated_fare_rp'] as num).toDouble(),
       passengerCount: json['passenger_count'] as int,
       specialRequests: json['special_requests'] as String?,
-      rider: json['rider'] != null
-          ? User.fromJson(json['rider'] as Map<String, dynamic>)
+      rider: riderObj,
+      driver: driverObj,
+      acceptedAt: json['driver_accepted_at'] != null
+          ? DateTime.parse(json['driver_accepted_at'] as String)
           : null,
-      driver: json['driver'] != null
-          ? User.fromJson(json['driver'] as Map<String, dynamic>)
+      arrivedAt: null, // Not provided by backend yet
+      startedAt: json['pickup_time'] != null
+          ? DateTime.parse(json['pickup_time'] as String)
           : null,
-      acceptedAt: json['accepted_at'] != null
-          ? DateTime.parse(json['accepted_at'] as String)
-          : null,
-      arrivedAt: json['arrived_at'] != null
-          ? DateTime.parse(json['arrived_at'] as String)
-          : null,
-      startedAt: json['started_at'] != null
-          ? DateTime.parse(json['started_at'] as String)
-          : null,
-      completedAt: json['completed_at'] != null
-          ? DateTime.parse(json['completed_at'] as String)
+      completedAt: json['dropoff_time'] != null
+          ? DateTime.parse(json['dropoff_time'] as String)
           : null,
       cancelledAt: json['cancelled_at'] != null
           ? DateTime.parse(json['cancelled_at'] as String)

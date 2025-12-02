@@ -13,7 +13,7 @@ class MatchingService
      */
     public function findBestDriver(RideRequest $request): ?User
     {
-        $availableDrivers = User::where('user_type', 'driver')
+        $availableDrivers = User::whereIn('role', ['driver', 'both'])
             ->where('is_active', true)
             ->whereHas('driverProfile')
             ->whereDoesntHave('driverRides', function ($query) {

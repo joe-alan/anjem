@@ -27,9 +27,10 @@ class RateRideRequest extends FormRequest
     {
         return [
             'rating' => 'required|integer|min:1|max:5',
-            'comment' => 'nullable|string|max:500',
+            'feedback' => 'nullable|string|max:500',  // ✅ Match database column name and mobile app
             'tags' => 'nullable|array',
-            'tags.*' => 'string|in:friendly,professional,safe_driving,clean_vehicle,on_time,helpful',
+            // ✅ Updated to include all predefined tags from Rating model
+            'tags.*' => 'string|in:safe_driving,friendly,punctual,clean_vehicle,smooth_ride,professional,helpful,good_communication,on_time',
         ];
     }
 }

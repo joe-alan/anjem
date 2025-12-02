@@ -52,13 +52,19 @@ class AuthenticationWrapper extends ConsumerWidget {
     final kycState = ref.watch(kycStateProvider);
     final config = AppConfig.instance;
 
+    print('AuthWrapper: Building - isDriverApp=${config.isDriverApp}');
+    print('AuthWrapper: authState - isAuthenticated=${authState.isAuthenticated}, isLoading=${authState.isLoading}');
+    print('AuthWrapper: kycState - isLoading=${kycState.isLoading}, kycSubmission=${kycState.kycSubmission}, isVerified=${kycState.kycSubmission?.isVerified}');
+
     // Show splash screen while checking authentication
     if (authState.isLoading) {
+      print('AuthWrapper: Showing splash - auth loading');
       return const SplashScreen();
     }
 
     // Show login screen if not authenticated
     if (!authState.isAuthenticated) {
+      print('AuthWrapper: Showing login - not authenticated');
       return const LoginScreen();
     }
 
@@ -66,20 +72,24 @@ class AuthenticationWrapper extends ConsumerWidget {
     if (config.isDriverApp) {
       // Still loading KYC status
       if (kycState.isLoading && kycState.kycSubmission == null) {
+        print('AuthWrapper: Showing splash - KYC loading');
         return const SplashScreen();
       }
 
       // Check if driver needs to complete KYC
       final kycSubmission = kycState.kycSubmission;
       if (kycSubmission == null || !kycSubmission.isVerified) {
+        print('AuthWrapper: Showing KYC form - kycSubmission=$kycSubmission, isVerified=${kycSubmission?.isVerified}');
         return const KycFormScreen();
       }
 
       // Driver is verified, show home screen
+      print('AuthWrapper: Showing driver home - verified');
       return const DriverHomeScreen();
     }
 
     // For rider app, show home screen directly
+    print('AuthWrapper: Showing rider home');
     return const RiderHomeScreen();
   }
 }

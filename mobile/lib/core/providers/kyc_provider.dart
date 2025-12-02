@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/kyc/kyc_service.dart';
 import '../services/api/api_exception.dart';
 import '../models/kyc_submission.dart';
 import 'api_provider.dart';
+import 'auth_provider.dart';
 
 // KYC Service Provider
 final kycServiceProvider = Provider<KycService>((ref) {
@@ -15,7 +17,7 @@ final kycServiceProvider = Provider<KycService>((ref) {
 final kycStateProvider = StateNotifierProvider<KycStateNotifier, KycState>(
   (ref) {
     final kycService = ref.watch(kycServiceProvider);
-    return KycStateNotifier(kycService);
+    return KycStateNotifier(kycService, ref);
   },
 );
 
@@ -51,27 +53,63 @@ class KycState {
 // KYC State Notifier
 class KycStateNotifier extends StateNotifier<KycState> {
   final KycService _kycService;
+  final Ref _ref;
 
-  KycStateNotifier(this._kycService) : super(const KycState()) {
-    _loadKycStatus();
+  KycStateNotifier(this._kycService, this._ref) : super(const KycState()) {
+    // Listen to auth state changes
+    _ref.listen(authStateProvider, (previous, next) {
+      print('KYC Provider: Auth state changed - wasAuth=${previous?.isAuthenticated}, isAuth=${next.isAuthenticated}');
+
+      // If user just logged in (transitioned from not authenticated to authenticated)
+      if (previous != null && !previous.isAuthenticated && next.isAuthenticated) {
+        print('KYC Provider: User just logged in, loading KYC status');
+        _loadKycStatus();
+      }
+
+      // If user logged out, clear KYC state
+      if (previous != null && previous.isAuthenticated && !next.isAuthenticated) {
+        print('KYC Provider: User logged out, clearing KYC state');
+        clearKycState();
+      }
+    });
+
+    // Check if user is already authenticated on initialization
+    final isAuthenticated = _ref.read(authStateProvider).isAuthenticated;
+    print('KYC Provider: Initializing - isAuthenticated=$isAuthenticated');
+
+    if (isAuthenticated) {
+      print('KYC Provider: User is authenticated, loading KYC status...');
+      _loadKycStatus();
+    } else {
+      print('KYC Provider: User not authenticated, skipping KYC status load');
+    }
   }
 
   Future<void> _loadKycStatus() async {
+    print('KYC Provider: Loading KYC status...');
     state = state.copyWith(isLoading: true);
 
     try {
       final kycSubmission = await _kycService.getKycStatus();
+      print('KYC Provider: KYC status loaded - isVerified=${kycSubmission.isVerified}');
+      print('KYC Provider: Full submission - $kycSubmission');
+
       state = state.copyWith(
         isLoading: false,
         kycSubmission: kycSubmission,
         error: null,
       );
+
+      print('KYC Provider: State updated - kycSubmission=${state.kycSubmission?.isVerified}');
     } on ApiException catch (e) {
+      print('KYC Provider: API Exception - ${e.message}');
       state = state.copyWith(
         isLoading: false,
         error: e.userFriendlyMessage,
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('KYC Provider: Exception - $e');
+      print('KYC Provider: Stack trace - $stackTrace');
       state = state.copyWith(
         isLoading: false,
         error: 'Failed to load KYC status',
@@ -88,6 +126,7 @@ class KycStateNotifier extends StateNotifier<KycState> {
     required String vehicleColor,
     required File ktmPhoto,
   }) async {
+    print('KYC Provider: submitKyc called with file path: ${ktmPhoto.path}');
     state = state.copyWith(isLoading: true, error: null, successMessage: null);
 
     try {
@@ -107,6 +146,9 @@ class KycStateNotifier extends StateNotifier<KycState> {
         successMessage: 'KYC submitted successfully! Please verify your email.',
         error: null,
       );
+
+      // Clear draft data after successful submission
+      await clearDraft();
 
       return true;
     } on ApiException catch (e) {
@@ -197,6 +239,89 @@ class KycStateNotifier extends StateNotifier<KycState> {
 
   void clearSuccessMessage() {
     state = state.copyWith(successMessage: null);
+  }
+
+  void clearKycState() {
+    print('KYC Provider: Clearing KYC state');
+    state = const KycState();
+  }
+
+  // ========== Draft Management Methods ==========
+
+  /// Save KYC form draft data to SharedPreferences
+  Future<void> saveDraft({
+    String? studentEmail,
+    String? studentId,
+    String? studentName,
+    String? vehicleType,
+    String? vehiclePlate,
+    String? vehicleColor,
+    int? currentPage,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      if (studentEmail != null) await prefs.setString('kyc_draft_email', studentEmail);
+      if (studentId != null) await prefs.setString('kyc_draft_student_id', studentId);
+      if (studentName != null) await prefs.setString('kyc_draft_name', studentName);
+      if (vehicleType != null) await prefs.setString('kyc_draft_vehicle_type', vehicleType);
+      if (vehiclePlate != null) await prefs.setString('kyc_draft_vehicle_plate', vehiclePlate);
+      if (vehicleColor != null) await prefs.setString('kyc_draft_vehicle_color', vehicleColor);
+      if (currentPage != null) await prefs.setInt('kyc_draft_current_page', currentPage);
+      await prefs.setString('kyc_draft_saved_at', DateTime.now().toIso8601String());
+
+      print('KYC Provider: Draft saved successfully');
+    } catch (e) {
+      print('KYC Provider: Error saving draft - $e');
+    }
+  }
+
+  /// Load KYC form draft data from SharedPreferences
+  Future<Map<String, dynamic>?> loadDraft() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      if (!prefs.containsKey('kyc_draft_email')) {
+        print('KYC Provider: No draft data found');
+        return null;
+      }
+
+      final draft = {
+        'student_email': prefs.getString('kyc_draft_email'),
+        'student_id': prefs.getString('kyc_draft_student_id'),
+        'student_name': prefs.getString('kyc_draft_name'),
+        'vehicle_type': prefs.getString('kyc_draft_vehicle_type'),
+        'vehicle_plate': prefs.getString('kyc_draft_vehicle_plate'),
+        'vehicle_color': prefs.getString('kyc_draft_vehicle_color'),
+        'current_page': prefs.getInt('kyc_draft_current_page') ?? 0,
+        'saved_at': prefs.getString('kyc_draft_saved_at'),
+      };
+
+      print('KYC Provider: Draft loaded - saved at ${draft['saved_at']}');
+      return draft;
+    } catch (e) {
+      print('KYC Provider: Error loading draft - $e');
+      return null;
+    }
+  }
+
+  /// Clear KYC draft data after successful submission
+  Future<void> clearDraft() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('kyc_draft_email');
+      await prefs.remove('kyc_draft_student_id');
+      await prefs.remove('kyc_draft_name');
+      await prefs.remove('kyc_draft_vehicle_type');
+      await prefs.remove('kyc_draft_vehicle_plate');
+      await prefs.remove('kyc_draft_vehicle_color');
+      await prefs.remove('kyc_draft_current_page');
+      await prefs.remove('kyc_draft_saved_at');
+
+      print('KYC Provider: Draft cleared successfully');
+    } catch (e) {
+      print('KYC Provider: Error clearing draft - $e');
+    }
   }
 }
 

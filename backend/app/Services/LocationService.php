@@ -18,9 +18,12 @@ class LocationService
 {
     private MapboxService $mapboxService;
 
-    public function __construct(MapboxService $mapboxService)
+    private RouteCacheService $routeCacheService;
+
+    public function __construct(MapboxService $mapboxService, RouteCacheService $routeCacheService)
     {
         $this->mapboxService = $mapboxService;
+        $this->routeCacheService = $routeCacheService;
     }
 
     /**
@@ -128,10 +131,36 @@ class LocationService
     /**
      * Get driving distance and duration using Mapbox Directions API
      * Falls back to straight-line estimate if API fails
+     *
+     * @param  float  $originLat  Origin latitude
+     * @param  float  $originLng  Origin longitude
+     * @param  float  $destLat  Destination latitude
+     * @param  float  $destLng  Destination longitude
+     * @param  int|null  $originLocationId  Optional origin location ID for caching
+     * @param  int|null  $destLocationId  Optional destination location ID for caching
+     * @return array ['distance_meters', 'duration_minutes', 'geometry', 'estimated', 'cached'?]
      */
-    public function getDrivingDetails(float $originLat, float $originLng, float $destLat, float $destLng): array
-    {
-        // Use Mapbox Directions API for real routes
+    public function getDrivingDetails(
+        float $originLat,
+        float $originLng,
+        float $destLat,
+        float $destLng,
+        ?int $originLocationId = null,
+        ?int $destLocationId = null
+    ): array {
+        // If location IDs are provided, use route caching for 80-90% cost reduction
+        if ($originLocationId && $destLocationId) {
+            return $this->routeCacheService->getOrFetchRoute(
+                $originLocationId,
+                $destLocationId,
+                $originLat,
+                $originLng,
+                $destLat,
+                $destLng
+            );
+        }
+
+        // Fallback: Direct Mapbox API call (for backward compatibility)
         return $this->mapboxService->getDirections($originLat, $originLng, $destLat, $destLng);
     }
 

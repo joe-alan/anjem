@@ -19,7 +19,7 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'firebase_uid' => $this->firebase_uid, // Mobile expects this field
-            'user_type' => $this->user_type,
+            'user_type' => $this->role, // API backward compatibility: fetch from role
             'is_active' => $this->is_active,
             'email_verified_at' => $this->email_verified_at?->toISOString(),
             'last_active_at' => $this->last_active_at?->toISOString(),
@@ -28,11 +28,12 @@ class UserResource extends JsonResource
 
             // Include driver profile if user is a driver
             'driver_profile' => $this->when(
-                $this->user_type === 'driver' || $this->user_type === 'both',
+                in_array($this->role, ['driver', 'both', 'admin']),
                 function () {
                     return $this->driverProfile ? [
                         'id' => $this->driverProfile->id,
-                        'license_number' => $this->driverProfile->driver_license_number,
+                        'user_id' => $this->driverProfile->user_id,
+                        'license_number' => $this->driverProfile->driver_license_number ?? '',
                         'vehicle_info' => [ // Mobile expects consolidated vehicle_info Map
                             'type' => $this->driverProfile->vehicle_type,
                             'make' => $this->driverProfile->vehicle_make,
@@ -47,10 +48,11 @@ class UserResource extends JsonResource
                         'vehicle_year' => $this->driverProfile->vehicle_year,
                         'plate_number' => $this->driverProfile->vehicle_plate,
                         'is_verified' => $this->driverProfile->is_verified,
-                        'is_available' => $this->driverProfile->status === 'online',
-                        'status' => $this->driverProfile->status,
-                        'rating' => (float) $this->driverProfile->rating_average,
-                        'total_rides' => $this->driverProfile->total_rides,
+                        'is_available' => $this->driverProfile->went_online_at !== null,
+                        'status' => $this->driverProfile->went_online_at !== null ? 'online' : 'offline',
+                        'rating' => (float) ($this->driverProfile->rating_average ?? 5.0), // ✅ Use rating_average from migration
+                        'rating_count' => $this->driverProfile->rating_count ?? 0, // ✅ Include rating count
+                        'total_rides' => $this->driverProfile->total_rides_given ?? 0,
                         'created_at' => $this->driverProfile->created_at->toISOString(),
                         'updated_at' => $this->driverProfile->updated_at->toISOString(),
                     ] : null;
