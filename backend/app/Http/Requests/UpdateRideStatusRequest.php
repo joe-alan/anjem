@@ -25,7 +25,7 @@ class UpdateRideStatusRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => 'required|string|in:accepted,in_progress,completed,cancelled',
+            'status' => 'required|string|in:accepted,driver_arrived,in_progress,completed,cancelled',
             'actual_distance_km' => 'nullable|numeric|min:0|max:1000',
             'actual_duration_minutes' => 'nullable|integer|min:0|max:1440',
             'actual_fare_rp' => 'nullable|integer|min:0|max:100000',

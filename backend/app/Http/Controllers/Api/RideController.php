@@ -31,12 +31,12 @@ class RideController extends Controller
         $query = Ride::with(['rider', 'driver', 'pickupLocation', 'destinationLocation']);
 
         // Filter by user role
-        if ($user->user_type === 'rider') {
+        if ($user->role === 'rider') {
             $query->where('rider_id', $user->id);
-        } elseif ($user->user_type === 'driver') {
+        } elseif ($user->role === 'driver') {
             $query->where('driver_id', $user->id);
         } else {
-            // For 'both' user type, show all rides for this user
+            // For 'both' and 'admin' roles, show all rides for this user
             $query->where(function ($q) use ($user) {
                 $q->where('rider_id', $user->id)
                     ->orWhere('driver_id', $user->id);
@@ -101,31 +101,41 @@ class RideController extends Controller
             ], 403);
         }
 
-        $ride = $this->rideService->acceptRideRequest($rideRequest->id, $driver->id);
+        try {
+            $ride = $this->rideService->acceptRideRequest($rideRequest->id, $driver->id);
 
-        if (! $ride) {
+            $ride->load(['rider', 'driver', 'pickupLocation', 'destinationLocation']);
+
+            // Broadcast ride request matched event
+            broadcast(new RideRequestMatched($rideRequest, $ride));
+
+            // Broadcast ride status updated event
+            broadcast(new RideStatusUpdated($ride, 'pending', 'driver'));
+
+            // Send notification to rider
+            $this->notificationService->sendRideAcceptedToRider($ride);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Ride accepted successfully',
+                'data' => new RideResource($ride),
+            ]);
+
+        } catch (\Exception $e) {
+            // ✅ FIX: Map exception codes to HTTP status codes
+            $statusCode = match ($e->getCode()) {
+                409 => 409,  // Conflict (already accepted by another driver)
+                404 => 404,  // Not found (expired/cancelled)
+                403 => 403,  // Forbidden (invalid driver credentials)
+                400 => 400,  // Bad request (driver has active ride)
+                default => 500,  // Internal server error
+            };
+
             return response()->json([
                 'success' => false,
-                'message' => 'Unable to accept this ride request',
-            ], 400);
+                'message' => $e->getMessage(),
+            ], $statusCode);
         }
-
-        $ride->load(['rider', 'driver', 'pickupLocation', 'destinationLocation']);
-
-        // Broadcast ride request matched event
-        broadcast(new RideRequestMatched($rideRequest, $ride));
-
-        // Broadcast ride status updated event
-        broadcast(new RideStatusUpdated($ride, 'pending', 'driver'));
-
-        // Send notification to rider
-        $this->notificationService->sendRideAcceptedToRider($ride);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Ride accepted successfully',
-            'data' => new RideResource($ride),
-        ]);
     }
 
     /**
@@ -149,6 +159,19 @@ class RideController extends Controller
         $previousStatus = $ride->status;
 
         switch ($status) {
+            case 'driver_arrived':
+                if ($ride->driver_id === $user->id && $user->tokenCan('driver:accept-ride')) {
+                    $success = $this->rideService->markDriverArrived($ride->id, $user->id);
+                    $message = $success ? 'Marked as arrived at pickup' : 'Unable to update status';
+
+                    if ($success) {
+                        $ride->refresh();
+                        broadcast(new RideStatusUpdated($ride, $previousStatus, 'driver'));
+                        $this->notificationService->sendDriverArrivedToRider($ride);
+                    }
+                }
+                break;
+
             case 'in_progress':
                 if ($ride->driver_id === $user->id && $user->tokenCan('driver:accept-ride')) {
                     $success = $this->rideService->startRide($ride->id, $user->id);
@@ -245,10 +268,10 @@ class RideController extends Controller
         // Determine who is being rated
         $ratedUserId = $ride->rider_id === $user->id ? $ride->driver_id : $ride->rider_id;
 
-        // Check if user already rated this ride
+        // ✅ Check if user already rated this ride
         $existingRating = $ride->ratings()
             ->where('rater_id', $user->id)
-            ->where('rated_user_id', $ratedUserId)
+            ->where('rated_id', $ratedUserId)  // ✅ Match database column name
             ->exists();
 
         if ($existingRating) {
@@ -258,12 +281,13 @@ class RideController extends Controller
             ], 400);
         }
 
+        // ✅ Pass feedback (matches database column and mobile app)
         $rating = $this->rideService->rateRide(
             $ride->id,
             $user->id,
             $ratedUserId,
             $request->rating,
-            $request->comment,
+            $request->feedback,  // ✅ Changed from 'comment' to 'feedback'
             $request->tags ?? []
         );
 

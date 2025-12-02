@@ -41,12 +41,16 @@ dependencies:
 
   # Network & API
   dio: ^5.7.0
+  http: ^1.2.0
   json_annotation: ^4.9.0
+
+  # Logging
+  logger: ^2.0.2
 
   # WebSocket & Real-time
   web_socket_channel: ^3.0.1
   socket_io_client: ^3.0.1
-  pusher_channels_flutter: ^2.2.1
+  pusher_client_socket: ^0.0.6
 
   # Location Services
   geolocator: ^13.0.1

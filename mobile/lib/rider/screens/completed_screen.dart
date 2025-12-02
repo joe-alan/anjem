@@ -22,6 +22,7 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
   final Set<String> _selectedTags = {};
   final _feedbackController = TextEditingController();
 
+  // ✅ Display-friendly tag labels
   final List<String> _availableTags = [
     'Clean Vehicle',
     'Safe Driving',
@@ -29,8 +30,19 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
     'On Time',
     'Professional',
     'Smooth Ride',
-    'Good Route',
+    'Helpful',
   ];
+
+  // ✅ Map display labels to backend snake_case keys
+  final Map<String, String> _tagMapping = {
+    'Clean Vehicle': 'clean_vehicle',
+    'Safe Driving': 'safe_driving',
+    'Friendly Driver': 'friendly',
+    'On Time': 'on_time',
+    'Professional': 'professional',
+    'Smooth Ride': 'smooth_ride',
+    'Helpful': 'helpful',
+  };
 
   @override
   void dispose() {
@@ -235,10 +247,15 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
               child: ElevatedButton(
                 onPressed: _rating > 0
                     ? () async {
+                        // ✅ Convert display tags to backend format
+                        final backendTags = _selectedTags
+                            .map((tag) => _tagMapping[tag] ?? tag)
+                            .toList();
+
                         await ref.read(rideHistoryProvider.notifier).rateRide(
                               rideId: widget.ride.id,
                               rating: _rating,
-                              tags: _selectedTags.toList(),
+                              tags: backendTags,  // ✅ Send converted tags
                               feedback: _feedbackController.text.trim(),
                             );
 

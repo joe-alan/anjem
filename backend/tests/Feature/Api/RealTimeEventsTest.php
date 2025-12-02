@@ -4,6 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Events\DriverLocationUpdated;
 use App\Events\DriverOnlineStatusChanged;
+use App\Events\NewRideRequest;
 use App\Events\QueuePositionChanged;
 use App\Events\RideRequestMatched;
 use App\Events\RideStatusUpdated;
@@ -177,6 +178,34 @@ class RealTimeEventsTest extends TestCase
 
         // Test broadcast name
         $this->assertEquals('ride.request.matched', $event->broadcastAs());
+    }
+
+    /**
+     * Test that NewRideRequest event broadcasts correctly
+     */
+    public function test_new_ride_request_event_broadcasts()
+    {
+        Event::fake([NewRideRequest::class]);
+
+        $rideRequest = $this->createTestRideRequest();
+        $driver = \App\Models\User::factory()->driver()->create();
+
+        $event = new NewRideRequest(
+            $rideRequest,
+            [$driver->id]
+        );
+
+        $broadcastData = $event->broadcastWith();
+
+        $this->assertArrayHasKey('ride_request_id', $broadcastData);
+        $this->assertArrayHasKey('pickup_location', $broadcastData);
+        $this->assertArrayHasKey('destination_location', $broadcastData);
+        $this->assertEquals($rideRequest->id, $broadcastData['ride_request_id']);
+        $this->assertEquals('ride.request.new', $event->broadcastAs());
+
+        $channels = $event->broadcastOn();
+        $channelNames = array_map(fn ($channel) => $channel->name, $channels);
+        $this->assertContains("private-driver.{$driver->id}", $channelNames);
     }
 
     /**

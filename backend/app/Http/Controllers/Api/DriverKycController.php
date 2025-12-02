@@ -83,6 +83,59 @@ class DriverKycController extends Controller
     }
 
     /**
+     * Check if student email is available for registration
+     */
+    public function checkEmailAvailability(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'student_email' => 'required|email',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $email = $request->student_email;
+
+            // Validate email domain
+            if (! $this->kycService->isValidStudentEmail($email)) {
+                $allowedDomain = config('app.allowed_student_email_domain');
+
+                return response()->json([
+                    'success' => false,
+                    'available' => false,
+                    'message' => "Email must be from {$allowedDomain}",
+                    'reason' => 'invalid_domain',
+                ], 200);  // Return 200 with available:false instead of error
+            }
+
+            // Check if email is already registered (excluding current user if updating)
+            $userId = $request->user()?->id;
+            $isAvailable = $this->kycService->isEmailAvailable($email, $userId);
+
+            return response()->json([
+                'success' => true,
+                'available' => $isAvailable,
+                'message' => $isAvailable
+                    ? 'Email is available'
+                    : 'This email is already registered',
+                'reason' => $isAvailable ? null : 'already_registered',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to check email availability',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Send verification code to student email
      */
     public function sendVerificationCode(Request $request): JsonResponse

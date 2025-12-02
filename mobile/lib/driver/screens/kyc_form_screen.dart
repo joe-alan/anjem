@@ -88,6 +88,91 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
     'Other',
   ];
 
+  // Email availability check state
+  bool _checkingEmail = false;
+  String? _emailAvailabilityMessage;
+  bool? _emailAvailable;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDraftData();
+  }
+
+  Future<void> _loadDraftData() async {
+    try {
+      final kycProvider = ref.read(kycStateProvider.notifier);
+      final draft = await kycProvider.loadDraft();
+
+      if (draft != null && mounted) {
+        // Auto-fill text controllers
+        _studentEmailController.text = draft['student_email'] ?? '';
+        _studentIdController.text = draft['student_id'] ?? '';
+        _studentNameController.text = draft['student_name'] ?? '';
+
+        // Parse license plate if exists
+        final plate = draft['vehicle_plate'] as String?;
+        if (plate != null && plate.isNotEmpty) {
+          final parts = plate.split(' ');
+          if (parts.length == 3) {
+            _plateArea1Controller.text = parts[0];
+            _plateNumberController.text = parts[1];
+            _plateArea2Controller.text = parts[2];
+          }
+        }
+
+        // Set dropdowns
+        final vehicleType = draft['vehicle_type'] as String?;
+        if (vehicleType != null) {
+          _vehicleType = vehicleType;
+        }
+
+        final vehicleColor = draft['vehicle_color'] as String?;
+        if (vehicleColor != null) {
+          _vehicleColor = vehicleColor;
+        }
+
+        // Jump to last page
+        final lastPage = draft['current_page'] ?? 0;
+        if (lastPage > 0 && lastPage <= 2) {
+          _pageController.jumpToPage(lastPage);
+          _currentPage = lastPage;
+        }
+
+        setState(() {});
+
+        // Show snackbar
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Draft data loaded (saved ${_formatDate(draft['saved_at'])})'),
+              backgroundColor: Colors.blue,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error loading draft: $e');
+    }
+  }
+
+  String _formatDate(String? isoString) {
+    if (isoString == null) return 'recently';
+    try {
+      final date = DateTime.parse(isoString);
+      final now = DateTime.now();
+      final diff = now.difference(date);
+
+      if (diff.inMinutes < 1) return 'just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+      if (diff.inHours < 24) return '${diff.inHours}h ago';
+      return '${diff.inDays}d ago';
+    } catch (e) {
+      return 'recently';
+    }
+  }
+
   @override
   void dispose() {
     _studentEmailController.dispose();
@@ -127,12 +212,101 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
     }
   }
 
-  void _nextPage() {
+  Future<void> _nextPage() async {
     if (_currentPage < 2) {
+      // Save draft before moving to next page
+      await _saveDraft();
+
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
+    }
+  }
+
+  Future<void> _saveDraft() async {
+    try {
+      final kycProvider = ref.read(kycStateProvider.notifier);
+
+      // Combine license plate parts
+      String? vehiclePlate;
+      if (_plateArea1Controller.text.isNotEmpty ||
+          _plateNumberController.text.isNotEmpty ||
+          _plateArea2Controller.text.isNotEmpty) {
+        vehiclePlate = '${_plateArea1Controller.text.trim()} '
+            '${_plateNumberController.text.trim()} '
+            '${_plateArea2Controller.text.trim()}';
+      }
+
+      await kycProvider.saveDraft(
+        studentEmail: _studentEmailController.text.trim().isNotEmpty
+            ? _studentEmailController.text.trim()
+            : null,
+        studentId: _studentIdController.text.trim().isNotEmpty
+            ? _studentIdController.text.trim()
+            : null,
+        studentName: _studentNameController.text.trim().isNotEmpty
+            ? _studentNameController.text.trim()
+            : null,
+        vehicleType: _vehicleType.isNotEmpty ? _vehicleType : null,
+        vehiclePlate: vehiclePlate,
+        vehicleColor: _vehicleColor.isNotEmpty ? _vehicleColor : null,
+        currentPage: _currentPage,
+      );
+    } catch (e) {
+      print('Error saving draft: $e');
+    }
+  }
+
+  Future<void> _checkEmailAvailability(String email) async {
+    // Basic validation first
+    if (email.isEmpty || !email.contains('@')) {
+      setState(() {
+        _emailAvailabilityMessage = null;
+        _emailAvailable = null;
+        _checkingEmail = false;
+      });
+      return;
+    }
+
+    // Check domain
+    if (!email.toLowerCase().endsWith('@students.undip.ac.id')) {
+      setState(() {
+        _emailAvailabilityMessage = null;
+        _emailAvailable = null;
+        _checkingEmail = false;
+      });
+      return;
+    }
+
+    // Check availability
+    setState(() {
+      _checkingEmail = true;
+      _emailAvailabilityMessage = 'Checking availability...';
+      _emailAvailable = null;
+    });
+
+    try {
+      final kycService = ref.read(kycServiceProvider);
+      final isAvailable = await kycService.checkEmailAvailability(email);
+
+      if (mounted) {
+        setState(() {
+          _checkingEmail = false;
+          _emailAvailable = isAvailable;
+          _emailAvailabilityMessage = isAvailable
+              ? '✓ Email is available'
+              : '✗ This email is already registered';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _checkingEmail = false;
+          _emailAvailabilityMessage = 'Could not check availability';
+          _emailAvailable = null;
+        });
+      }
     }
   }
 
@@ -376,13 +550,43 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
           TextFormField(
             controller: _studentEmailController,
             keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Student Email *',
               hintText: 'your.email@students.undip.ac.id',
-              prefixIcon: Icon(Icons.email),
-              border: OutlineInputBorder(),
-              helperText: 'Must be your university email',
+              prefixIcon: const Icon(Icons.email),
+              border: const OutlineInputBorder(),
+              helperText: _emailAvailabilityMessage ?? 'Must be your university email',
+              helperStyle: TextStyle(
+                color: _emailAvailable == true
+                    ? Colors.green
+                    : _emailAvailable == false
+                        ? Colors.red
+                        : null,
+              ),
+              suffixIcon: _checkingEmail
+                  ? const Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : _emailAvailable != null
+                      ? Icon(
+                          _emailAvailable! ? Icons.check_circle : Icons.error,
+                          color: _emailAvailable! ? Colors.green : Colors.red,
+                        )
+                      : null,
             ),
+            onChanged: (value) {
+              // Debounce the check - wait 500ms after user stops typing
+              Future.delayed(const Duration(milliseconds: 500), () {
+                if (_studentEmailController.text == value) {
+                  _checkEmailAvailability(value);
+                }
+              });
+            },
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'Student email is required';
@@ -390,9 +594,13 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
               if (!value.contains('@')) {
                 return 'Invalid email format';
               }
-              // Check domain (get from config in real app)
+              // Check domain
               if (!value.toLowerCase().endsWith('@students.undip.ac.id')) {
                 return 'Email must be from students.undip.ac.id domain';
+              }
+              // Check if email is available (this is shown via helperText, but also block submission)
+              if (_emailAvailable == false) {
+                return 'This email is already registered';
               }
               return null;
             },

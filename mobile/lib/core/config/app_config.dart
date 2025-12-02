@@ -10,6 +10,10 @@ class AppConfig {
   final String apiBaseUrl;
   final String wsUrl;
   final Color primaryColor;
+  final String pusherKey;
+  final String pusherHost;
+  final int pusherPort;
+  final String pusherScheme;
 
   AppConfig._({
     required this.flavor,
@@ -17,6 +21,10 @@ class AppConfig {
     required this.apiBaseUrl,
     required this.wsUrl,
     required this.primaryColor,
+    required this.pusherKey,
+    required this.pusherHost,
+    required this.pusherPort,
+    required this.pusherScheme,
   });
 
   static void initialize({
@@ -25,6 +33,10 @@ class AppConfig {
     required String apiBaseUrl,
     required String wsUrl,
     required Color primaryColor,
+    required String pusherKey,
+    required String pusherHost,
+    required int pusherPort,
+    String pusherScheme = 'http',
   }) {
     _instance = AppConfig._(
       flavor: flavor,
@@ -32,11 +44,14 @@ class AppConfig {
       apiBaseUrl: apiBaseUrl,
       wsUrl: wsUrl,
       primaryColor: primaryColor,
+      pusherKey: pusherKey,
+      pusherHost: pusherHost,
+      pusherPort: pusherPort,
+      pusherScheme: pusherScheme,
     );
   }
 
   static AppConfig get instance => _instance;
-  static String? pusherKey;
 
   bool get isRiderApp => flavor == AppFlavor.rider;
   bool get isDriverApp => flavor == AppFlavor.driver;

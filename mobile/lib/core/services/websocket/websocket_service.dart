@@ -1,17 +1,16 @@
 import 'dart:async';
-import 'dart:convert';
-import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
+import 'package:pusher_client_socket/pusher_client_socket.dart';
 import '../../config/app_config.dart';
 import '../api/api_service.dart';
 
 class WebSocketService {
   final ApiService _apiService;
-  late PusherChannelsFlutter _pusher;
+  PusherClient? _pusher;
 
   bool _isInitialized = false;
   bool _isConnected = false;
 
-  final Map<String, dynamic> _activeChannels = {};
+  final Map<String, dynamic> _channels = {};
   final StreamController<WsConnectionState> _connectionStateController =
       StreamController<WsConnectionState>.broadcast();
 
@@ -25,32 +24,65 @@ class WebSocketService {
   Future<void> initialize() async {
     if (_isInitialized) return;
 
-    _pusher = PusherChannelsFlutter.getInstance();
-
     try {
-      await _pusher.init(
-        apiKey: _getPusherKey(),
-        cluster: 'mt1', // Default cluster, adjust if needed
-        onConnectionStateChange: _onConnectionStateChange,
-        onError: _onError,
-        onEvent: _onEvent,
-        onSubscriptionSucceeded: _onSubscriptionSucceeded,
-        onSubscriptionError: _onSubscriptionError,
-        onDecryptionFailure: _onDecryptionFailure,
-        onMemberAdded: _onMemberAdded,
-        onMemberRemoved: _onMemberRemoved,
-        onAuthorizer: _onAuthorizer,
+      final config = AppConfig.instance;
+
+      print(
+          'Initializing WebSocket with Reverb at ${config.pusherHost}:${config.pusherPort}');
+
+      final options = PusherOptions(
+        key: config.pusherKey,
+        host: config.pusherHost,
+        wsPort: config.pusherPort,
+        encrypted: config.pusherScheme == 'https',
+        authOptions: PusherAuthOptions(
+          '${config.apiBaseUrl.replaceAll('/api/v1', '')}/broadcasting/auth',
+          headers: () async {
+            final token = await _apiService.getToken();
+            return {
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/x-www-form-urlencoded',
+            };
+          },
+        ),
+        autoConnect: false,
       );
 
+      _pusher = PusherClient(options: options);
+
+      // Setup connection established listener
+      _pusher!.onConnectionEstablished((data) {
+        print('Connection established: $data');
+        _isConnected = true;
+        _connectionStateController.add(WsConnectionState.connected);
+      });
+
+      // Setup error listener
+      _pusher!.onConnectionError((error) {
+        print('WebSocket connection error: $error');
+        _isConnected = false;
+        _connectionStateController.add(WsConnectionState.disconnected);
+      });
+
+      // Setup disconnected listener
+      _pusher!.onDisconnected((data) {
+        print('WebSocket disconnected: $data');
+        _isConnected = false;
+        _connectionStateController.add(WsConnectionState.disconnected);
+      });
+
+      // Setup general error listener
+      _pusher!.onError((error) {
+        print('WebSocket error: $error');
+      });
+
       _isInitialized = true;
+      print('WebSocket initialization successful');
     } catch (e) {
       print('Failed to initialize Pusher: $e');
       rethrow;
     }
-  }
-
-  String _getPusherKey() {
-    return AppConfig.pusherKey ?? 'YOUR_PUSHER_KEY_HERE';
   }
 
   Future<void> connect() async {
@@ -59,26 +91,38 @@ class WebSocketService {
     }
 
     try {
-      await _pusher.connect();
+      _connectionStateController.add(WsConnectionState.connecting);
+      _pusher?.connect();
+      print('Connecting to WebSocket...');
     } catch (e) {
-      print('Failed to connect to Pusher: $e');
+      print('Failed to connect to WebSocket: $e');
       rethrow;
     }
   }
 
   Future<void> disconnect() async {
-    if (!_isInitialized) return;
+    if (!_isInitialized || _pusher == null) return;
 
     try {
       // Unsubscribe from all channels
-      for (final channelName in _activeChannels.keys.toList()) {
-        await _unsubscribe(channelName);
+      for (final channelName in _channels.keys.toList()) {
+        final channel = _channels[channelName];
+        if (channel != null) {
+          try {
+            channel.unsubscribe();
+          } catch (e) {
+            print('Error unsubscribing from $channelName: $e');
+          }
+        }
       }
 
-      await _pusher.disconnect();
+      _channels.clear();
+
+      _pusher?.disconnect();
       _isConnected = false;
+      print('WebSocket disconnected');
     } catch (e) {
-      print('Failed to disconnect from Pusher: $e');
+      print('Failed to disconnect from WebSocket: $e');
     }
   }
 
@@ -91,22 +135,39 @@ class WebSocketService {
     final channelName = 'private-ride.$rideId';
 
     try {
-      final channel = await _pusher.subscribe(
-        channelName: channelName,
-        onEvent: (event) {
-          final data = jsonDecode(event.data);
+      if (_channels.containsKey(channelName)) {
+        print('Already subscribed to $channelName');
+        return;
+      }
 
-          if (event.eventName == 'RideStatusUpdated') {
-            onStatusUpdate(data);
-          } else if (event.eventName == 'DriverLocationUpdated') {
-            final lat = (data['latitude'] as num).toDouble();
-            final lng = (data['longitude'] as num).toDouble();
-            onLocationUpdate(lat, lng);
-          }
-        },
-      );
+      final channel = _pusher!.private(channelName);
+      if (!_isConnected) {
+        print(
+            'WebSocket currently disconnected, will subscribe to $channelName once connection is ready');
+      }
+      channel.subscribe();
 
-      _activeChannels[channelName] = channel;
+      // Listen for ride status updates
+      channel.bind('ride.status.updated', (data) {
+        print('Received ride status update: $data');
+        if (data != null) {
+          onStatusUpdate(data as Map<String, dynamic>);
+        }
+      });
+
+      // Listen for driver location updates
+      channel.bind('driver.location.updated', (data) {
+        print('Received driver location update: $data');
+        if (data != null) {
+          final locationData = data as Map<String, dynamic>;
+          final lat = (locationData['latitude'] as num).toDouble();
+          final lng = (locationData['longitude'] as num).toDouble();
+          onLocationUpdate(lat, lng);
+        }
+      });
+
+      _channels[channelName] = channel;
+      print('Subscribed to ride channel: $channelName');
     } catch (e) {
       print('Failed to subscribe to ride channel: $e');
       rethrow;
@@ -118,20 +179,44 @@ class WebSocketService {
     required int userId,
     required Function(Map<String, dynamic>) onRideMatched,
   }) async {
-    final channelName = 'private-user.$userId';
+    final channelName =
+        'user.$userId'; // Don't add 'private-' prefix, .private() method does it automatically
 
     try {
-      final channel = await _pusher.subscribe(
-        channelName: channelName,
-        onEvent: (event) {
-          if (event.eventName == 'RideRequestMatched') {
-            final data = jsonDecode(event.data);
-            onRideMatched(data);
-          }
-        },
-      );
+      if (_channels.containsKey(channelName)) {
+        print('Already subscribed to $channelName');
+        return;
+      }
 
-      _activeChannels[channelName] = channel;
+      final channel = _pusher!.private(channelName);
+      if (!_isConnected) {
+        print(
+            'WebSocket currently disconnected, will subscribe to $channelName once connection is ready');
+      }
+      channel.subscribe();
+
+      // Listen for ride match events
+      print('Setting up event binding for: ride.request.matched');
+      channel.bind('ride.request.matched', (data) {
+        print('═══════════════════════════════════════');
+        print('🎊 WEBSOCKET EVENT RECEIVED! 🎊');
+        print('Event: ride.request.matched');
+        print('Data type: ${data.runtimeType}');
+        print('Data: $data');
+        print('═══════════════════════════════════════');
+
+        if (data != null) {
+          print('Calling onRideMatched callback...');
+          onRideMatched(data as Map<String, dynamic>);
+          print('onRideMatched callback completed');
+        } else {
+          print('⚠️ Data is NULL!');
+        }
+      });
+      print('Event binding completed for ride.request.matched');
+
+      _channels[channelName] = channel;
+      print('Subscribed to user channel: $channelName');
     } catch (e) {
       print('Failed to subscribe to user channel: $e');
       rethrow;
@@ -143,20 +228,31 @@ class WebSocketService {
     required int driverId,
     required Function(Map<String, dynamic>) onNewRideRequest,
   }) async {
-    final channelName = 'private-driver.$driverId';
+    final channelName = 'driver.$driverId';
 
     try {
-      final channel = await _pusher.subscribe(
-        channelName: channelName,
-        onEvent: (event) {
-          if (event.eventName == 'NewRideRequest') {
-            final data = jsonDecode(event.data);
-            onNewRideRequest(data);
-          }
-        },
-      );
+      if (_channels.containsKey(channelName)) {
+        print('Already subscribed to $channelName');
+        return;
+      }
 
-      _activeChannels[channelName] = channel;
+      final channel = _pusher!.private(channelName);
+      if (!_isConnected) {
+        print(
+            'WebSocket currently disconnected, will subscribe to $channelName once connection is ready');
+      }
+      channel.subscribe();
+
+      // Listen for new ride request events
+      channel.bind('ride.request.new', (data) {
+        print('Received new ride request: $data');
+        if (data != null) {
+          onNewRideRequest(data as Map<String, dynamic>);
+        }
+      });
+
+      _channels[channelName] = channel;
+      print('Subscribed to driver channel: private-$channelName');
     } catch (e) {
       print('Failed to subscribe to driver channel: $e');
       rethrow;
@@ -171,17 +267,28 @@ class WebSocketService {
     final channelName = 'presence-beacon.$beaconId';
 
     try {
-      final channel = await _pusher.subscribe(
-        channelName: channelName,
-        onEvent: (event) {
-          if (event.eventName == 'QueuePositionChanged') {
-            final data = jsonDecode(event.data);
-            onQueuePositionChanged(data);
-          }
-        },
-      );
+      if (_channels.containsKey(channelName)) {
+        print('Already subscribed to $channelName');
+        return;
+      }
 
-      _activeChannels[channelName] = channel;
+      final channel = _pusher!.presence(channelName);
+      if (!_isConnected) {
+        print(
+            'WebSocket currently disconnected, will subscribe to $channelName once connection is ready');
+      }
+      channel.subscribe();
+
+      // Listen for queue position updates
+      channel.bind('queue.position.changed', (data) {
+        print('Received queue position update: $data');
+        if (data != null) {
+          onQueuePositionChanged(data as Map<String, dynamic>);
+        }
+      });
+
+      _channels[channelName] = channel;
+      print('Subscribed to beacon channel: $channelName');
     } catch (e) {
       print('Failed to subscribe to beacon channel: $e');
       rethrow;
@@ -189,86 +296,23 @@ class WebSocketService {
   }
 
   // Unsubscribe from a channel
-  Future<void> _unsubscribe(String channelName) async {
+  Future<void> unsubscribeFromChannel(String channelName) async {
     try {
-      await _pusher.unsubscribe(channelName: channelName);
-      _activeChannels.remove(channelName);
+      if (_channels.containsKey(channelName)) {
+        final channel = _channels[channelName];
+        if (channel != null) {
+          channel.unsubscribe();
+          _channels.remove(channelName);
+          print('Unsubscribed from channel: $channelName');
+        }
+      }
     } catch (e) {
       print('Failed to unsubscribe from $channelName: $e');
     }
   }
 
-  WsConnectionState _mapState(String? s) {
-    switch (s) {
-      case 'CONNECTED':
-        return WsConnectionState.connected;
-      case 'CONNECTING':
-        return WsConnectionState.connecting;
-      case 'DISCONNECTED':
-      default:
-        return WsConnectionState.disconnected;
-    }
-  }
-
-  void _onConnectionStateChange(String? currentState, String? previousState) {
-    print('Connection state changed: $previousState -> $currentState');
-    final mapped = _mapState(currentState);
-    _isConnected = mapped == WsConnectionState.connected;
-    _connectionStateController.add(mapped);
-  }
-
-  void _onError(String message, int? code, dynamic error) {
-    print('WebSocket error: $message (code: $code), error: $error');
-  }
-
-  void _onEvent(PusherEvent event) {
-    // Global event handler (optional)
-    print('Event received: ${event.eventName} on ${event.channelName}');
-  }
-
-  void _onSubscriptionSucceeded(String channelName, dynamic data) {
-    print('Subscription succeeded: $channelName');
-  }
-
-  void _onSubscriptionError(String message, dynamic error) {
-    print('Subscription error: $message, $error');
-  }
-
-  void _onDecryptionFailure(String event, String reason) {
-    print('Decryption failure: $event, $reason');
-  }
-
-  void _onMemberAdded(String channelName, PusherMember member) {
-    print('Member added to $channelName: ${member.userId}');
-  }
-
-  void _onMemberRemoved(String channelName, PusherMember member) {
-    print('Member removed from $channelName: ${member.userId}');
-  }
-
-  // Custom authorizer for private/presence channels
-  Future<dynamic> _onAuthorizer(
-    String channelName,
-    String socketId,
-    dynamic options,
-  ) async {
-    try {
-      final response = await _apiService.post(
-        '/broadcasting/auth',
-        data: {
-          'socket_id': socketId,
-          'channel_name': channelName,
-        },
-      );
-
-      return response.data;
-    } catch (e) {
-      print('Authorization failed: $e');
-      rethrow;
-    }
-  }
-
   void dispose() {
+    disconnect();
     _connectionStateController.close();
   }
 }

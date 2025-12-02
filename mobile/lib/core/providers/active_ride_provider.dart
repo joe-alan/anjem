@@ -4,7 +4,7 @@ import '../models/ride.dart';
 import '../services/ride/ride_service.dart';
 import '../services/websocket/websocket_service.dart';
 import 'api_provider.dart';
-import 'ride_request_provider.dart';
+import 'auth_provider.dart'; // For websocketServiceProvider
 
 // Ride Service Provider
 final rideServiceProvider = Provider<RideService>((ref) {
@@ -52,6 +52,7 @@ class ActiveRideState {
 class ActiveRideNotifier extends StateNotifier<ActiveRideState> {
   final RideService _service;
   final WebSocketService _wsService;
+  int? _currentRideId;  // ✅ Track current ride ID to unsubscribe from old channel
 
   ActiveRideNotifier(this._service, this._wsService)
       : super(const ActiveRideState());
@@ -78,24 +79,43 @@ class ActiveRideNotifier extends StateNotifier<ActiveRideState> {
   }
 
   void setRide(Ride ride) {
-    state = state.copyWith(ride: ride, error: null);
+    // ✅ Reset ALL state fields for new ride (don't carry over old driver location, etc.)
+    state = ActiveRideState(ride: ride);
     _subscribeToRideUpdates(ride.id);
   }
 
   void _subscribeToRideUpdates(int rideId) {
+    // ✅ Unsubscribe from previous ride channel if it exists
+    if (_currentRideId != null && _currentRideId != rideId) {
+      print('Unsubscribing from previous ride channel: private-ride.$_currentRideId');
+      _wsService.unsubscribeFromChannel('private-ride.$_currentRideId');
+    }
+
+    _currentRideId = rideId;
+    print('Subscribing to new ride channel: private-ride.$rideId');
+
     _wsService.subscribeToRideChannel(
       rideId: rideId,
       onStatusUpdate: (data) {
+        print('📡 [Provider] Received status update for ride $rideId: ${data['status']}');
+        print('    Current state ride ID: ${state.ride?.id}');
         if (state.ride != null) {
           final statusString = data['status'] as String;
           final status = _parseRideStatus(statusString);
           if (status != null) {
+            print('    Updating ride ${state.ride!.id} status to: $status');
             final updatedRide = state.ride!.copyWith(status: status);
             state = state.copyWith(ride: updatedRide);
+            print('    ✅ State updated, new status: ${state.ride?.status}');
+          } else {
+            print('    ⚠️ Failed to parse status: $statusString');
           }
+        } else {
+          print('    ⚠️ State.ride is null, cannot update status');
         }
       },
       onLocationUpdate: (latitude, longitude) {
+        print('📍 [Provider] Received location update for ride $rideId: ($latitude, $longitude)');
         state = state.copyWith(
           driverLocation: LatLng(latitude, longitude),
         );
@@ -135,6 +155,12 @@ class ActiveRideNotifier extends StateNotifier<ActiveRideState> {
   }
 
   void reset() {
+    // ✅ Unsubscribe from current ride channel when resetting
+    if (_currentRideId != null) {
+      print('Unsubscribing from ride channel on reset: private-ride.$_currentRideId');
+      _wsService.unsubscribeFromChannel('private-ride.$_currentRideId');
+      _currentRideId = null;
+    }
     state = const ActiveRideState();
   }
 }

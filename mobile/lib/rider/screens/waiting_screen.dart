@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/config/app_config.dart';
 import '../../core/providers/ride_request_provider.dart';
-import 'driver_matched_screen.dart';
+import 'rider_active_ride_screen.dart';
 import 'rider_home_screen.dart';
 
 class WaitingScreen extends ConsumerWidget {
@@ -18,8 +18,8 @@ class WaitingScreen extends ConsumerWidget {
       if (next.isMatched && next.matchedRide != null) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => DriverMatchedScreen(
-              ride: next.matchedRide!,
+            builder: (context) => RiderActiveRideScreen(
+              initialRide: next.matchedRide!,
             ),
           ),
         );
