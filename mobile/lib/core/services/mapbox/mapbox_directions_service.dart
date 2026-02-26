@@ -34,8 +34,21 @@ class MapboxDirectionsService {
       print('   Origin: ${origin.latitude}, ${origin.longitude}');
       print('   Destination: ${destination.latitude}, ${destination.longitude}');
 
-      // Make request
-      final response = await http.get(uri);
+      // Make request with timeout - wrapped in inner try/catch for DNS errors
+      http.Response response;
+      try {
+        response = await http.get(uri).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            throw MapboxDirectionsException(
+              'Request timed out. Please check your internet connection.',
+            );
+          },
+        );
+      } catch (networkError) {
+        print('🔴 Network error during HTTP request: $networkError');
+        return []; // Return empty immediately on any network error
+      }
 
       if (response.statusCode != 200) {
         print('❌ Mapbox Directions API error: ${response.statusCode}');
@@ -74,10 +87,32 @@ class MapboxDirectionsService {
       return routeCoordinates;
     } catch (e) {
       print('❌ Error fetching directions: $e');
-      if (e is MapboxDirectionsException) {
-        rethrow;
+
+      // Check for DNS resolution errors - return empty list instead of crashing
+      if (e.toString().contains('No address associated with hostname') ||
+          e.toString().contains('Failed host lookup') ||
+          e.toString().contains('SocketException') ||
+          e.toString().contains('Connection refused') ||
+          e.toString().contains('Network is unreachable')) {
+        print('⚠️  Network error - returning empty route (app will continue without route line)');
+        return []; // Return empty instead of throwing - prevents crash
       }
-      throw MapboxDirectionsException('Failed to fetch directions: $e');
+
+      // For timeout errors, also return empty
+      if (e is MapboxDirectionsException && e.message.contains('timed out')) {
+        print('⚠️  Request timed out - returning empty route');
+        return [];
+      }
+
+      // For other MapboxDirectionsException, return empty to be safe
+      if (e is MapboxDirectionsException) {
+        print('⚠️  Mapbox error: ${e.message} - returning empty route');
+        return [];
+      }
+
+      // For any other error, return empty to prevent crash
+      print('⚠️  Unknown error - returning empty route to prevent crash');
+      return [];
     }
   }
 

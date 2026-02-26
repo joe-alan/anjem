@@ -39,9 +39,18 @@ class Handler extends ExceptionHandler
     {
         // Always return JSON for API routes
         if ($request->is('api/*') || $request->expectsJson()) {
+            $orphanedToken = (bool) $request->attributes->get('sanctum.orphaned_token');
+            $bearerProvided = (bool) $request->attributes->get('sanctum.bearer_token_present');
+            $tokenRecordFound = (bool) $request->attributes->get('sanctum.token_record_found');
+
+            $invalidToken = $orphanedToken || ($bearerProvided && ! $tokenRecordFound);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthenticated.',
+                'code' => $invalidToken ? 'AUTH_USER_NOT_FOUND' : 'AUTH_UNAUTHENTICATED',
+                'message' => $invalidToken
+                    ? 'Your account is no longer available. Please sign in again.'
+                    : 'Authentication required. Please sign in again.',
             ], 401);
         }
 

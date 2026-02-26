@@ -7,6 +7,7 @@ import '../../core/providers/driver_status_provider.dart';
 import '../../core/providers/driver_statistics_provider.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/kyc_provider.dart';
+import '../../core/providers/session_provider.dart';
 import 'ride_request_screen.dart';
 import 'active_ride_screen.dart';
 
@@ -554,6 +555,8 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
+                // Clear session state first to prevent stale data on re-login
+                ref.read(sessionStateProvider.notifier).clearSession();
                 await ref.read(authStateProvider.notifier).signOut();
                 // No need to navigate - AuthenticationWrapper will automatically
                 // show LoginScreen when isAuthenticated becomes false

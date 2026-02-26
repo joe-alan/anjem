@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
 use Kreait\Firebase\Contract\Auth;
 use Kreait\Firebase\Contract\Messaging;
 use Kreait\Firebase\Factory;
+use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -46,5 +48,32 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->environment('production')) {
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
+
+        Sanctum::getAccessTokenFromRequestUsing(function (Request $request) {
+            $token = $request->bearerToken();
+
+            if ($token) {
+                $request->attributes->set('sanctum.bearer_token_present', true);
+            }
+
+            return $token;
+        });
+
+        Sanctum::authenticateAccessTokensUsing(function ($accessToken, bool $isValid) {
+            $request = app('request');
+
+            if ($accessToken) {
+                $request->attributes->set('sanctum.token_record_found', true);
+            }
+
+            if ($accessToken && $accessToken->tokenable === null) {
+                $request->attributes->set('sanctum.orphaned_token', true);
+                $accessToken->delete();
+
+                return false;
+            }
+
+            return $isValid;
+        });
     }
 }

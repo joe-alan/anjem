@@ -1,551 +1,462 @@
-# 🔧 CONTINUE HERE - Backend Schema Fixes Complete
+# Continue Here - Project Context Dump
 
-**Date**: November 30, 2025
-**Status**: 🎯 **BACKEND 100% COMPLETE - CRITICAL SCHEMA FIXES DONE**
-**Priority**: Mobile App Critical Features (Phase 9)
-
----
-
-## ✅ COMPLETED PHASES
-
-### Phase 1: API Cost Optimization ✅ (COMPLETE)
-- Route caching system implemented
-- 80-90% Mapbox API cost reduction
-- 1446x faster response times
-- 75% cache hit rate
-
-**Full details**: `/docs/status/2025-11-21_API_COST_OPTIMIZATION_COMPLETE.md`
-
-### Phase 2: Admin Dashboard Foundation ✅ (COMPLETE)
-- Role-based access control (admin/rider/driver/both)
-- 14 RESTful admin API endpoints
-- Driver & rider management
-- Analytics & statistics
-- Real-time monitoring
-- Phase 1 integration (route cache stats)
-
-**Full details**: `/docs/status/2025-11-21_PHASE_2_ADMIN_DASHBOARD_COMPLETE.md`
-
-### Phase 3: Critical Backend Schema Fixes ✅ (COMPLETE - Nov 30, 2025)
-- Consolidated user roles (`user_type` → `role`)
-- Fixed Rating model column names (`rated_id`, `rating_type`)
-- Fixed AdminController DriverProfile field references
-- Updated UserFactory and all test files
-- Verified all changes against PostgreSQL database
-- **Result**: Backend 100% complete, all schema issues resolved
-- **Tests**: 92% passing (24/26), remaining failures unrelated to fixes
-
-**Migration**: `database/migrations/2025_11_30_115258_fix_critical_schema_issues.php`
-**Files Modified**: 13 files (models, controllers, services, resources, factories, tests)
+**Last Updated**: December 5, 2025
+**Current Branch**: `fix/test-database-isolation`
+**Status**: Queue-Based Matching System Design Complete, Ready for Implementation
 
 ---
 
-## 🎨 PREVIOUS PHASE: Admin Dashboard UI Polish (Nov 21)
+## Quick Context for AI Models
 
-**Status**: Simple HTML/JS dashboard created, ready for testing and improvements
-
-### What's Been Built
-
-**Location**: `/backend/public/admin-dashboard.html`
-
-**Features Implemented**:
-1. ✅ Login page (token-based authentication)
-2. ✅ Platform overview with stats
-3. ✅ Driver management (list, search, filter, view details, suspend)
-4. ✅ Rider management (list, search, view details, suspend)
-5. ✅ Analytics (ride stats, popular routes, driver performance)
-6. ✅ Real-time monitoring (active rides, online drivers, pending requests)
-7. ✅ Auto-refresh (monitoring page refreshes every 30 seconds)
-8. ✅ Responsive design (Tailwind CSS)
-
-**Technology Stack**:
-- Pure HTML/CSS/JavaScript (no build step)
-- Tailwind CSS CDN for styling
-- LocalStorage for token persistence
-- Fetch API for backend communication
+This is a **ride-hailing app** (like Grab/Gojek) for a university campus. Stack:
+- **Backend**: Laravel 11 + PostgreSQL + Redis + Pusher (WebSocket)
+- **Mobile**: Flutter (single codebase for rider/driver modes)
+- **Maps**: Mapbox (directions, geocoding)
 
 ---
 
-## 🚀 How to Use the Dashboard
+## 🎯 NEXT PRIORITY: Queue-Based Driver Matching System
 
-### One-Time Setup
+### Design Overview
 
-**Step 1: Generate Admin Token**
-```bash
-php artisan tinker --execute="
-\$admin = App\Models\User::where('email', 'admin@anjem.app')->first();
-echo 'Token: ' . \$admin->createTokenWithAbilities(false, true) . PHP_EOL;
-"
+Replace the current "broadcast to all drivers" approach with a **FIFO queue system**:
+
+```
+Driver goes online → Joins queue (position based on join time)
+                  → Longest waiting driver = highest priority
+                  → Driver sees their queue number
+
+Rider creates request → Server finds top eligible driver (within radius)
+                     → Sends request to that driver only
+                     → 30-second response window
 ```
 
-**Step 2: Open Dashboard**
+### Queue Rules
+
+| Event | What Happens |
+|-------|--------------|
+| **Driver goes online** | Joins queue at bottom, `queue_joined_at = now()` |
+| **Driver goes offline** | Leaves queue, `queue_joined_at = NULL` |
+| **Driver accepts ride** | Leaves queue, completes ride |
+| **Ride completed** | Auto-rejoins queue at bottom (fresh timestamp) |
+| **Driver declines** | Progressive penalty (details TBD), request passes to next driver |
+| **Driver timeout (30s)** | Same as decline |
+| **All drivers decline** | Request expires, rider notified |
+
+### Request Flow
+
 ```
-http://localhost:8000/admin-dashboard.html
-```
+1. Rider creates request
+   └── Server queries queue:
+       SELECT * FROM driver_profiles
+       WHERE queue_joined_at IS NOT NULL           -- in queue
+         AND queue_cooldown_until < NOW()          -- not in penalty cooldown
+         AND distance(location, pickup) <= max_pickup_radius_km
+       ORDER BY queue_joined_at ASC                -- longest waiting first
+       LIMIT 1
 
-**Step 3: Set Token in Browser Console (F12)**
-```javascript
-localStorage.setItem('adminToken', 'PASTE_YOUR_TOKEN_HERE');
-// Then refresh the page
-```
+2. Send request to Driver #1 (top of filtered queue)
+   └── Driver has 30 seconds to respond
+       ├── ACCEPT → Create ride, driver leaves queue
+       ├── DECLINE → Apply penalty, pass to Driver #2
+       └── TIMEOUT → Same as decline
 
-**That's it!** Token persists across sessions - no need to login again unless you:
-- Clear browser data
-- Click "Logout"
-- Switch browsers/devices
-
----
-
-## 🎯 Current Focus: Dashboard Polish
-
-### Potential Improvements (To Be Prioritized)
-
-#### 1. Authentication Enhancement
-- [ ] Add token input field in login page (no console needed)
-- [ ] Add password-based login endpoint
-- [ ] Add "Remember me" checkbox
-- [ ] Show token expiry warning
-
-#### 2. UI/UX Improvements
-- [ ] Add loading skeletons instead of spinner
-- [ ] Add toast notifications for actions
-- [ ] Add confirmation dialogs with details
-- [ ] Add data export (CSV/Excel) buttons
-- [ ] Add pagination controls
-- [ ] Add sorting on table columns
-- [ ] Add advanced filters
-
-#### 3. Data Visualization
-- [ ] Add charts for analytics (Chart.js)
-- [ ] Add line chart for daily rides
-- [ ] Add pie chart for ride status breakdown
-- [ ] Add bar chart for top drivers
-- [ ] Add map view for online drivers
-
-#### 4. Real-time Features
-- [ ] Add WebSocket integration for live updates
-- [ ] Add sound notifications for new requests
-- [ ] Add desktop notifications
-- [ ] Add live ride tracking on map
-
-#### 5. Admin Features
-- [ ] Add admin user management
-- [ ] Add activity logs
-- [ ] Add bulk actions (suspend multiple users)
-- [ ] Add email/SMS notifications
-- [ ] Add export reports functionality
-
-#### 6. Performance Optimization
-- [ ] Add request caching
-- [ ] Add debouncing for search inputs (✅ already done)
-- [ ] Add virtual scrolling for large lists
-- [ ] Add lazy loading for images
-
-#### 7. Error Handling
-- [ ] Better error messages
-- [ ] Network error retry logic
-- [ ] Offline mode detection
-- [ ] Form validation feedback
-
----
-
-## 📊 Backend Status
-
-**Overall Progress**: 95% Complete
-
-### What's Working
-✅ All 14 admin API endpoints functional
-✅ Role-based access control
-✅ Route caching system (Phase 1)
-✅ Driver/rider management
-✅ Analytics with route cache integration
-✅ Real-time monitoring
-
-### What's Remaining (Optional)
-- [ ] Cache warming scheduled job
-- [ ] Stale route cleanup cron
-- [ ] Advanced filtering options
-- [ ] WebSocket real-time events
-- [ ] Email notification system
-
----
-
-## 🧪 Testing Checklist
-
-### Admin Dashboard Tests
-- [ ] Login with valid token
-- [ ] View platform overview (verify stats)
-- [ ] List all drivers (test filters)
-- [ ] View driver details
-- [ ] Suspend/unsuspend driver
-- [ ] List all riders (test search)
-- [ ] View rider details
-- [ ] Suspend/unsuspend rider
-- [ ] View ride analytics with date filters
-- [ ] View popular routes (verify Phase 1 integration)
-- [ ] View driver performance leaderboard
-- [ ] View active rides (real-time)
-- [ ] View online drivers (with locations)
-- [ ] View pending requests
-- [ ] Test auto-refresh on monitoring page
-- [ ] Test logout functionality
-
-### Backend API Tests
-- [x] All endpoints tested with curl ✅
-- [x] AdminOnly middleware security ✅
-- [x] Route cache stats integration ✅
-- [ ] Load testing (100+ concurrent requests)
-- [ ] Security penetration testing
-- [ ] Rate limiting verification
-
----
-
-## 📁 Key Files Reference
-
-### Admin Dashboard
-- **UI**: `/backend/public/admin-dashboard.html` (single file dashboard)
-- **Backend Controller**: `/backend/app/Http/Controllers/Api/AdminController.php` (620 lines, 14 endpoints)
-- **Middleware**: `/backend/app/Http/Middleware/AdminOnly.php` (3-layer security)
-- **Routes**: `/backend/routes/api.php` (lines 110-133)
-
-### Phase 2 Documentation
-- **Completion Report**: `/docs/status/2025-11-21_PHASE_2_ADMIN_DASHBOARD_COMPLETE.md`
-- **Migration**: `/backend/database/migrations/2025_11_21_123944_add_role_to_users_table.php`
-- **Seeder**: `/backend/database/seeders/AdminUserSeeder.php`
-
-### Phase 1 Documentation
-- **Completion Report**: `/docs/status/2025-11-21_API_COST_OPTIMIZATION_COMPLETE.md`
-- **Route Cache Model**: `/backend/app/Models/RouteCache.php`
-- **Cache Service**: `/backend/app/Services/RouteCacheService.php`
-
----
-
-## 🎨 Dashboard Features Detail
-
-### 1. Overview Page
-**Shows:**
-- Total users, drivers, riders, online drivers
-- Active rides count
-- Total rides, completed rides
-- Total revenue, revenue (last 30 days)
-- **Route cache statistics from Phase 1** (cache hit rate, total hits, etc.)
-
-### 2. Driver Management
-**Features:**
-- List all drivers with pagination
-- Search by name/email (debounced)
-- Filter by KYC status (pending/approved/rejected)
-- Filter by online status (online/offline)
-- View detailed driver profile modal
-- Driver statistics (rides, earnings, rating, acceptance rate)
-- Recent rides list
-- Suspend/unsuspend action
-
-### 3. Rider Management
-**Features:**
-- List all riders with pagination
-- Search by name/email (debounced)
-- View detailed rider profile modal
-- Rider statistics (rides, total spent, rating)
-- Recent rides list
-- Suspend/unsuspend action
-
-### 4. Analytics Page
-**Features:**
-- **Ride Analytics**: Date range filter, ride stats breakdown
-- **Popular Routes**:
-  - Cached routes (shows API optimization from Phase 1)
-  - Actual rides (shows business insights)
-- **Driver Performance**: Top 10 drivers leaderboard
-
-### 5. Live Monitoring
-**Features:**
-- **Active Rides**: Currently ongoing rides with details
-- **Online Drivers**: Real-time driver locations and status
-- **Pending Requests**: Riders waiting for drivers
-- **Auto-refresh**: Updates every 30 seconds automatically
-- Manual refresh button
-
----
-
-## 🛠️ Quick Commands
-
-### Admin Setup
-```bash
-# Create admin test accounts
-php artisan db:seed --class=AdminUserSeeder
-
-# Generate admin token
-php artisan tinker --execute="
-\$admin = App\Models\User::where('email', 'admin@anjem.app')->first();
-echo \$admin->createTokenWithAbilities(false, true) . PHP_EOL;
-"
-
-# Check admin users
-php artisan tinker --execute="
-User::where('role', 'admin')->get(['name', 'email', 'role'])->each(function(\$u) {
-    echo \$u->name . ' - ' . \$u->email . PHP_EOL;
-});
-"
+3. If all eligible drivers decline/timeout
+   └── Request expires
+   └── Rider notified "No drivers available"
+   └── Rider can re-request after 1 minute cooldown
 ```
 
-### Testing
-```bash
-# Test specific admin endpoint
-curl -X GET "http://localhost:8000/api/admin/analytics/overview" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Accept: application/json" | jq .
+### Driver Settings
 
-# Run Laravel server
-php artisan serve
+Drivers can configure:
+- **Max pickup radius** (km) - Simple straight-line distance, no Mapbox API call
+- View their **current queue position**
 
-# Clear cache
-php artisan cache:clear
-php artisan config:clear
+### Progressive Decline Penalties
+
+Exact thresholds TBD, but structure:
+```
+Few declines in short time → No penalty
+More declines → Warning shown
+Even more → Move to bottom of queue
+Excessive → Temporary suspension from queue (e.g., 15 min)
 ```
 
----
+Track in database:
+- `decline_count` - declines in current window
+- `decline_window_start` - when current penalty window started
+- `queue_cooldown_until` - if suspended, when they can rejoin
 
-## 💡 Next Steps Recommendations
+### Rider Re-request Rules
 
-### Option 1: Test & Iterate (Recommended for Now)
-1. Open dashboard and test all features
-2. Identify pain points or missing features
-3. Prioritize improvements based on actual usage
-4. Polish incrementally
+- Rider can request indefinitely
+- If request cancelled (by rider or expired), **1 minute cooldown** before next request
+- Cooldown prevents spam and gives drivers time to become available
 
-### Option 2: Add Data Visualization
-1. Integrate Chart.js for graphs
-2. Add charts to analytics page
-3. Visualize cache performance trends
-4. Create daily/weekly reports
+### Database Changes Required
 
-### Option 3: Real-time Enhancements
-1. Add WebSocket integration
-2. Live updates for active rides
-3. Push notifications for admin
-4. Real-time driver tracking on map
+```sql
+-- Add to driver_profiles table
+ALTER TABLE driver_profiles ADD COLUMN queue_joined_at TIMESTAMP NULL;
+ALTER TABLE driver_profiles ADD COLUMN max_pickup_radius_km DECIMAL(4,2) DEFAULT 5.0;
+ALTER TABLE driver_profiles ADD COLUMN queue_position INT NULL;  -- calculated, for display
+ALTER TABLE driver_profiles ADD COLUMN decline_count INT DEFAULT 0;
+ALTER TABLE driver_profiles ADD COLUMN decline_window_start TIMESTAMP NULL;
+ALTER TABLE driver_profiles ADD COLUMN queue_cooldown_until TIMESTAMP NULL;
 
-### Option 4: Return to Mobile Development
-1. Backend is 95% complete
-2. Admin dashboard functional
-3. Focus on Flutter Phase 9 (Complete Ride Flow)
-4. Come back to admin polish later
+-- Add to ride_requests table (for rider cooldown)
+ALTER TABLE ride_requests ADD COLUMN rider_cooldown_until TIMESTAMP NULL;
+```
 
----
+### Implementation Estimate
 
-## 📊 Project Status Overview
+| Task | Effort |
+|------|--------|
+| Database migrations | 30 min |
+| Update `goOnline`/`goOffline` endpoints | 1 hour |
+| Create `QueueService` with matching logic | 2-3 hours |
+| Update `RequestController` to use queue | 1-2 hours |
+| Add decline tracking + penalties | 1-2 hours |
+| Add driver settings (max radius) | 1 hour |
+| Update mobile: driver queue position display | 1-2 hours |
+| Update mobile: driver settings UI | 1-2 hours |
+| Update mobile: rider cooldown handling | 1 hour |
+| **Total** | **~10-14 hours** |
 
-| Component | Status | Completion |
-|-----------|--------|------------|
-| **Backend API** | ✅ Operational | 95% |
-| **Phase 1: Route Caching** | ✅ Complete | 100% |
-| **Phase 2: Admin API** | ✅ Complete | 100% |
-| **Admin Dashboard UI** | 🎨 Polish Phase | 80% |
-| **Mobile Phase 9** | ⏳ Pending | 0% |
-| **Testing & QA** | ⏳ In Progress | 60% |
+### Files to Create/Modify
 
----
+**New files:**
+- `backend/app/Services/QueueService.php` - Queue management logic
 
-## 🎯 Success Criteria
-
-### Phase 2 Success Metrics ✅
-- [x] 14 admin API endpoints working
-- [x] Role-based access control
-- [x] Integration with Phase 1 route cache
-- [x] Simple UI for testing
-- [x] Token persistence working
-- [x] All CRUD operations functional
-
-### Dashboard Polish Goals (In Progress)
-- [ ] User-friendly authentication (no console needed)
-- [ ] Smooth, responsive UI
-- [ ] Data visualization (charts)
-- [ ] Real-time updates
-- [ ] Export functionality
-- [ ] Mobile-responsive design
+**Modify:**
+- `backend/app/Http/Controllers/Api/DriverController.php` - goOnline/goOffline queue management
+- `backend/app/Http/Controllers/Api/RequestController.php` - Use queue instead of broadcast
+- `backend/app/Models/DriverProfile.php` - Add queue fields
+- `backend/database/migrations/` - New migration for queue fields
+- `mobile/lib/driver/screens/driver_home_screen.dart` - Show queue position
+- `mobile/lib/driver/screens/settings_screen.dart` - Max radius setting
 
 ---
 
-## 📞 Handoff Notes
+## What Happened Today (December 5, 2025)
 
-### Current Focus
-**Admin Dashboard UI Polish** - Making the dashboard more user-friendly and feature-complete
+### Architecture Investigation Completed
 
-### What Works
-- All 14 backend API endpoints
-- Basic HTML/JS dashboard
-- Token-based authentication
-- All major features (management, analytics, monitoring)
-- Auto-refresh for real-time data
+User asked to investigate claims about the architecture. Here's what was found:
+
+#### Claim 1: "Ride flow is heavily client-side"
+**Verdict: MOSTLY FALSE**
+
+The ride flow is actually **server-driven** for critical operations:
+- State transitions: Server-controlled via API
+- Fare calculation: 100% server-side
+- Race conditions: Prevented via row-level DB locking
+- Source of truth: PostgreSQL database
+
+What IS client-driven (needs improvement):
+- Driver matching: Manual accept (no auto-matching algorithm)
+- Route fetching: Mobile calls Mapbox directly (should use backend cache)
+
+#### Claim 2: "Mapbox API duplication - rider and driver call independently"
+**Verdict: TRUE**
+
+Current wasteful flow:
+```
+Rider app → Mapbox API (1-2 calls for polyline)
+Driver app → Mapbox API (1-2 calls for polyline)
+Backend → Mapbox API (fare calc, but 95% cached for beacons)
+Total: 2-4 API calls per ride instead of 1
+```
+
+Solution exists: `docs/optimization/ROUTE_API_CACHING_PLAN.md`
+
+#### Claim 3: "Queue timer is client-side, drivers get different timers"
+**Verdict: PARTIALLY TRUE**
+
+Two separate timers exist (confusing):
+| Timer | Location | Duration |
+|-------|----------|----------|
+| Request expiration | Server | 30 MINUTES |
+| Accept/decline UI | Client | 30 SECONDS |
+
+**Critical issues found**:
+1. `Kernel.php` scheduler is EMPTY - no cron to expire old requests
+2. No re-broadcast to newly online drivers
+3. Mobile doesn't capture `expires_at` field
+
+---
+
+## Current Architecture Summary
+
+### What's Good (Server-Driven)
+
+| Component | How It Works |
+|-----------|--------------|
+| State transitions | All go through server API with validation |
+| Fare calculation | 100% server-side, client cannot manipulate |
+| Race prevention | Row-level locking prevents double-acceptance |
+| Source of truth | PostgreSQL database |
+| Real-time sync | WebSocket broadcasts from server |
+| Session recovery | `/session/resume` reconstructs full state |
 
 ### What Needs Work
-- Login UX (token input in UI, not console)
-- Data visualization (charts)
-- Better error handling
-- More intuitive navigation
-- Export functionality
 
-### Immediate Priorities
-1. Test dashboard thoroughly
-2. Identify critical missing features
-3. Polish based on user feedback
-4. Consider adding charts for analytics
+| Issue | Severity | Current State |
+|-------|----------|---------------|
+| **Mapbox duplication** | Medium | Mobile + Backend both call API |
+| **No request re-broadcast** | High | One-time broadcast, offline drivers miss it |
+| **No expiration cleanup** | High | Scheduler empty, requests pile up in DB |
+| **No auto-matching** | Medium | Drivers cherry-pick rides manually |
+| **No idempotency keys** | Medium | Network retry could cause duplicates |
+| **No ride timeouts** | Medium | Stuck rides need manual admin intervention |
 
 ---
 
-## 🎯 CURRENT FOCUS: Mobile App Phase 9 (Critical Features)
+## Test Suite Status
 
-**Last Updated**: November 30, 2025 (After Phase 3 Backend Fixes)
-**Status**: ✅ **Backend 100% Complete** - Focus shifted to Mobile
-**Next Action**: Implement missing mobile features for MVP
-**Blockers**: None
+```
+Tests:  89 failed, 140 passed (229 total)
+Pass Rate: 61%
+```
 
-### Remaining Critical Mobile Features
-
-Based on the comprehensive project review, these features are **required for MVP**:
-
-#### 1. Background Location Updates (ActiveRideScreen)
-- **File**: `mobile/lib/driver/screens/active_ride_screen.dart`
-- **Status**: Missing
-- **Impact**: Driver location not updated during rides
-- **Fix Required**: Add Timer to send location every 10 seconds via API
-- **Estimated Time**: 2-3 hours
-
-#### 2. WebSocket Real-time Subscriptions
-- **Files**:
-  - `mobile/lib/rider/screens/waiting_screen.dart`
-  - `mobile/lib/driver/screens/driver_home_screen.dart`
-- **Status**: Code exists but integration untested
-- **Impact**: Real-time updates may not work
-- **Fix Required**: End-to-end WebSocket testing
-- **Estimated Time**: 3-4 hours
-
-#### 3. Call Driver Button (DriverMatchedScreen)
-- **File**: `mobile/lib/rider/screens/driver_matched_screen.dart`
-- **Status**: Button exists but no implementation
-- **Impact**: Riders can't contact drivers
-- **Fix Required**: Implement phone call functionality
-- **Estimated Time**: 1-2 hours
+**Main failures**:
+- 21 tests: LocationServiceTest (dependency injection broken after RouteCacheService added)
+- 15 tests: MatchingServiceEdgeCasesTest
+- 12 tests: RequestControllerTest
+- 10 tests: RideServiceTest
+- 31 tests: Various others
 
 ---
 
-## 💳 NEXT PRIORITY: Driver Credit System (Open Beta)
+## Phases Completed (Implementation Done, Tests Missing)
 
-**Date Added**: November 30, 2025
-**Status**: 📋 **Planned** - After Phase 9 Mobile Features
-**Priority**: Medium (Post-MVP, Pre-Beta)
-**Estimated Duration**: 5-7 days
+### Phase 1: Route Caching ✅ Implemented, ❌ No Tests
+- `RouteCacheService` caches Mapbox routes by location ID pairs
+- 80-90% cost reduction for beacon-to-beacon routes
+- Files: `backend/app/Services/RouteCacheService.php`, `backend/app/Models/RouteCache.php`
 
-### Overview
+### Phase 2: Admin Dashboard ✅ Implemented, ❌ No Tests
+- 14+ admin API endpoints
+- Web dashboard at `backend/public/admin-dashboard.html`
+- Force ride status change with audit logging
+- Admin override broadcasts to mobile with reason
 
-Prepaid credit system for drivers during open beta:
-- **1 credit** = Rp. 500
-- **1 credit deducted** per ride request accepted
-- **No payment integration** (beta-only features)
-- Drivers get credits via:
-  - Daily claims (configurable amount, default: 10/day)
-  - Admin-approved requests
-  - Manual admin grants
-
-### Why After Phase 9
-
-Phase 9 features are **MVP critical** (ride flow must work):
-1. Background location updates ← **Blocking**
-2. WebSocket testing ← **Blocking**
-3. Call driver button ← **Nice-to-have**
-
-Credit system is **beta enhancement** (can launch without it, but good for beta testing)
-
-### Implementation Summary
-
-| Component | Impact |
-|-----------|--------|
-| **Backend** | 8 new files, 5 modified | ~1,000 LOC | 2-3 days |
-| **Mobile** | 4 new files, 3 modified | ~500 LOC | 1-2 days |
-| **Admin** | HTML sections added | ~300 LOC | 1 day |
-| **Testing** | Unit + integration tests | - | 1 day |
-| **TOTAL** | **~1,900 LOC** | **5-7 days** |
-
-### Key Features
-
-**Driver Features**:
-- View credit balance
-- Claim daily credits (once per 24 hours)
-- Request credits with reason
-- View transaction history
-
-**Admin Features**:
-- Configure daily credit amount
-- Enable/disable daily credits
-- Approve/reject credit requests
-- Manually grant credits to drivers
-- View credit statistics
-
-**System Features**:
-- Auto-deduct 1 credit on ride accept
-- Block ride accept if insufficient credits
-- Transaction logging
-- Low credit warnings
-
-### Business Logic
-
-**Credit Deduction**:
-- ✅ Deduct on ride accept
-- ❌ No refunds for cancellations (keeps beta simple)
-- ⚠️ Admin can manually refund if needed
-
-**Going Online**:
-- Recommended: Require >= 1 credit
-- Warning at < 5 credits
-- Auto-offline at 0 credits (optional)
-
-**Daily Claims**:
-- Driver clicks "Claim Daily Credits" button
-- Amount set by admin (default: 10)
-- Can claim once per 24 hours
-- Countdown timer shows next claim time
-
-**Credit Requests**:
-- Driver submits request (amount + reason)
-- Admin reviews and approves/rejects
-- Driver gets notification when reviewed
-
-### Migration to Paid Credits
-
-When ready to add payment (post-beta):
-- Keep daily credits as **free tier**
-- Keep request system for **special cases**
-- Add **credit packages** with payment
-- Add **Midtrans/Xendit** integration
-- Estimated: +1 week implementation
-
-**Full Implementation Plan**: `/docs/phases/DRIVER_CREDIT_SYSTEM_IMPLEMENTATION_PLAN.md`
+### Phase 3: Schema Fixes ✅ Implemented, ⚠️ Broke Some Tests
+- `role` column replaces `user_type`
+- `ratings` table uses `rated_id` and `rating_type`
 
 ---
 
-### Infrastructure Remaining
+## Priority Fixes Needed
 
-- [ ] Complete `.do/app-staging.yaml` for DigitalOcean deployment
-- [ ] Add nginx configuration to Docker setup
-- [ ] Set up monitoring and logging
+### 🔴 Critical (Do First) - Queue System
 
-### Timeline to Open Beta
+1. **Implement Queue-Based Matching System** (~10-14 hours)
+   - See detailed design in "NEXT PRIORITY" section above
+   - Replaces current broadcast-to-all approach
+   - Includes: migrations, QueueService, driver settings, mobile UI
 
-**Current Progress**: 82% overall
-- ✅ Backend: 100%
-- ✅ Documentation: 100%
-- 🔄 Mobile: 75% (need Phase 9 features)
-- 🔄 Infrastructure: 65%
+2. **Add expiration cleanup cron** (~30 min)
+   ```php
+   // backend/app/Console/Kernel.php
+   $schedule->call(fn() => app(RideService::class)->cleanupExpiredRequests())
+       ->everyFiveMinutes();
+   ```
 
-**Updated Timeline**:
-1. **Phase 9: Mobile Critical Features** (3-4 days) ← **DO THIS FIRST**
-2. **Driver Credit System** (5-7 days) ← **THEN THIS**
-3. **Infrastructure** (2-3 days)
-4. **Testing & Polish** (3-5 days)
+### 🟠 High Priority
 
-**Total Estimated Time**: 13-19 days to open beta
+3. **Backend route API for mobile** (~2-3 hours)
+   - Implement `GET /api/v1/rides/{id}/route`
+   - Detailed plan: `docs/optimization/ROUTE_API_CACHING_PLAN.md`
+   - Mobile fetches cached route instead of calling Mapbox directly
+
+4. **Fix LocationServiceTest** (~2-3 hours)
+   - Update test to inject `MapboxService` and `RouteCacheService` mocks
+   - File: `backend/tests/Unit/Services/LocationServiceTest.php`
+
+### 🟡 Medium Priority
+
+5. **Write tests for Phase 1 & 2** (~15-20 hours)
+6. **Add idempotency keys** for critical operations
+7. **Add ride timeout enforcement** (auto-cancel stuck rides)
 
 ---
 
-**🎉 Backend 100% complete! All schema issues resolved! Documentation 100% complete! Focus on mobile Phase 9, then credits!**
+## Key Files Reference
+
+### Backend - Core Services
+```
+backend/app/Services/
+├── RideService.php          # Core ride logic, has cleanupExpiredRequests()
+├── MatchingService.php      # Driver matching (manual accept)
+├── LocationService.php      # Mapbox integration
+├── RouteCacheService.php    # Route caching (Phase 1)
+└── MapboxService.php        # Direct Mapbox API calls
+```
+
+### Backend - Controllers
+```
+backend/app/Http/Controllers/Api/
+├── RideController.php       # Ride status updates
+├── RequestController.php    # Ride request creation, broadcasts to drivers
+├── DriverController.php     # Driver online/offline
+├── AdminController.php      # Admin dashboard (Phase 2)
+└── SessionController.php    # Session resume
+```
+
+### Backend - Scheduler (EMPTY - needs fix)
+```
+backend/app/Console/Kernel.php  # schedule() method is empty!
+```
+
+### Mobile - Key Files
+```
+mobile/lib/core/
+├── models/ride_request.dart           # Missing expiresAt field
+├── services/mapbox/mapbox_directions_service.dart  # Calls Mapbox directly
+├── providers/active_ride_provider.dart
+└── providers/ride_request_provider.dart
+```
+
+### Mobile - Screens That Call Mapbox Directly
+```
+mobile/lib/rider/screens/rider_active_ride_screen.dart  # Line 138-141
+mobile/lib/driver/screens/active_ride_screen.dart       # Line 198-201
+```
+
+### Documentation
+```
+docs/optimization/ROUTE_API_CACHING_PLAN.md  # Detailed implementation plan
+PHASE_COMPLETION_AUDIT.md                     # Phase 1-3 completion status
+```
+
+---
+
+## WebSocket Channels
+
+| Channel | Purpose |
+|---------|---------|
+| `private-user.{userId}` | Ride match notifications |
+| `private-driver.{driverId}` | New ride request broadcasts (one-time, no re-broadcast) |
+| `private-ride.{rideId}` | Ride status updates, driver location |
+
+---
+
+## Request Lifecycle (Current Implementation)
+
+```
+1. Rider creates request
+   └── POST /requests
+       └── Server sets expires_at = now + 30 minutes
+       └── Broadcasts NewRideRequest to up to 50 online drivers
+
+2. Driver receives request (if online)
+   └── WebSocket event received
+   └── 30-second UI timer starts (client-side)
+   └── Driver accepts or declines
+
+3. If no driver accepts
+   └── Request stays "pending" in DB (NO cleanup job!)
+   └── expires_at passes, but status doesn't change automatically
+   └── Only enforced when someone tries to accept expired request
+
+4. Problem: Driver goes offline and comes back
+   └── Misses the broadcast
+   └── Never sees the request
+   └── No mechanism to poll for pending requests
+```
+
+---
+
+## Commands Reference
+
+```bash
+# Run Backend
+cd backend && php artisan serve
+
+# Run Tests
+cd backend && ./vendor/bin/phpunit
+
+# Check pending requests in DB
+php artisan tinker
+>>> RideRequest::pending()->where('expires_at', '<', now())->count()  # Should be 0 but probably isn't
+
+# Clear cache if rate limited
+php artisan cache:clear
+
+# Run Mobile
+cd mobile && flutter run
+```
+
+---
+
+## Next Steps (Suggested Order)
+
+### Queue System Implementation
+1. [ ] Create migration for queue fields on `driver_profiles`
+2. [ ] Create migration for rider cooldown on `ride_requests`
+3. [ ] Create `QueueService.php` with core queue logic
+4. [ ] Update `DriverController` - goOnline/goOffline manage queue
+5. [ ] Update `RequestController` - use queue instead of broadcast
+6. [ ] Add decline tracking and penalty logic
+7. [ ] Update mobile: show queue position on driver home
+8. [ ] Update mobile: driver settings for max pickup radius
+9. [ ] Update mobile: rider cooldown handling after cancel
+10. [ ] Add expiration cleanup cron to `Kernel.php`
+
+### After Queue System
+11. [ ] Implement `GET /rides/{id}/route` for cached routes
+12. [ ] Update mobile to use backend route API
+13. [ ] Fix LocationServiceTest dependency injection
+14. [ ] Write RouteCacheServiceTest
+15. [ ] Write AdminControllerTest
+
+---
+
+## Questions Resolved
+
+1. ~~**Auto-matching vs manual accept**~~ → **Queue-based with manual accept** (driver sees request, has 30s to respond)
+2. **Payment integration**: TBD
+3. **iOS build**: TBD
+4. **Production deployment**: TBD
+
+---
+
+## Notes for AI Models
+
+### Key Insights from Investigation
+- The architecture is NOT "heavily client-side" - it's server-driven for critical paths
+- The real issue is missing infrastructure (no cron, no queue system)
+- Mobile calling Mapbox directly is wasteful but not architecturally wrong
+- Admin override feature works and broadcasts to mobile with reason
+
+### Current Priority: Queue-Based Matching
+The top priority is implementing the queue-based driver matching system:
+- Drivers join queue when going online (FIFO)
+- Requests sent to top eligible driver only (not broadcast)
+- 30-second response window
+- Progressive penalties for excessive declines
+- Drivers can set max pickup radius
+- Riders have 1-minute cooldown after cancelled requests
+
+### Don't Waste Time On
+- Refactoring ride flow to be "more server-side" - it already is
+- Adding admin override banner to rider side (low priority)
+- Complex auto-matching algorithms - use simple FIFO queue instead
+
+### Focus On
+1. **Queue system implementation** (see detailed design at top of file)
+2. Adding the missing cron job for request expiration
+3. Implementing the route caching API (plan exists in docs/optimization/)
+
+### Code Patterns to Follow
+- Use `Future.microtask()` for provider updates in Flutter
+- Use row-level locking for critical DB operations
+- Broadcast events for real-time updates (but to specific driver, not all)
+- Cache Mapbox responses by location ID pairs
+- Use simple distance calculation for radius (no Mapbox API)
+
+---
+
+**Ready to implement queue system!**

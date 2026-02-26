@@ -4,8 +4,11 @@ namespace Tests\Unit\Services;
 
 use App\Models\Location;
 use App\Services\LocationService;
+use App\Services\MapboxService;
+use App\Services\RouteCacheService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use MatanYadaev\EloquentSpatial\Objects\Point;
+use Mockery;
 use Tests\TestCase;
 
 class LocationServiceTest extends TestCase
@@ -13,11 +16,28 @@ class LocationServiceTest extends TestCase
     use RefreshDatabase;
 
     private LocationService $locationService;
+    private $mapboxServiceMock;
+    private $routeCacheServiceMock;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->locationService = new LocationService;
+
+        // Create mocks for dependencies
+        $this->mapboxServiceMock = Mockery::mock(MapboxService::class);
+        $this->routeCacheServiceMock = Mockery::mock(RouteCacheService::class);
+
+        // Instantiate LocationService with mocked dependencies
+        $this->locationService = new LocationService(
+            $this->mapboxServiceMock,
+            $this->routeCacheServiceMock
+        );
+    }
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+        parent::tearDown();
     }
 
     /**
@@ -299,6 +319,18 @@ class LocationServiceTest extends TestCase
      */
     public function test_can_get_driving_details()
     {
+        // Mock MapboxService to return driving details when route cache service isn't used
+        $this->mapboxServiceMock
+            ->shouldReceive('getDirections')
+            ->once()
+            ->with(-6.3605, 106.8271, -6.3595, 106.8295)
+            ->andReturn([
+                'distance_meters' => 270,
+                'duration_minutes' => 2,
+                'estimated' => true,
+                'geometry' => null,
+            ]);
+
         $details = $this->locationService->getDrivingDetails(-6.3605, 106.8271, -6.3595, 106.8295);
 
         $this->assertIsArray($details);

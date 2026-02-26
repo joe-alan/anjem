@@ -46,7 +46,9 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
         setState(() {
           _buildMarkers(ride);
         });
-        _fetchAndDisplayRoute();
+        _fetchAndDisplayRoute().catchError((e) {
+          print('⚠️ [Driver] Route fetch error handled: $e');
+        });
       }
     });
   }
@@ -77,7 +79,9 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
       );
       _currentDriverLocation = LatLng(position.latitude, position.longitude);
       // Fetch route for initial position
-      _fetchAndDisplayRoute();
+      _fetchAndDisplayRoute().catchError((e) {
+        print('⚠️ [Driver] Initial route fetch error handled: $e');
+      });
     } catch (e) {
       print('Failed to get initial location: $e');
     }
@@ -196,6 +200,12 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
           destination: pickupLatLng,
         );
 
+        // Handle empty route (network error, DNS failure, etc.)
+        if (routePoints.isEmpty) {
+          print('⚠️ [Driver] Route to pickup is empty - continuing without route line');
+          return;
+        }
+
         print('✅ [Driver] Route to pickup fetched: ${routePoints.length} points');
 
         // Create route polyline (blue for driving to pickup)
@@ -220,6 +230,12 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
           origin: pickupLatLng,
           destination: destLatLng,
         );
+
+        // Handle empty route (network error, DNS failure, etc.)
+        if (routePoints.isEmpty) {
+          print('⚠️ [Driver] Route to destination is empty - continuing without route line');
+          return;
+        }
 
         print('✅ [Driver] Route to destination fetched: ${routePoints.length} points');
 
@@ -278,7 +294,9 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
         _handleRideCompletion();
       } else {
         // Refresh route for new status
-        _fetchAndDisplayRoute();
+        _fetchAndDisplayRoute().catchError((e) {
+          print('⚠️ [Driver] Status change route fetch error handled: $e');
+        });
       }
     } catch (e) {
       print('Failed to update ride status: $e');
@@ -342,7 +360,9 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
         setState(() {
           _buildMarkers(next.ride!);
         });
-        _fetchAndDisplayRoute();
+        _fetchAndDisplayRoute().catchError((e) {
+          print('⚠️ [Driver] Listen route fetch error handled: $e');
+        });
       }
     });
 
@@ -504,6 +524,39 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
               ),
             ),
           ),
+
+          // Admin override banner
+          if (ride.adminOverride == true && ride.adminReason != null)
+            Positioned(
+              top: 130,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade900, width: 1),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.admin_panel_settings,
+                        color: Colors.orange.shade900, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Admin Override: ${ride.adminReason}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.orange.shade900,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
           // Bottom action card
           Positioned(

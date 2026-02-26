@@ -145,7 +145,8 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Draft data loaded (saved ${_formatDate(draft['saved_at'])})'),
+              content: Text(
+                  'Draft data loaded (saved ${_formatDate(draft['saved_at'])})'),
               backgroundColor: Colors.blue,
               duration: const Duration(seconds: 3),
             ),
@@ -350,14 +351,14 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
         '${_plateArea2Controller.text.trim().toUpperCase()}';
 
     final success = await ref.read(kycStateProvider.notifier).submitKyc(
-      studentEmail: _studentEmailController.text.trim(),
-      studentId: _studentIdController.text.trim(),
-      studentName: _studentNameController.text.trim(),
-      vehicleType: _vehicleType,
-      vehiclePlate: licensePlate,
-      vehicleColor: _vehicleColor,
-      ktmPhoto: _ktmPhoto!,
-    );
+          studentEmail: _studentEmailController.text.trim(),
+          studentId: _studentIdController.text.trim(),
+          studentName: _studentNameController.text.trim(),
+          vehicleType: _vehicleType,
+          vehiclePlate: licensePlate,
+          vehicleColor: _vehicleColor,
+          ktmPhoto: _ktmPhoto!,
+        );
 
     if (success && mounted) {
       // Navigate to email verification screen
@@ -546,7 +547,6 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
             ),
           ),
           const SizedBox(height: 32),
-
           TextFormField(
             controller: _studentEmailController,
             keyboardType: TextInputType.emailAddress,
@@ -555,7 +555,8 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
               hintText: 'your.email@students.undip.ac.id',
               prefixIcon: const Icon(Icons.email),
               border: const OutlineInputBorder(),
-              helperText: _emailAvailabilityMessage ?? 'Must be your university email',
+              helperText:
+                  _emailAvailabilityMessage ?? 'Must be your university email',
               helperStyle: TextStyle(
                 color: _emailAvailable == true
                     ? Colors.green
@@ -606,7 +607,6 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
             },
           ),
           const SizedBox(height: 16),
-
           TextFormField(
             controller: _studentIdController,
             keyboardType: TextInputType.number,
@@ -624,7 +624,6 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
             },
           ),
           const SizedBox(height: 16),
-
           TextFormField(
             controller: _studentNameController,
             textCapitalization: TextCapitalization.words,
@@ -668,7 +667,6 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
             ),
           ),
           const SizedBox(height: 32),
-
           const Text(
             'Vehicle Type *',
             style: TextStyle(
@@ -710,7 +708,6 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
             ],
           ),
           const SizedBox(height: 24),
-
           const Text(
             'License Plate *',
             style: TextStyle(
@@ -823,7 +820,6 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
             ),
           ),
           const SizedBox(height: 16),
-
           DropdownButtonFormField<String>(
             decoration: const InputDecoration(
               labelText: 'Vehicle Color *',
@@ -837,7 +833,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
                 child: Text(color),
               );
             }).toList(),
-            value: _vehicleColor.isEmpty ? null : _vehicleColor,
+            initialValue: _vehicleColor.isEmpty ? null : _vehicleColor,
             onChanged: (value) {
               setState(() {
                 _vehicleColor = value ?? '';
@@ -879,7 +875,6 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
             ),
           ),
           const SizedBox(height: 32),
-
           if (_ktmPhoto != null)
             Container(
               width: double.infinity,
@@ -924,9 +919,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
                 ],
               ),
             ),
-
           const SizedBox(height: 24),
-
           Row(
             children: [
               Expanded(
@@ -946,9 +939,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
               ),
             ],
           ),
-
           const SizedBox(height: 24),
-
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(

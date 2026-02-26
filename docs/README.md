@@ -2,7 +2,7 @@
 
 **Comprehensive documentation for the Anjem ride-sharing platform**
 
-Last Updated: October 28, 2025 | Version: 1.0.0 (MVP Phase 8)
+Last Updated: December 1, 2025 | Version: 1.0.0 (MVP Phase 9)
 
 ---
 
@@ -10,9 +10,11 @@ Last Updated: October 28, 2025 | Version: 1.0.0 (MVP Phase 8)
 
 ### **Getting Started**
 - 🚀 [Quick Start Cheatsheet](QUICK_START_CHEATSHEET.md) - Get up and running in 5 minutes
+- 📁 [Project Structure](../PROJECT_STRUCTURE.md) - Navigate the codebase easily
 
 ### **Setup & Installation**
 - [Development Setup](setup/DEVELOPMENT.md) - Complete dev environment setup
+- [Build & Run Guide](setup/BUILD_AND_RUN.md) - Building and running the mobile apps
 - [Firebase Setup](setup/FIREBASE_SETUP_GUIDE.md) - Authentication & push notifications
 - [Firebase Gradle Configuration](setup/FIREBASE_GRADLE_SETUP.md) - Android build config
 - [Infrastructure Setup](setup/infrastructure.md) - Production deployment guide
@@ -22,15 +24,20 @@ Last Updated: October 28, 2025 | Version: 1.0.0 (MVP Phase 8)
   - Authentication endpoints
   - Ride request management
   - Driver operations
+  - Admin endpoints
   - Real-time features
 
 ### **Implementation Guides**
 - [Flutter Implementation Guide](guides/FLUTTER_IMPLEMENTATION_GUIDE.md) - Mobile app development roadmap
+- [Admin Ride Override Guide](guides/ADMIN_RIDE_OVERRIDE_GUIDE.md) - Admin override functionality
 - [Contributing Guidelines](guides/CONTRIBUTING.md) - How to contribute to the project
 
 ### **Testing**
 - [Testing Documentation](testing/TESTING_DOCUMENTATION.md) - Test coverage and strategies
 - [Testing Setup Guide](testing/TESTING_SETUP_GUIDE.md) - Setting up test environment
+- [Mobile Testing Checklist](testing/MOBILE_TESTING_CHECKLIST.md) - Mobile app testing checklist
+- [Edge Case Testing](testing/EDGE_CASE_TESTING_REPORT.md) - Edge case test results
+- [Critical Fixes Required](testing/CRITICAL_FIXES_REQUIRED.md) - Known issues requiring fixes
 
 ### **Phase Completion Reports**
 - [Phase 1: Core Setup & Auth](phases/PHASE_1_COMPLETION_SUMMARY.md) - Firebase + Sanctum integration
@@ -38,9 +45,31 @@ Last Updated: October 28, 2025 | Version: 1.0.0 (MVP Phase 8)
 - [Phase 5: Real-time Features](phases/PHASE_5_COMPLETION_REPORT.md) - WebSocket broadcasting
 - [Phase 5: Edge Case Testing](phases/PHASE_5_EDGE_CASE_TESTING_REPORT.md) - Security & validation tests
 - [Phase 8: Mapbox Integration](phases/PHASE_8_COMPLETION_REPORT.md) - Route visualization & navigation
+- [Phase 9: Implementation Plan](phases/PHASE_9_IMPLEMENTATION_PLAN.md) - Complete ride flow & driver app
+
+### **Status Updates**
+- [Phase 9B: Driver App Complete](status/2025-10-30_PHASE_9B_DRIVER_APP_COMPLETE.md) - Driver flow implementation
+- [WebSocket Match Fix](status/2025-10-30_WEBSOCKET_MATCH_FIX.md) - Real-time matching fix
+- [Admin Dashboard Complete](status/2025-11-21_PHASE_2_ADMIN_DASHBOARD_COMPLETE.md) - Admin panel
+- [API Cost Optimization](status/2025-11-21_API_COST_OPTIMIZATION_COMPLETE.md) - Mapbox cost reduction
+- [Backend Schema Fixes](status/2025-11-30_BACKEND_SCHEMA_FIXES_COMPLETE.md) - Database fixes
+- [Comprehensive Review](status/2025-11-30_COMPREHENSIVE_PROJECT_REVIEW.md) - Full project review
 
 ### **Architecture**
 - [Technical Specification](architecture/tech_spec.md) - System design and architecture
+- [Architecture Change: Beacon to Standard](architecture/ARCHITECTURE_CHANGE_BEACON_TO_STANDARD.md) - Ride model changes
+
+### **Planning & Optimization**
+- [Driver Credit System Plan](phases/DRIVER_CREDIT_SYSTEM_IMPLEMENTATION_PLAN.md) - Future credit system
+- [Route API Caching Plan](optimization/ROUTE_API_CACHING_PLAN.md) - Mapbox API optimization
+
+### **Archive**
+Older documentation and completed fixes are archived for reference:
+- [Archive Folder](archive/) - Outdated specs, testing plans, and fix verification docs
+  - Old API spec (pre-OpenAPI rewrite)
+  - Legacy testing plans
+  - Search fix verification (Nov 2025)
+  - Applied fixes log (Nov 2025)
 
 ---
 
@@ -70,7 +99,7 @@ anjem/
 
 ## 🎯 Current MVP Status
 
-### **Completed Phases (83% Backend, 40% Mobile)**
+### **Completed Phases (85% Backend, 75% Mobile)**
 
 #### Backend ✅
 - **Phase 1**: Database models with PostGIS spatial support
@@ -79,20 +108,27 @@ anjem/
 - **Phase 4**: REST API endpoints with security validation
 - **Phase 5**: WebSocket real-time features (Laravel Reverb)
 - **Phase 0**: Mapbox integration & place search
+- **Admin**: Dashboard with ride override support
+- **Schema**: Backend schema fixes and optimizations
 
-#### Mobile 🚧
+#### Mobile ✅
 - **Phase 1**: Authentication (Firebase + Sanctum) ✅
 - **Phase 1.5**: Driver KYC verification ✅
-- **Phase 8**: Mapbox route visualization ✅ **← JUST COMPLETED**
-- **Phase 2**: Rider app core flow (In Progress)
-- **Phase 3-7**: Pending
+- **Phase 8**: Mapbox route visualization ✅
+- **Phase 9A**: Rider flow (waiting, tracking, rating) ✅
+- **Phase 9B**: Driver flow (accept, navigate, complete) ✅
 
-### **Phase 8 Highlights** 🎉
-- Mapbox Directions API integration
-- Real-time route visualization with GeoJSON
-- Dynamic fare estimation based on actual distance
-- Map-based ride details screen
-- Ride request creation & cancellation
+#### In Progress 🚧
+- **Phase 9 Polish**: Earnings history, settings, bug fixes
+- **Testing**: Comprehensive edge case testing
+- **Optimization**: Performance improvements
+
+### **Recent Updates** 🎉
+- ✅ Admin ride status override (backend + mobile)
+- ✅ Audit logging for admin actions
+- ✅ Real-time admin override notifications
+- ✅ Comprehensive project documentation
+- 🚧 Mobile app polish (earnings, settings, map zoom fix)
 
 ---
 
