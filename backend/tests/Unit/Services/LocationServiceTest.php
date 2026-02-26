@@ -4,9 +4,12 @@ namespace Tests\Unit\Services;
 
 use App\Models\Location;
 use App\Services\LocationService;
+use App\Services\RouteCacheService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use MatanYadaev\EloquentSpatial\Objects\Point;
+use Mockery;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 class LocationServiceTest extends TestCase
@@ -14,11 +17,19 @@ class LocationServiceTest extends TestCase
     use RefreshDatabase;
 
     private LocationService $locationService;
+    private MockInterface $routeCacheService;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->locationService = new LocationService();
+        $this->routeCacheService = Mockery::mock(RouteCacheService::class);
+        $this->locationService = new LocationService($this->routeCacheService);
+    }
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+        parent::tearDown();
     }
 
     /**
@@ -296,17 +307,40 @@ class LocationServiceTest extends TestCase
     }
 
     /**
-     * Test driving details calculation
+     * Test driving details when Mapbox returns real route data
      */
     public function test_can_get_driving_details()
     {
+        $this->routeCacheService
+            ->shouldReceive('getRoute')
+            ->once()
+            ->andReturn(['distance_meters' => 350, 'duration_seconds' => 63]);
+
         $details = $this->locationService->getDrivingDetails(-6.3605, 106.8271, -6.3595, 106.8295);
 
         $this->assertIsArray($details);
         $this->assertArrayHasKey('distance_meters', $details);
         $this->assertArrayHasKey('duration_minutes', $details);
         $this->assertArrayHasKey('estimated', $details);
-        $this->assertTrue($details['estimated']); // Should be estimated for MVP
+        $this->assertFalse($details['estimated']);
+        $this->assertEquals(350, $details['distance_meters']);
+        $this->assertEquals(2, $details['duration_minutes']); // ceil(63/60) = 2
+    }
+
+    /**
+     * Test driving details falls back to Haversine when Mapbox is unavailable
+     */
+    public function test_get_driving_details_falls_back_to_haversine_when_mapbox_unavailable()
+    {
+        $this->routeCacheService
+            ->shouldReceive('getRoute')
+            ->once()
+            ->andReturn(null);
+
+        $details = $this->locationService->getDrivingDetails(-6.3605, 106.8271, -6.3595, 106.8295);
+
+        $this->assertIsArray($details);
+        $this->assertTrue($details['estimated']);
         $this->assertGreaterThan(0, $details['distance_meters']);
         $this->assertGreaterThan(0, $details['duration_minutes']);
     }

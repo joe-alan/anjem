@@ -10,11 +10,14 @@ use App\Models\User;
 use App\Services\LocationService;
 use App\Services\QueueService;
 use App\Services\RideService;
+use App\Services\RouteCacheService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use MatanYadaev\EloquentSpatial\Objects\Point;
+use Mockery;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 class RideServiceTest extends TestCase
@@ -24,13 +27,24 @@ class RideServiceTest extends TestCase
     private RideService $rideService;
     private LocationService $locationService;
     private QueueService $queueService;
+    private MockInterface $routeCacheService;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->locationService = new LocationService();
+        $this->routeCacheService = Mockery::mock(RouteCacheService::class);
+        // Allow getRoute to be called any number of times; return null so
+        // LocationService uses the Haversine fallback by default.
+        $this->routeCacheService->shouldReceive('getRoute')->andReturn(null);
+        $this->locationService = new LocationService($this->routeCacheService);
         $this->queueService = new QueueService();
         $this->rideService = new RideService($this->locationService, $this->queueService);
+    }
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+        parent::tearDown();
     }
 
     /**

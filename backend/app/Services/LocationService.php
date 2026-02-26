@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Location;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 
@@ -16,6 +15,8 @@ use MatanYadaev\EloquentSpatial\Objects\Point;
  */
 class LocationService
 {
+    public function __construct(private RouteCacheService $routeCacheService) {}
+
     /**
      * Find nearby beacon locations within walking distance
      */
@@ -124,63 +125,26 @@ class LocationService
      */
     public function getDrivingDetails(float $originLat, float $originLng, float $destLat, float $destLng): array
     {
-        // For MVP, return estimated values based on straight-line distance
-        $distance = $this->calculateDistance($originLat, $originLng, $destLat, $destLng);
+        $route = $this->routeCacheService->getRoute($originLat, $originLng, $destLat, $destLng);
 
-        // Rough campus estimates:
-        // - Average speed: 20 km/h (campus speed limits)
-        // - Distance factor: 1.3x straight line (accounting for roads)
+        if ($route) {
+            return [
+                'distance_meters'  => (int) $route['distance_meters'],
+                'duration_minutes' => (int) ceil($route['duration_seconds'] / 60),
+                'estimated'        => false,
+            ];
+        }
+
+        // Fallback to Haversine estimate if Mapbox is unavailable
+        $distance = $this->calculateDistance($originLat, $originLng, $destLat, $destLng);
         $estimatedDistance = $distance * 1.3;
-        $estimatedDuration = ($estimatedDistance / 1000) / 20 * 60; // minutes
+        $estimatedDuration = ($estimatedDistance / 1000) / 20 * 60;
 
         return [
-            'distance_meters' => (int) $estimatedDistance,
+            'distance_meters'  => (int) $estimatedDistance,
             'duration_minutes' => (int) $estimatedDuration,
-            'estimated' => true // Flag to indicate this is an estimate
+            'estimated'        => true,
         ];
-
-        // TODO: Implement actual Google Maps API integration when budget allows
-        // return $this->getGoogleMapsDetails($originLat, $originLng, $destLat, $destLng);
-    }
-
-    /**
-     * Future: Google Maps API integration for accurate routing
-     * Commented out for MVP due to API costs
-     */
-    private function getGoogleMapsDetails(float $originLat, float $originLng, float $destLat, float $destLng): array
-    {
-        /*
-        $apiKey = config('services.google_maps.api_key');
-
-        if (!$apiKey) {
-            throw new \Exception('Google Maps API key not configured');
-        }
-
-        $response = Http::get('https://maps.googleapis.com/maps/api/distancematrix/json', [
-            'origins' => "{$originLat},{$originLng}",
-            'destinations' => "{$destLat},{$destLng}",
-            'units' => 'metric',
-            'mode' => 'driving',
-            'key' => $apiKey
-        ]);
-
-        if ($response->successful()) {
-            $data = $response->json();
-            $element = $data['rows'][0]['elements'][0];
-
-            if ($element['status'] === 'OK') {
-                return [
-                    'distance_meters' => $element['distance']['value'],
-                    'duration_minutes' => ceil($element['duration']['value'] / 60),
-                    'estimated' => false
-                ];
-            }
-        }
-
-        throw new \Exception('Failed to get routing details from Google Maps');
-        */
-
-        return [];
     }
 
     /**
