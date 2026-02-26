@@ -8,6 +8,7 @@
       "cwd": "${workspaceFolder}/mobile",
       "program": "lib/main_rider.dart",
       "args": ["--flavor", "rider"],
+      "deviceId": "emulator-5554",
     },
     {
       "name": "Driver (Android)",
@@ -16,6 +17,25 @@
       "cwd": "${workspaceFolder}/mobile",
       "program": "lib/main_driver.dart",
       "args": ["--flavor", "driver"],
+      "deviceId": "emulator-5554",
+    },
+    {
+      "name": "Rider (Android 2)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "${workspaceFolder}/mobile",
+      "program": "lib/main_rider.dart",
+      "args": ["--flavor", "rider"],
+      "deviceId": "emulator-5556",
+    },
+    {
+      "name": "Driver (Android 2)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "${workspaceFolder}/mobile",
+      "program": "lib/main_driver.dart",
+      "args": ["--flavor", "driver"],
+      "deviceId": "emulator-5556",
     }
   ]
 }

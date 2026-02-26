@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\DriverController;
 use App\Http\Controllers\Api\PlaceController;
 use App\Http\Controllers\Api\RequestController;
 use App\Http\Controllers\Api\RideController;
+use App\Http\Controllers\Api\SessionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -55,6 +56,8 @@ Route::prefix('v1')->group(function () {
                 'data' => new \App\Http\Resources\UserResource($request->user()->load('driverProfile')),
             ]);
         });
+
+        Route::get('session/resume', [SessionController::class, 'resume']);
 
         // Rider routes
         Route::prefix('requests')->group(function () {
@@ -131,7 +134,12 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin', 'throttle:100,1'])-
     Route::get('monitoring/online-drivers', [AdminController::class, 'getOnlineDrivers']);
     Route::get('monitoring/pending-requests', [AdminController::class, 'getPendingRequests']);
 
-    // Admin Actions
+    // Ride Management (Admin Override)
+    Route::get('rides/stuck', [AdminController::class, 'listStuckRides']);
+    Route::get('rides/{ride}', [AdminController::class, 'getRide']);
+    Route::post('rides/{ride}/force-status', [AdminController::class, 'forceUpdateStatus']);
+
+    // Admin Actions (Legacy - consider deprecating in favor of force-status)
     Route::delete('monitoring/requests/{id}', [AdminController::class, 'cancelRequest']);
     Route::post('monitoring/rides/{id}/cancel', [AdminController::class, 'cancelRide']);
     Route::post('monitoring/rides/{id}/complete', [AdminController::class, 'completeRide']);

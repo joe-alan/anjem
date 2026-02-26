@@ -29,6 +29,8 @@ class Ride extends Equatable {
   final DateTime? completedAt;
   final DateTime? cancelledAt;
   final String? cancellationReason;
+  final bool? adminOverride;
+  final String? adminReason;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -51,6 +53,8 @@ class Ride extends Equatable {
     this.completedAt,
     this.cancelledAt,
     this.cancellationReason,
+    this.adminOverride,
+    this.adminReason,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -96,6 +100,8 @@ class Ride extends Equatable {
           ? DateTime.parse(json['cancelled_at'] as String)
           : null,
       cancellationReason: json['cancellation_reason'] as String?,
+      adminOverride: json['admin_override'] as bool?,
+      adminReason: json['admin_reason'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -121,6 +127,8 @@ class Ride extends Equatable {
       'completed_at': completedAt?.toIso8601String(),
       'cancelled_at': cancelledAt?.toIso8601String(),
       'cancellation_reason': cancellationReason,
+      'admin_override': adminOverride,
+      'admin_reason': adminReason,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -185,6 +193,8 @@ class Ride extends Equatable {
     DateTime? completedAt,
     DateTime? cancelledAt,
     String? cancellationReason,
+    bool? adminOverride,
+    String? adminReason,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -207,6 +217,8 @@ class Ride extends Equatable {
       completedAt: completedAt ?? this.completedAt,
       cancelledAt: cancelledAt ?? this.cancelledAt,
       cancellationReason: cancellationReason ?? this.cancellationReason,
+      adminOverride: adminOverride ?? this.adminOverride,
+      adminReason: adminReason ?? this.adminReason,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -232,6 +244,8 @@ class Ride extends Equatable {
         completedAt,
         cancelledAt,
         cancellationReason,
+        adminOverride,
+        adminReason,
         createdAt,
         updatedAt,
       ];

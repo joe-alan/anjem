@@ -16,7 +16,9 @@ class RideStatusUpdated implements ShouldBroadcast
     public function __construct(
         public Ride $ride,
         public string $previousStatus,
-        public ?string $updatedBy = null
+        public ?string $updatedBy = null,
+        public bool $adminOverride = false,
+        public ?string $adminReason = null
     ) {}
 
     /**
@@ -47,6 +49,8 @@ class RideStatusUpdated implements ShouldBroadcast
             'destination_location' => $this->ride->destinationLocation->name ?? null,
             'estimated_fare_rp' => $this->ride->estimated_fare_rp,
             'passenger_count' => $this->ride->passenger_count,
+            'admin_override' => $this->adminOverride,
+            'admin_reason' => $this->adminReason,
             'updated_at' => $this->ride->updated_at->toISOString(),
             'timestamp' => now()->toISOString(),
         ];
