@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateRideStatusRequest;
 use App\Http\Resources\RideResource;
 use App\Models\Ride;
 use App\Models\RideRequest;
+use App\Services\MatchingQueueService;
 use App\Services\NotificationService;
 use App\Services\RideService;
 use Illuminate\Http\JsonResponse;
@@ -19,7 +20,8 @@ class RideController extends Controller
 {
     public function __construct(
         private RideService $rideService,
-        private NotificationService $notificationService
+        private NotificationService $notificationService,
+        private MatchingQueueService $matchingQueueService,
     ) {}
 
     /**
@@ -139,6 +141,46 @@ class RideController extends Controller
     }
 
     /**
+     * Decline a ride request (driver only)
+     *
+     * Called when the driver explicitly declines or when the mobile timer expires.
+     * Triggers the penalty logic and passes the request to the next eligible driver.
+     */
+    public function decline(Request $request, RideRequest $rideRequest): JsonResponse
+    {
+        $driver = $request->user();
+
+        if (! $driver->tokenCan('driver:accept-ride')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized: Driver permissions required',
+            ], 403);
+        }
+
+        // Only the driver currently assigned to this request can decline
+        if ($rideRequest->current_driver_id !== $driver->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not the current driver for this request',
+            ], 403);
+        }
+
+        if (! in_array($rideRequest->status, ['pending', 'matched'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This ride request is no longer active',
+            ], 400);
+        }
+
+        $this->matchingQueueService->handleDeclineOrTimeout($driver->id, $rideRequest->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ride request declined',
+        ]);
+    }
+
+    /**
      * Update ride status
      */
     public function updateStatus(UpdateRideStatusRequest $request, Ride $ride): JsonResponse
@@ -201,6 +243,8 @@ class RideController extends Controller
                         $ride->refresh();
                         broadcast(new RideStatusUpdated($ride, $previousStatus, 'driver'));
                         $this->notificationService->sendRideCompletedNotifications($ride);
+                        // Driver rejoins the FIFO queue at the back after completing a ride
+                        $this->matchingQueueService->rejoinAfterRide($user->id);
                     }
                 }
                 break;

@@ -45,6 +45,11 @@ class DriverProfile extends Model
         'total_rides_given',
         'last_location_update',
         'notes',
+        'queue_joined_at',
+        'max_pickup_radius_km',
+        'decline_count',
+        'decline_window_start',
+        'queue_cooldown_until',
     ];
 
     /**
@@ -70,6 +75,11 @@ class DriverProfile extends Model
         'rating_count' => 'integer',
         'total_rides_given' => 'integer',
         'last_location_update' => 'datetime',
+        'queue_joined_at' => 'datetime',
+        'max_pickup_radius_km' => 'decimal:2',
+        'decline_count' => 'integer',
+        'decline_window_start' => 'datetime',
+        'queue_cooldown_until' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -106,6 +116,41 @@ class DriverProfile extends Model
     public function isOnline(): bool
     {
         return $this->went_online_at !== null;
+    }
+
+    /**
+     * Check if driver is currently in the FIFO matching queue
+     */
+    public function isInQueue(): bool
+    {
+        return $this->queue_joined_at !== null;
+    }
+
+    /**
+     * Check if driver is in a decline penalty cooldown
+     */
+    public function isInCooldown(): bool
+    {
+        return $this->queue_cooldown_until !== null && $this->queue_cooldown_until->isFuture();
+    }
+
+    /**
+     * Scope to get only drivers in the FIFO matching queue
+     */
+    public function scopeInQueue($query)
+    {
+        return $query->whereNotNull('queue_joined_at');
+    }
+
+    /**
+     * Scope to get drivers not in a decline penalty cooldown
+     */
+    public function scopeNotInCooldown($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('queue_cooldown_until')
+                ->orWhere('queue_cooldown_until', '<', now());
+        });
     }
 
     /**

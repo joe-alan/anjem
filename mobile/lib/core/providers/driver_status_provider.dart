@@ -19,12 +19,16 @@ class DriverStatusState {
   final int? activeRideId;
   final bool isLoading;
   final String? error;
+  final int queuePosition;
+  final double maxPickupRadiusKm;
 
   const DriverStatusState({
     this.status = DriverStatusEnum.offline,
     this.activeRideId,
     this.isLoading = false,
     this.error,
+    this.queuePosition = 0,
+    this.maxPickupRadiusKm = 5.0,
   });
 
   DriverStatusState copyWith({
@@ -32,12 +36,16 @@ class DriverStatusState {
     int? activeRideId,
     bool? isLoading,
     String? error,
+    int? queuePosition,
+    double? maxPickupRadiusKm,
   }) {
     return DriverStatusState(
       status: status ?? this.status,
       activeRideId: activeRideId ?? this.activeRideId,
       isLoading: isLoading ?? this.isLoading,
       error: error,
+      queuePosition: queuePosition ?? this.queuePosition,
+      maxPickupRadiusKm: maxPickupRadiusKm ?? this.maxPickupRadiusKm,
     );
   }
 
@@ -45,6 +53,7 @@ class DriverStatusState {
       status == DriverStatusEnum.online ||
       status == DriverStatusEnum.inActiveRide;
   bool get hasActiveRide => status == DriverStatusEnum.inActiveRide;
+  bool get isInQueue => isOnline && queuePosition > 0;
 }
 
 // Driver Status Notifier
@@ -122,9 +131,13 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
 
       print('DriverStatusProvider: Backend confirmed driver is online');
 
+      final queuePosition =
+          (response.data['data']?['queue_position'] as int?) ?? 0;
+
       state = state.copyWith(
         status: DriverStatusEnum.online,
         isLoading: false,
+        queuePosition: queuePosition,
       );
 
       // Subscribe to driver channel for incoming ride requests
@@ -171,8 +184,9 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
 
       state = state.copyWith(
         status: DriverStatusEnum.offline,
-        activeRideId: null, // Safe to clear now
+        activeRideId: null,
         isLoading: false,
+        queuePosition: 0,
       );
 
       print(
@@ -211,6 +225,11 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
               'DriverStatusProvider: Failed to parse ride request event - $error');
           print(stackTrace);
         }
+      },
+      onQueuePositionChanged: (eventData) {
+        print('DriverStatusProvider: Queue position changed - $eventData');
+        final newPosition = (eventData['queue_position'] as int?) ?? 0;
+        state = state.copyWith(queuePosition: newPosition);
       },
     );
 
@@ -288,6 +307,10 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
 
   void clearError() {
     state = state.copyWith(error: null);
+  }
+
+  void updateMaxRadius(double km) {
+    state = state.copyWith(maxPickupRadiusKm: km);
   }
 
   /// Sync driver status from backend session state
