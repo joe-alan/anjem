@@ -2,8 +2,10 @@
 
 namespace Database\Seeders;
 
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Location;
+use App\Models\User;
 use Illuminate\Database\Seeder;
+use MatanYadaev\EloquentSpatial\Objects\Point;
 
 class DatabaseSeeder extends Seeder
 {
@@ -14,27 +16,16 @@ class DatabaseSeeder extends Seeder
     {
         $this->command->info('🌱 Starting Anjem database seeding with Firebase integration...');
 
-        // Create campus beacon locations first
-        $this->command->info('Creating campus beacon locations...');
-
-        $beacons = [
-            ['Main Gate', 'Universitas Indonesia Main Entrance', -6.3589, 106.8264],
-            ['Library', 'Central Library Building', -6.3605, 106.8271],
-            ['Student Center', 'Balairung UI', -6.3612, 106.8285],
-            ['Engineering Faculty', 'Faculty of Engineering', -6.3595, 106.8295],
-            ['Medical Faculty', 'FKUI Building', -6.3625, 106.8305],
-        ];
-
-        foreach ($beacons as [$name, $address, $lat, $lng]) {
-            \App\Models\Location::create([
-                'name' => $name,
-                'address' => $address,
-                'coordinates' => \Illuminate\Support\Facades\DB::raw("ST_GeomFromText('POINT($lng $lat)', 4326)"),
-                'radius_m' => 100,
-                'is_beacon' => true,
-                'is_active' => true,
-            ]);
+        // Clear existing locations in local environment
+        if (app()->environment('local')) {
+            Location::truncate();
+            $this->command->info('✓ Cleared existing locations (ONLY locations table)');
         }
+
+        // Seed campus locations from CSV
+        $this->command->info('📍 Seeding campus locations from CSV...');
+        $locationCount = $this->seedLocationsFromCsv();
+        $this->command->info("✓ Seeded {$locationCount} locations from CSV (Universitas Diponegoro)");
 
         // Create test users with different types
         $this->command->info('Creating test users...');
@@ -68,7 +59,7 @@ class DatabaseSeeder extends Seeder
 
         $this->command->info('✅ Database seeding completed!');
         $this->command->info('📊 Created:');
-        $this->command->info('   • 5 campus beacon locations');
+        $this->command->info("   • {$locationCount} campus locations (Universitas Diponegoro)");
         $this->command->info('   • 16 users total (5 riders, 4 drivers, 3 both, 3 Firebase, 1 test each)');
         $this->command->info('');
         $this->command->info('🔑 Test accounts:');
@@ -78,5 +69,62 @@ class DatabaseSeeder extends Seeder
         $this->command->info('   • Password: password (for non-Firebase users)');
         $this->command->info('');
         $this->command->info('🚀 Ready for Firebase authentication and mobile app integration!');
+    }
+
+    /**
+     * Seed locations from CSV file
+     */
+    private function seedLocationsFromCsv(): int
+    {
+        $csvPath = base_path('database/seeders/new_locations.csv');
+
+        if (! file_exists($csvPath)) {
+            $this->command->error('CSV file not found: '.$csvPath);
+            return 0;
+        }
+
+        $csvData = array_map('str_getcsv', file($csvPath));
+        $headers = array_shift($csvData); // Remove header row
+
+        $count = 0;
+
+        foreach ($csvData as $row) {
+            // Skip empty rows
+            if (empty(array_filter($row))) {
+                continue;
+            }
+
+            // Map CSV columns: name, address, latitude, longitude
+            $name = trim($row[0] ?? '');
+            $address = trim($row[1] ?? '');
+            $latitude = floatval($row[2] ?? 0);
+            $longitude = floatval($row[3] ?? 0);
+
+            // Skip if essential data is missing
+            if (empty($name) || $latitude === 0.0 || $longitude === 0.0) {
+                continue;
+            }
+
+            Location::create([
+                'name' => $name,
+                'address' => $address,
+                'coordinates' => new Point($latitude, $longitude, 4326),
+                'radius_m' => 100,
+                'is_beacon' => false,
+                'is_active' => true,
+                'usage_count' => 0,
+                'description' => null,
+                'metadata' => [
+                    'priority' => 'high',
+                    'source' => 'csv_import',
+                    'campus' => 'Universitas Diponegoro',
+                    'imported_at' => now()->toISOString(),
+                ],
+            ]);
+
+            $count++;
+        }
+
+        return $count;
     }
 }

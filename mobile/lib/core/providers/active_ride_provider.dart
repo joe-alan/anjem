@@ -98,13 +98,26 @@ class ActiveRideNotifier extends StateNotifier<ActiveRideState> {
       rideId: rideId,
       onStatusUpdate: (data) {
         print('📡 [Provider] Received status update for ride $rideId: ${data['status']}');
+
+        // Check for admin override
+        final isAdminOverride = data['admin_override'] == true;
+        final adminReason = data['admin_reason'] as String?;
+
+        if (isAdminOverride && adminReason != null) {
+          print('    🛡️ Admin override detected: $adminReason');
+        }
+
         print('    Current state ride ID: ${state.ride?.id}');
         if (state.ride != null) {
           final statusString = data['status'] as String;
           final status = _parseRideStatus(statusString);
           if (status != null) {
             print('    Updating ride ${state.ride!.id} status to: $status');
-            final updatedRide = state.ride!.copyWith(status: status);
+            final updatedRide = state.ride!.copyWith(
+              status: status,
+              adminOverride: isAdminOverride,
+              adminReason: adminReason,
+            );
             state = state.copyWith(ride: updatedRide);
             print('    ✅ State updated, new status: ${state.ride?.status}');
           } else {

@@ -79,7 +79,8 @@ class _MapboxMapWidgetState extends State<MapboxMapWidget> {
   @override
   Widget build(BuildContext context) {
     return MapWidget(
-      key: ValueKey('mapbox_${widget.styleUrl ?? MapboxConfig.defaultStyleUrl}'),
+      key:
+          ValueKey('mapbox_${widget.styleUrl ?? MapboxConfig.defaultStyleUrl}'),
       cameraOptions: CameraOptions(
         center: Point(
           coordinates: Position(
@@ -110,8 +111,10 @@ class _MapboxMapWidgetState extends State<MapboxMapWidget> {
     // No separate API calls needed
 
     // Create annotation managers
-    _pointAnnotationManager = await mapboxMap.annotations.createPointAnnotationManager();
-    _polylineAnnotationManager = await mapboxMap.annotations.createPolylineAnnotationManager();
+    _pointAnnotationManager =
+        await mapboxMap.annotations.createPointAnnotationManager();
+    _polylineAnnotationManager =
+        await mapboxMap.annotations.createPolylineAnnotationManager();
 
     // Add initial markers and polylines
     await _updateMarkers();
@@ -134,7 +137,10 @@ class _MapboxMapWidgetState extends State<MapboxMapWidget> {
         LocationComponentSettings(
           enabled: true,
           pulsingEnabled: true,
-          pulsingColor: Colors.blue.red | (Colors.blue.green << 8) | (Colors.blue.blue << 16) | (Colors.blue.alpha << 24),
+          pulsingColor: Colors.blue.red |
+              (Colors.blue.green << 8) |
+              (Colors.blue.blue << 16) |
+              (Colors.blue.alpha << 24),
           showAccuracyRing: true,
         ),
       );
@@ -145,21 +151,19 @@ class _MapboxMapWidgetState extends State<MapboxMapWidget> {
 
   void _onCameraChange(CameraChangedEventData data) {
     final center = data.cameraState.center;
-    if (center != null) {
-      final position = CameraPosition(
-        latitude: center.coordinates.lat.toDouble(),
-        longitude: center.coordinates.lng.toDouble(),
-        zoom: data.cameraState.zoom.toDouble(),
-        pitch: data.cameraState.pitch.toDouble(),
-        bearing: data.cameraState.bearing.toDouble(),
-      );
+    final position = CameraPosition(
+      latitude: center.coordinates.lat.toDouble(),
+      longitude: center.coordinates.lng.toDouble(),
+      zoom: data.cameraState.zoom.toDouble(),
+      pitch: data.cameraState.pitch.toDouble(),
+      bearing: data.cameraState.bearing.toDouble(),
+    );
 
-      // Call appropriate callback based on reason
-      if (data.cameraState.zoom != widget.initialCameraPosition.zoom ||
-          center.coordinates.lat != widget.initialCameraPosition.latitude ||
-          center.coordinates.lng != widget.initialCameraPosition.longitude) {
-        widget.onCameraMove?.call(position);
-      }
+    // Call appropriate callback based on reason
+    if (data.cameraState.zoom != widget.initialCameraPosition.zoom ||
+        center.coordinates.lat != widget.initialCameraPosition.latitude ||
+        center.coordinates.lng != widget.initialCameraPosition.longitude) {
+      widget.onCameraMove?.call(position);
     }
   }
 
@@ -317,7 +321,8 @@ class MapboxMapController {
   MapboxMapController(this._mapboxMap);
 
   /// Animate camera to a new position
-  Future<void> animateCamera(CameraPosition position, {Duration? duration}) async {
+  Future<void> animateCamera(CameraPosition position,
+      {Duration? duration}) async {
     await _mapboxMap.flyTo(
       CameraOptions(
         center: Point(

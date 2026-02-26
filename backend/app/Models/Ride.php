@@ -18,6 +18,11 @@ class Ride extends Model
     use HasFactory;
 
     /**
+     * Statuses that represent an active ride lifecycle.
+     */
+    public const ACTIVE_STATUSES = ['matched', 'accepted', 'driver_arrived', 'in_progress'];
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
@@ -117,6 +122,14 @@ class Ride extends Model
     }
 
     /**
+     * Scope to get active rides
+     */
+    public function scopeActive($query)
+    {
+        return $query->whereIn('status', self::ACTIVE_STATUSES);
+    }
+
+    /**
      * Scope to get accepted rides
      */
     public function scopeAccepted($query)
@@ -169,7 +182,7 @@ class Ride extends Model
      */
     public function isActive(): bool
     {
-        return in_array($this->status, ['accepted', 'in_progress']);
+        return in_array($this->status, self::ACTIVE_STATUSES, true);
     }
 
     /**

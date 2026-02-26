@@ -102,6 +102,10 @@ class ApiException implements Exception {
     return statusCode == 422 && errors != null;
   }
 
+  bool get isRateLimitError {
+    return statusCode == 429;
+  }
+
   @override
   String toString() {
     return 'ApiException(message: $message, statusCode: $statusCode, errors: $errors)';

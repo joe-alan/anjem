@@ -180,4 +180,24 @@ class ApiService {
     final token = await getToken();
     return token != null && token.isNotEmpty;
   }
+
+  // Session management
+  Future<Map<String, dynamic>> getSessionState() async {
+    try {
+      final response = await get<Map<String, dynamic>>('/session/resume');
+      if (response.data != null && response.data!['success'] == true) {
+        return response.data!['data'] as Map<String, dynamic>;
+      }
+      throw ApiException(
+        message: 'Failed to get session state',
+        statusCode: response.statusCode,
+      );
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException(
+        message: 'Failed to get session state: ${e.toString()}',
+      );
+    }
+  }
 }

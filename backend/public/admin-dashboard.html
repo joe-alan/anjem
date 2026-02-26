@@ -175,9 +175,17 @@
                         <div id="onlineDriversContent"></div>
                     </div>
 
-                    <div>
+                    <div class="mb-6">
                         <h3 class="text-xl font-semibold mb-4">Pending Requests</h3>
                         <div id="pendingRequestsContent"></div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                            ⚠️ Stuck Rides
+                            <span class="text-sm font-normal text-gray-600">(Active rides stuck > 2 hours)</span>
+                        </h3>
+                        <div id="stuckRidesContent"></div>
                     </div>
                 </div>
             </main>
@@ -203,6 +211,17 @@
                 <button onclick="closeModal('riderModal')" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
             <div id="riderDetailContent"></div>
+        </div>
+    </div>
+
+    <!-- Force Status Update Modal -->
+    <div id="forceStatusModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 w-2/3 max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold text-orange-600">⚠️ Force Update Ride Status</h3>
+                <button onclick="closeModal('forceStatusModal')" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <div id="forceStatusContent"></div>
         </div>
     </div>
 
@@ -908,6 +927,7 @@
             loadActiveRides();
             loadOnlineDrivers();
             loadPendingRequests();
+            loadStuckRides();
         }
 
         async function loadActiveRides() {
@@ -1076,6 +1096,187 @@
                 `;
             } catch (error) {
                 content.innerHTML = `<div class="bg-red-100 text-red-700 p-4 rounded">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function loadStuckRides() {
+            const content = document.getElementById('stuckRidesContent');
+            content.innerHTML = '<div class="loader"></div>';
+
+            try {
+                const data = await apiCall('/admin/rides/stuck?hours=2');
+                const rides = data.data;
+
+                if (rides.length === 0) {
+                    content.innerHTML = '<p class="text-gray-500 text-center py-8 bg-white rounded-lg">No stuck rides</p>';
+                    return;
+                }
+
+                content.innerHTML = `
+                    <div class="bg-white rounded-lg shadow overflow-hidden">
+                        <table class="min-w-full">
+                            <thead class="bg-orange-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ride ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Driver</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rider</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Route</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stuck Duration</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                ${rides.map(ride => {
+                                    const lastUpdate = new Date(ride.updated_at);
+                                    const now = new Date();
+                                    const hoursDiff = Math.floor((now - lastUpdate) / (1000 * 60 * 60));
+                                    return `
+                                    <tr class="bg-orange-50">
+                                        <td class="px-6 py-4 font-semibold">#${ride.id}</td>
+                                        <td class="px-6 py-4">${ride.driver ? ride.driver.name : 'Unknown'}</td>
+                                        <td class="px-6 py-4">${ride.rider ? ride.rider.name : 'Unknown'}</td>
+                                        <td class="px-6 py-4 text-sm">
+                                            ${ride.pickup_location ? ride.pickup_location.name : 'Unknown'}<br>
+                                            → ${ride.destination_location ? ride.destination_location.name : 'Unknown'}
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span class="px-2 py-1 text-xs rounded bg-orange-200 text-orange-900 font-semibold">
+                                                ${ride.status}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 text-orange-700 font-semibold">${hoursDiff}h ago</td>
+                                        <td class="px-6 py-4">
+                                            <button onclick="showForceStatusModal(${ride.id})" class="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded text-sm">
+                                                Force Update
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `}).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-sm text-orange-700 mt-2">⚠️ ${data.meta.total} ride(s) stuck for > ${data.meta.threshold_hours} hours</p>
+                `;
+            } catch (error) {
+                content.innerHTML = `<div class="bg-red-100 text-red-700 p-4 rounded">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function showForceStatusModal(rideId) {
+            const modal = document.getElementById('forceStatusModal');
+            const content = document.getElementById('forceStatusContent');
+
+            // Load ride details first
+            content.innerHTML = '<div class="loader"></div>';
+            modal.classList.remove('hidden');
+
+            try {
+                const data = await apiCall(`/admin/rides/${rideId}`);
+                const ride = data.data;
+
+                content.innerHTML = `
+                    <div class="mb-6">
+                        <div class="bg-orange-50 border border-orange-200 p-4 rounded-lg mb-4">
+                            <p class="text-sm text-orange-800 mb-2">
+                                <strong>⚠️ WARNING:</strong> This action will force update the ride status and notify both rider and driver.
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <p class="text-sm text-gray-600">Ride ID</p>
+                                <p class="font-semibold">#${ride.id}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Current Status</p>
+                                <p class="font-semibold">${ride.status}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Driver</p>
+                                <p class="font-semibold">${ride.driver ? ride.driver.name : 'Unknown'}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Rider</p>
+                                <p class="font-semibold">${ride.rider ? ride.rider.name : 'Unknown'}</p>
+                            </div>
+                        </div>
+
+                        <div class="border-t pt-4">
+                            <label class="block text-sm font-semibold mb-2">New Status *</label>
+                            <select id="forceStatusSelect" class="w-full border rounded p-2 mb-4">
+                                <option value="">-- Select Status --</option>
+                                <option value="completed">✓ Complete (mark ride as done)</option>
+                                <option value="cancelled">✗ Cancel (mark ride as cancelled)</option>
+                            </select>
+
+                            <label class="block text-sm font-semibold mb-2">Reason * (min 10 characters)</label>
+                            <textarea id="forceStatusReason" rows="3"
+                                      class="w-full border rounded p-2 mb-4"
+                                      placeholder="e.g., Driver app crashed and unable to complete ride. Manually marking as completed after confirming with driver."
+                            ></textarea>
+
+                            <div class="mb-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="notifyUsers" checked class="mr-2">
+                                    <span class="text-sm">Send push notifications to rider and driver</span>
+                                </label>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <button onclick="executeForceStatusUpdate(${ride.id})"
+                                        class="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded font-semibold">
+                                    Force Update Status
+                                </button>
+                                <button onclick="closeModal('forceStatusModal')"
+                                        class="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                content.innerHTML = `<div class="bg-red-100 text-red-700 p-4 rounded">Error loading ride: ${error.message}</div>`;
+            }
+        }
+
+        async function executeForceStatusUpdate(rideId) {
+            const status = document.getElementById('forceStatusSelect').value;
+            const reason = document.getElementById('forceStatusReason').value;
+            const notifyUsers = document.getElementById('notifyUsers').checked;
+
+            // Validation
+            if (!status) {
+                alert('Please select a new status');
+                return;
+            }
+            if (!reason || reason.length < 10) {
+                alert('Please provide a reason (minimum 10 characters)');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to force update this ride to "${status}"?\n\nReason: ${reason}`)) {
+                return;
+            }
+
+            try {
+                const data = await apiCall(`/admin/rides/${rideId}/force-status`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        status: status,
+                        reason: reason,
+                        notify_users: notifyUsers
+                    })
+                });
+
+                alert('✓ Ride status force updated successfully!\n\nBoth rider and driver will see an admin override notification in their apps.');
+                closeModal('forceStatusModal');
+
+                // Reload monitoring data
+                loadMonitoring();
+            } catch (error) {
+                alert(`Error: ${error.message}`);
             }
         }
 

@@ -5,17 +5,26 @@ import '../../core/providers/ride_request_provider.dart';
 import 'rider_active_ride_screen.dart';
 import 'rider_home_screen.dart';
 
-class WaitingScreen extends ConsumerWidget {
+class WaitingScreen extends ConsumerStatefulWidget {
   const WaitingScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WaitingScreen> createState() => _WaitingScreenState();
+}
+
+class _WaitingScreenState extends ConsumerState<WaitingScreen> {
+  bool _isCancelling = false;
+
+  @override
+  Widget build(BuildContext context) {
     final config = AppConfig.instance;
     final requestState = ref.watch(rideRequestProvider);
 
-    // Listen for driver match
+    // Listen for driver match - but NOT if we're cancelling
     ref.listen<RideRequestState>(rideRequestProvider, (previous, next) {
-      if (next.isMatched && next.matchedRide != null) {
+      if (_isCancelling) return; // Don't navigate if cancel is in progress
+
+      if (next.isMatched && next.matchedRide != null && mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (context) => RiderActiveRideScreen(
@@ -123,12 +132,17 @@ class WaitingScreen extends ConsumerWidget {
                           ),
                         );
 
-                        if (confirmed == true && context.mounted) {
+                        if (confirmed == true && mounted) {
+                          // Set flag to prevent race condition with driver match
+                          setState(() {
+                            _isCancelling = true;
+                          });
+
                           await ref
                               .read(rideRequestProvider.notifier)
                               .cancelRequest();
 
-                          if (context.mounted) {
+                          if (mounted) {
                             Navigator.of(context).pushAndRemoveUntil(
                               MaterialPageRoute(
                                 builder: (context) => const RiderHomeScreen(),

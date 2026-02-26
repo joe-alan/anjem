@@ -24,7 +24,6 @@ class AdminUserSeeder extends Seeder
                 'name' => 'Admin User',
                 'password' => Hash::make('admin123'),
                 'role' => 'admin',
-                'user_type' => 'rider', // Admin can use rider features
                 'email_verified_at' => now(),
                 'is_active' => true,
                 'last_active_at' => now(),
@@ -38,7 +37,6 @@ class AdminUserSeeder extends Seeder
                 'name' => 'Test Admin',
                 'password' => Hash::make('test123'),
                 'role' => 'admin',
-                'user_type' => 'rider',
                 'email_verified_at' => now(),
                 'is_active' => true,
                 'last_active_at' => now(),

@@ -5,6 +5,7 @@ import 'providers/auth_provider.dart';
 import 'providers/kyc_provider.dart';
 import 'widgets/splash_screen.dart';
 import 'widgets/login_screen.dart';
+import 'widgets/session_check_wrapper.dart';
 import '../rider/screens/rider_home_screen.dart';
 import '../driver/screens/driver_home_screen.dart';
 import '../driver/screens/kyc_form_screen.dart';
@@ -83,13 +84,17 @@ class AuthenticationWrapper extends ConsumerWidget {
         return const KycFormScreen();
       }
 
-      // Driver is verified, show home screen
+      // Driver is verified, check for active session
       print('AuthWrapper: Showing driver home - verified');
-      return const DriverHomeScreen();
+      return const SessionCheckWrapper(
+        defaultHomeScreen: DriverHomeScreen(),
+      );
     }
 
-    // For rider app, show home screen directly
+    // For rider app, check for active session
     print('AuthWrapper: Showing rider home');
-    return const RiderHomeScreen();
+    return const SessionCheckWrapper(
+      defaultHomeScreen: RiderHomeScreen(),
+    );
   }
 }
