@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/config/app_config.dart';
@@ -7,6 +8,7 @@ import '../../core/providers/active_ride_provider.dart';
 import '../../core/widgets/mapbox_map_widget.dart';
 import '../../core/services/mapbox/mapbox_directions_service.dart';
 import 'completed_screen.dart';
+import 'rider_home_screen.dart';
 
 /// Unified rider screen that shows the map with driver tracking
 /// and displays driver info/status as overlays
@@ -29,6 +31,8 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
   Set<MapPolyline> _polylines = {};
   final MapboxDirectionsService _directionsService = MapboxDirectionsService();
   bool _showDriverMatchedPopup = true;
+  Timer? _statusPollingTimer;
+  static const _pollInterval = Duration(seconds: 5);
 
   @override
   void initState() {
@@ -46,13 +50,62 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
     Future.microtask(() {
       print('📝 [Rider] Setting ride ${widget.initialRide.id} in provider');
       ref.read(activeRideProvider.notifier).setRide(widget.initialRide);
-      _fetchAndDisplayRoute();
+      _fetchAndDisplayRoute().catchError((e) {
+        // Silently handle - error already logged inside _fetchAndDisplayRoute
+        print('⚠️ [Rider] Route fetch error handled: $e');
+      });
     });
+
+    // Start polling as fallback for WebSocket (in case WS is disconnected)
+    _startStatusPolling();
+  }
+
+  void _startStatusPolling() {
+    _statusPollingTimer?.cancel();
+    _statusPollingTimer = Timer.periodic(_pollInterval, (_) => _pollRideStatus());
+  }
+
+  Future<void> _pollRideStatus() async {
+    try {
+      final rideService = ref.read(rideServiceProvider);
+      final updatedRide = await rideService.getRide(widget.initialRide.id);
+
+      if (!mounted) return;
+
+      // Check if status changed
+      final currentRide = ref.read(activeRideProvider).ride;
+      if (updatedRide.status != currentRide?.status) {
+        print('🔄 [Rider] Poll detected status change: ${currentRide?.status} → ${updatedRide.status}');
+
+        // Update provider with new ride data
+        ref.read(activeRideProvider.notifier).setRide(updatedRide);
+
+        // Handle terminal states
+        if (updatedRide.status == RideStatus.completed) {
+          _statusPollingTimer?.cancel();
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => CompletedScreen(ride: updatedRide),
+            ),
+          );
+        } else if (updatedRide.status == RideStatus.cancelled) {
+          _statusPollingTimer?.cancel();
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const RiderHomeScreen()),
+            (route) => false,
+          );
+        }
+      }
+    } catch (e) {
+      print('⚠️ [Rider] Poll error (will retry): $e');
+      // Don't stop polling on error - will retry next interval
+    }
   }
 
   @override
   void dispose() {
     // ✅ Clean up state when leaving screen
+    _statusPollingTimer?.cancel();
     _polylines = {};
     _markers = {};
     _mapController?.dispose();
@@ -87,6 +140,12 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         destination: destLatLng,
       );
 
+      // Handle empty route (network error, DNS failure, etc.)
+      if (routePoints.isEmpty) {
+        print('⚠️ [Rider] Route is empty - continuing without route line');
+        return; // Just continue without showing route polyline
+      }
+
       print('✅ [Rider] Route fetched: ${routePoints.length} points');
 
       // Create NEW set with the polyline (important for Flutter to detect changes)
@@ -103,7 +162,8 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         });
       }
     } catch (e) {
-      print('❌ [Rider] Failed to fetch route: $e');
+      // This should rarely happen now since getRoute() returns empty instead of throwing
+      print('❌ [Rider] Unexpected error fetching route: $e');
     }
   }
 
@@ -112,14 +172,22 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
     final config = AppConfig.instance;
     final rideState = ref.watch(activeRideProvider);
 
-    // Listen for ride status changes
+    // Listen for ride status changes (WebSocket updates)
     ref.listen<ActiveRideState>(activeRideProvider, (previous, next) {
       if (next.ride?.status == RideStatus.completed) {
-        // Navigate to completed screen
+        // Stop polling and navigate to completed screen
+        _statusPollingTimer?.cancel();
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (context) => CompletedScreen(ride: next.ride!),
           ),
+        );
+      } else if (next.ride?.status == RideStatus.cancelled) {
+        // Stop polling and navigate to home
+        _statusPollingTimer?.cancel();
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const RiderHomeScreen()),
+          (route) => false,
         );
       }
 
@@ -127,7 +195,9 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
       if (previous?.ride?.status != next.ride?.status &&
           next.ride?.id == widget.initialRide.id) {
         print('🔄 [Rider] Status changed to ${next.ride?.status}, refetching route');
-        _fetchAndDisplayRoute();
+        _fetchAndDisplayRoute().catchError((e) {
+          print('⚠️ [Rider] Route fetch error handled: $e');
+        });
       }
 
       // Update markers when ride data or driver location changes (only for current ride)

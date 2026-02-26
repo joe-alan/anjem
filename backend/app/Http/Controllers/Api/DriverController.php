@@ -7,6 +7,7 @@ use App\Events\DriverOnlineStatusChanged;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateLocationRequest;
 use App\Models\Location;
+use App\Models\Ride;
 use App\Services\LocationService;
 use App\Services\QueueService;
 use Illuminate\Http\JsonResponse;
@@ -45,7 +46,7 @@ class DriverController extends Controller
 
         // Check if driver already has an active ride
         $activeRide = $driver->driverRides()
-            ->whereIn('status', ['accepted', 'in_progress'])
+            ->whereIn('status', Ride::ACTIVE_STATUSES)
             ->exists();
 
         if ($activeRide) {
@@ -128,7 +129,7 @@ class DriverController extends Controller
 
         // Check if driver has an active ride
         $activeRide = $driver->driverRides()
-            ->whereIn('status', ['accepted', 'in_progress'])
+            ->whereIn('status', Ride::ACTIVE_STATUSES)
             ->exists();
 
         if ($activeRide) {
@@ -205,7 +206,7 @@ class DriverController extends Controller
 
         // Check if driver has an active ride for real-time tracking
         $activeRide = $driver->driverRides()
-            ->whereIn('status', ['accepted', 'in_progress'])
+            ->whereIn('status', Ride::ACTIVE_STATUSES)
             ->latest()
             ->first();
 

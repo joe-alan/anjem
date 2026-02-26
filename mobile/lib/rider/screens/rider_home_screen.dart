@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/lat_lng.dart';
+import '../../core/providers/auth_provider.dart';
 import '../../core/providers/beacons_provider.dart';
+import '../../core/providers/ride_request_provider.dart';
+import '../../core/providers/session_provider.dart';
 import '../../core/providers/user_location_provider.dart';
 import '../../core/widgets/mapbox_map_widget.dart';
 import 'location_selection_screen.dart';
+import 'waiting_screen.dart';
 
 class RiderHomeScreen extends ConsumerStatefulWidget {
   const RiderHomeScreen({super.key});
@@ -29,6 +33,11 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
     final config = AppConfig.instance;
     final beaconsState = ref.watch(beaconsProvider);
     final locationState = ref.watch(userLocationProvider);
+    final rideRequestState = ref.watch(rideRequestProvider);
+
+    // Check if there's an active request that should block new requests
+    final hasActiveRequest = rideRequestState.request != null &&
+        rideRequestState.matchedRide == null;
 
     // Build markers from beacons
     _buildBeaconMarkers(beaconsState.beacons);
@@ -42,6 +51,11 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
         title: Text(config.appName),
         backgroundColor: config.primaryColor,
         foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.logout),
+          onPressed: () => _showLogoutDialog(context),
+          tooltip: 'Logout',
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -148,6 +162,42 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
             ),
           ),
 
+          // Active request banner (if any)
+          if (hasActiveRequest)
+            Positioned(
+              bottom: 90,
+              left: 16,
+              right: 16,
+              child: Card(
+                color: Colors.blue[50],
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.blue[700]),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'You have an active ride request',
+                          style: TextStyle(color: Colors.blue[700]),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const WaitingScreen(),
+                            ),
+                          );
+                        },
+                        child: const Text('View'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
           // Request Ride button
           Positioned(
             bottom: 24,
@@ -156,7 +206,7 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: beaconsState.beacons.isEmpty
+                onPressed: (beaconsState.beacons.isEmpty || hasActiveRequest)
                     ? null
                     : () {
                         Navigator.of(context).push(
@@ -167,12 +217,12 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
                         );
                       },
                 icon: const Icon(Icons.add_location),
-                label: const Text(
-                  'Request Ride',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                label: Text(
+                  hasActiveRequest ? 'Request in Progress' : 'Request Ride',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: config.primaryColor,
+                  backgroundColor: hasActiveRequest ? Colors.grey : config.primaryColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -212,6 +262,36 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
         longitude: location.longitude,
         zoom: 16,
       ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Logout'),
+          content: const Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                // Clear session state first to prevent stale data on re-login
+                ref.read(sessionStateProvider.notifier).clearSession();
+                await ref.read(authStateProvider.notifier).signOut();
+              },
+              child: const Text(
+                'Logout',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

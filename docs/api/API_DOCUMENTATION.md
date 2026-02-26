@@ -405,6 +405,75 @@ paths:
                   data:
                     $ref: '#/components/schemas/User'
 
+  /v1/session/resume:
+    get:
+      tags:
+        - User Profile
+      summary: Get resumable session information
+      description: |
+        Returns any active ride or ride request for the authenticated user.
+        Mobile clients call this endpoint on cold start to decide whether
+        to show a **Resume Ride** button, continue waiting for a driver,
+        or simply land on the idle home screen.
+      responses:
+        '200':
+          description: Session state retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      state:
+                        type: string
+                        enum:
+                          - idle
+                          - request_pending
+                          - request_matched
+                          - request_in_progress
+                          - ride_active
+                        example: ride_active
+                      ride_role:
+                        type: string
+                        nullable: true
+                        enum: [rider, driver, null]
+                        example: rider
+                      active_ride:
+                        nullable: true
+                        $ref: '#/components/schemas/Ride'
+                      active_request:
+                        nullable: true
+                        $ref: '#/components/schemas/RideRequest'
+                      driver_context:
+                        type: object
+                        properties:
+                          is_driver:
+                            type: boolean
+                            example: true
+                          is_online:
+                            type: boolean
+                            example: true
+                          went_online_at:
+                            type: string
+                            nullable: true
+                            format: date-time
+                            example: '2025-11-30T02:15:00Z'
+                          active_ride_id:
+                            type: integer
+                            nullable: true
+                            example: 452
+        '401':
+          description: Missing or invalid Sanctum token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   # ========================================
   # Places / Locations
   # ========================================

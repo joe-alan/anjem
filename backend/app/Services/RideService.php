@@ -510,8 +510,25 @@ class RideService
             $query->where('rider_id', $userId)
                 ->orWhere('driver_id', $userId);
         })
-            ->whereIn('status', ['matched', 'accepted', 'in_progress'])
-            ->with(['rider', 'driver', 'pickupLocation', 'destinationLocation'])
+            ->whereIn('status', Ride::ACTIVE_STATUSES)
+            ->with(['rider', 'driver', 'pickupLocation', 'destinationLocation', 'rideRequest'])
+            ->latest('updated_at')
+            ->first();
+    }
+
+    /**
+     * Get an active ride request for a rider
+     */
+    public function getActiveRideRequest(int $riderId): ?RideRequest
+    {
+        return RideRequest::where('rider_id', $riderId)
+            ->whereIn('status', ['pending', 'matched', 'in_progress'])
+            ->where(function ($query) {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->with(['pickupLocation', 'destinationLocation'])
+            ->latest('updated_at')
             ->first();
     }
 

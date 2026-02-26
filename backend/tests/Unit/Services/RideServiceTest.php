@@ -525,6 +525,62 @@ class RideServiceTest extends TestCase
         $this->assertNull($activeRide);
     }
 
+    public function test_get_active_ride_includes_driver_arrived_status()
+    {
+        $ride = $this->createAcceptedRide();
+        $ride->update(['status' => 'driver_arrived']);
+
+        $activeRide = $this->rideService->getActiveRide($ride->driver_id);
+
+        $this->assertNotNull($activeRide);
+        $this->assertEquals('driver_arrived', $activeRide->status);
+    }
+
+    /**
+     * Test fetching an active ride request respects expiration
+     */
+    public function test_can_get_active_ride_request_for_rider()
+    {
+        $rider = User::factory()->rider()->create(['is_active' => true]);
+        $beacon = Location::create([
+            'name' => 'Resume Beacon',
+            'coordinates' => new Point(-6.3605, 106.8271, 4326),
+            'is_beacon' => true,
+            'is_active' => true,
+        ]);
+
+        // Expired request should be ignored
+        RideRequest::create([
+            'rider_id' => $rider->id,
+            'pickup_location_id' => $beacon->id,
+            'destination_location_id' => $beacon->id,
+            'estimated_distance_km' => 1.0,
+            'estimated_duration_minutes' => 5,
+            'estimated_fare_rp' => 8000,
+            'passenger_count' => 1,
+            'status' => 'pending',
+            'expires_at' => now()->subMinutes(5),
+        ]);
+
+        $activeRequest = RideRequest::create([
+            'rider_id' => $rider->id,
+            'pickup_location_id' => $beacon->id,
+            'destination_location_id' => $beacon->id,
+            'estimated_distance_km' => 1.2,
+            'estimated_duration_minutes' => 6,
+            'estimated_fare_rp' => 9000,
+            'passenger_count' => 1,
+            'status' => 'matched',
+            'expires_at' => now()->addMinutes(15),
+        ]);
+
+        $result = $this->rideService->getActiveRideRequest($rider->id);
+
+        $this->assertNotNull($result);
+        $this->assertEquals($activeRequest->id, $result->id);
+        $this->assertEquals('matched', $result->status);
+    }
+
     /**
      * Test getting ride history
      */

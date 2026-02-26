@@ -342,6 +342,28 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
     state = const RideRequestState();
   }
 
+  /// Set request from session resume (called by SessionCheckWrapper)
+  /// This syncs the provider state with backend session and subscribes to WebSocket
+  Future<void> setRequestFromSession(RideRequest request) async {
+    print('RideRequestProvider: Setting request from session: ${request.id}');
+
+    // Update state with the request
+    state = RideRequestState(
+      request: request,
+      matchedRide: null,
+      isLoading: false,
+    );
+
+    // Subscribe to WebSocket for ride matching
+    if (_activeUserId != null) {
+      print('RideRequestProvider: Subscribing to WebSocket for session-restored request');
+      await _subscribeToMatching();
+      _startMatchPolling();
+    } else {
+      print('RideRequestProvider: ⚠️ userId is NULL, cannot subscribe to WebSocket!');
+    }
+  }
+
   /// Check for existing pending requests and subscribe to them
   Future<void> _checkPendingRequest() async {
     if (_activeUserId == null) {

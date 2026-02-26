@@ -3,15 +3,21 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Events\RideStatusUpdated;
+use App\Http\Resources\RideResource;
+use App\Models\AdminAuditLog;
 use App\Models\DriverProfile;
 use App\Models\Ride;
 use App\Models\RideRequest;
 use App\Models\RouteCache;
 use App\Models\User;
+use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * AdminController handles all admin dashboard operations
@@ -743,5 +749,157 @@ class AdminController extends Controller
         }
 
         return 'pending';
+    }
+
+    // ==========================================================================
+    // RIDE MANAGEMENT (Admin Override)
+    // ==========================================================================
+
+    /**
+     * GET /api/admin/rides/{id}
+     * View detailed ride information for admin intervention
+     */
+    public function getRide(Ride $ride): JsonResponse
+    {
+        $ride->load(['rider', 'driver', 'pickupLocation', 'destinationLocation', 'ratings']);
+
+        return response()->json([
+            'success' => true,
+            'data' => new RideResource($ride),
+        ]);
+    }
+
+    /**
+     * POST /api/admin/rides/{id}/force-status
+     * Force update ride status (admin override for stuck rides)
+     */
+    public function forceUpdateStatus(Request $request, Ride $ride): JsonResponse
+    {
+        // Validate request
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|in:completed,cancelled',
+            'reason' => 'required|string|min:10|max:500',
+            'notify_users' => 'boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $admin = $request->user();
+        $previousStatus = $ride->status;
+        $newStatus = $request->status;
+        $reason = $request->reason;
+        $notifyUsers = $request->boolean('notify_users', true);
+
+        try {
+            DB::beginTransaction();
+
+            // Update ride status
+            $ride->update(['status' => $newStatus]);
+
+            // Create audit log
+            AdminAuditLog::create([
+                'admin_id' => $admin->id,
+                'action_type' => 'force_ride_status',
+                'target_type' => Ride::class,
+                'target_id' => $ride->id,
+                'changes' => [
+                    'old_status' => $previousStatus,
+                    'new_status' => $newStatus,
+                ],
+                'reason' => $reason,
+                'metadata' => [
+                    'ride_id' => $ride->id,
+                    'rider_id' => $ride->rider_id,
+                    'driver_id' => $ride->driver_id,
+                    'notify_users' => $notifyUsers,
+                ],
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            // Broadcast status update with admin override flag
+            broadcast(new RideStatusUpdated(
+                $ride,
+                $previousStatus,
+                'admin',
+                true, // adminOverride
+                $reason // adminReason
+            ));
+
+            // Send notifications if requested
+            if ($notifyUsers) {
+                $notificationService = app(NotificationService::class);
+                $message = "Your ride status has been updated by admin: {$reason}";
+
+                try {
+                    $notificationService->sendToUser($ride->rider_id, 'Ride Status Updated', $message);
+                    $notificationService->sendToUser($ride->driver_id, 'Ride Status Updated', $message);
+                } catch (\Exception $e) {
+                    Log::warning('Failed to send admin override notifications', [
+                        'error' => $e->getMessage(),
+                        'ride_id' => $ride->id,
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            $ride->load(['rider', 'driver', 'pickupLocation', 'destinationLocation']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Ride status force updated successfully',
+                'data' => new RideResource($ride),
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error('Admin force status update failed', [
+                'error' => $e->getMessage(),
+                'ride_id' => $ride->id,
+                'admin_id' => $admin->id,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update ride status: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * GET /api/admin/rides/stuck
+     * List potentially stuck rides (in_progress for > 2 hours, etc.)
+     */
+    public function listStuckRides(Request $request): JsonResponse
+    {
+        $hoursThreshold = $request->get('hours', 2);
+        $thresholdTime = Carbon::now()->subHours($hoursThreshold);
+
+        // Find rides that are stuck in non-terminal states
+        $stuckRides = Ride::with(['rider', 'driver', 'pickupLocation', 'destinationLocation'])
+            ->whereIn('status', ['matched', 'accepted', 'driver_arrived', 'in_progress'])
+            ->where('updated_at', '<', $thresholdTime)
+            ->orderBy('updated_at', 'asc')
+            ->paginate($request->get('per_page', 20));
+
+        return response()->json([
+            'success' => true,
+            'data' => RideResource::collection($stuckRides),
+            'meta' => [
+                'current_page' => $stuckRides->currentPage(),
+                'last_page' => $stuckRides->lastPage(),
+                'per_page' => $stuckRides->perPage(),
+                'total' => $stuckRides->total(),
+                'threshold_hours' => $hoursThreshold,
+            ],
+        ]);
     }
 }
