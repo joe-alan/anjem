@@ -23,6 +23,8 @@ class RideRequestState {
   final bool isLoading;
   final String? error;
   final String? successMessage;
+  /// ISO8601 timestamp until which the rider cannot create a new request.
+  final String? cooldownUntil;
 
   const RideRequestState({
     this.request,
@@ -31,6 +33,7 @@ class RideRequestState {
     this.isLoading = false,
     this.error,
     this.successMessage,
+    this.cooldownUntil,
   });
 
   RideRequestState copyWith({
@@ -40,6 +43,7 @@ class RideRequestState {
     bool? isLoading,
     String? error,
     String? successMessage,
+    String? cooldownUntil,
   }) {
     return RideRequestState(
       request: request ?? this.request,
@@ -48,11 +52,33 @@ class RideRequestState {
       isLoading: isLoading ?? this.isLoading,
       error: error,
       successMessage: successMessage,
+      cooldownUntil: cooldownUntil ?? this.cooldownUntil,
     );
   }
 
   bool get isPending => request != null && matchedRide == null;
   bool get isMatched => matchedRide != null;
+
+  /// Returns true if the rider is in a cooldown period and cannot request again.
+  bool get isInCooldown {
+    if (cooldownUntil == null) return false;
+    try {
+      return DateTime.parse(cooldownUntil!).isAfter(DateTime.now());
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Seconds remaining in cooldown, or 0 if not in cooldown.
+  int get cooldownSecondsRemaining {
+    if (!isInCooldown) return 0;
+    try {
+      final until = DateTime.parse(cooldownUntil!);
+      return until.difference(DateTime.now()).inSeconds.clamp(0, 120);
+    } catch (_) {
+      return 0;
+    }
+  }
 }
 
 // Ride Request Notifier
@@ -186,10 +212,20 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      await _service.cancelRequest(state.request!.id);
+      final apiService = _apiService;
+      final requestId = state.request!.id;
+      final response =
+          await apiService.patch('/requests/$requestId/cancel');
 
-      state = const RideRequestState(
+      String? cooldownUntil;
+      if (response.data['meta'] != null) {
+        cooldownUntil =
+            response.data['meta']['cooldown_until'] as String?;
+      }
+
+      state = RideRequestState(
         successMessage: 'Ride request cancelled',
+        cooldownUntil: cooldownUntil,
       );
       _stopMatchPolling();
     } catch (e) {

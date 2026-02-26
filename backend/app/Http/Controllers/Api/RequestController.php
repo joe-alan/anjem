@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Events\NewRideRequest;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateRideRequestRequest;
 use App\Http\Resources\RideRequestResource;
-use App\Models\DriverProfile;
 use App\Models\RideRequest;
+use App\Services\MatchingQueueService;
 use App\Services\NotificationService;
 use App\Services\RideService;
 use Illuminate\Http\JsonResponse;
@@ -18,7 +17,8 @@ class RequestController extends Controller
 {
     public function __construct(
         private RideService $rideService,
-        private NotificationService $notificationService
+        private NotificationService $notificationService,
+        private MatchingQueueService $matchingQueueService,
     ) {}
 
     /**
@@ -28,7 +28,6 @@ class RequestController extends Controller
     {
         $user = $request->user();
 
-        // Only riders can view their ride requests
         if (! $user->tokenCan('rider:request-ride')) {
             return response()->json([
                 'success' => false,
@@ -39,12 +38,10 @@ class RequestController extends Controller
         $query = RideRequest::with(['pickupLocation', 'destinationLocation'])
             ->where('rider_id', $user->id);
 
-        // Optional status filter
         if ($request->has('status')) {
             $query->where('status', $request->status);
         }
 
-        // Show only active requests by default
         if (! $request->has('include_expired')) {
             $query->where(function ($q) {
                 $q->whereNull('expires_at')
@@ -74,7 +71,7 @@ class RequestController extends Controller
     {
         $rider = $request->user();
 
-        // ✅ Check if user is currently online as driver
+        // Rider cannot request while online as a driver
         if ($rider->driverProfile && $rider->driverProfile->went_online_at !== null) {
             return response()->json([
                 'success' => false,
@@ -82,7 +79,24 @@ class RequestController extends Controller
             ], 400);
         }
 
-        // Check if rider has any active ride requests
+        // Check rider cooldown (enforced after cancel/expire)
+        $cooldownUntil = RideRequest::where('rider_id', $rider->id)
+            ->where('rider_cooldown_until', '>', now())
+            ->orderBy('rider_cooldown_until', 'desc')
+            ->value('rider_cooldown_until');
+
+        if ($cooldownUntil) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please wait before making another ride request.',
+                'data' => [
+                    'cooldown_until' => $cooldownUntil->toISOString(),
+                    'seconds_remaining' => max(0, now()->diffInSeconds($cooldownUntil, false) * -1),
+                ],
+            ], 429);
+        }
+
+        // Check if rider already has an active ride request
         $activeRequest = RideRequest::where('rider_id', $rider->id)
             ->whereIn('status', ['pending', 'matched'])
             ->where('expires_at', '>', now())
@@ -96,7 +110,6 @@ class RequestController extends Controller
             ], 400);
         }
 
-        // Use validated() to get mapped field names
         $validatedData = $request->validated();
 
         $rideRequest = $this->rideService->createRideRequest([
@@ -116,36 +129,27 @@ class RequestController extends Controller
 
         $rideRequest->load(['pickupLocation', 'destinationLocation', 'rider']);
 
-        $this->broadcastNewRideRequest($rideRequest);
+        // Queue-based dispatch: find the top eligible driver and send only to them
+        $driver = $this->matchingQueueService->findTopDriver($rideRequest);
+
+        if ($driver) {
+            $this->matchingQueueService->dispatchToDriver($rideRequest, $driver);
+
+            Log::info('Ride request dispatched to top queue driver', [
+                'ride_request_id' => $rideRequest->id,
+                'driver_id' => $driver->user_id,
+            ]);
+        } else {
+            Log::info('No eligible drivers in queue for new ride request', [
+                'ride_request_id' => $rideRequest->id,
+            ]);
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Ride request created successfully',
             'data' => new RideRequestResource($rideRequest),
         ], 201);
-    }
-
-    private function broadcastNewRideRequest(RideRequest $rideRequest): void
-    {
-        $driverIds = DriverProfile::query()
-            ->available()
-            ->whereHas('user', function ($query) {
-                $query->where('is_active', true)
-                    ->whereIn('role', ['driver', 'both']);
-            })
-            ->limit(50)
-            ->pluck('user_id')
-            ->all();
-
-        if (empty($driverIds)) {
-            Log::info('No online drivers available for new ride request broadcast', [
-                'ride_request_id' => $rideRequest->id,
-            ]);
-
-            return;
-        }
-
-        broadcast(new NewRideRequest($rideRequest, $driverIds));
     }
 
     /**
@@ -155,7 +159,6 @@ class RequestController extends Controller
     {
         $user = $request->user();
 
-        // Check if user is authorized to view this request
         if ($ride_request->rider_id !== $user->id) {
             return response()->json([
                 'success' => false,
@@ -178,7 +181,6 @@ class RequestController extends Controller
     {
         $user = $request->user();
 
-        // Check if user is authorized to cancel this request
         if ($ride_request->rider_id !== $user->id) {
             return response()->json([
                 'success' => false,
@@ -186,7 +188,6 @@ class RequestController extends Controller
             ], 403);
         }
 
-        // Check token permissions
         if (! $user->tokenCan('rider:cancel-ride')) {
             return response()->json([
                 'success' => false,
@@ -194,7 +195,6 @@ class RequestController extends Controller
             ], 403);
         }
 
-        // Check if request can be cancelled
         if (! in_array($ride_request->status, ['pending', 'matched'])) {
             return response()->json([
                 'success' => false,
@@ -212,7 +212,10 @@ class RequestController extends Controller
             ], 500);
         }
 
-        // If the request was matched, notify the driver
+        // Apply rider cooldown after cancellation
+        $this->matchingQueueService->applyRiderCooldown($ride_request);
+
+        // If matched, notify the driver
         if ($ride_request->status === 'matched') {
             $ride = $ride_request->ride;
             if ($ride && $ride->driver) {
@@ -231,6 +234,9 @@ class RequestController extends Controller
             'success' => true,
             'message' => 'Ride request cancelled successfully',
             'data' => new RideRequestResource($ride_request),
+            'meta' => [
+                'cooldown_until' => $ride_request->rider_cooldown_until?->toISOString(),
+            ],
         ]);
     }
 
@@ -241,7 +247,6 @@ class RequestController extends Controller
     {
         $user = $request->user();
 
-        // Check rider permissions
         if (! $user->tokenCan('rider:request-ride')) {
             return response()->json([
                 'success' => false,
@@ -249,7 +254,6 @@ class RequestController extends Controller
             ], 403);
         }
 
-        // Accept both old and new field names for backward compatibility
         $request->validate([
             'pickup_beacon_id' => 'required_without:pickup_location_id|integer|exists:locations,id',
             'pickup_location_id' => 'required_without:pickup_beacon_id|integer|exists:locations,id',
@@ -258,7 +262,6 @@ class RequestController extends Controller
             'passenger_count' => 'required|integer|min:1|max:4',
         ]);
 
-        // Use whichever field name was provided
         $pickupId = $request->input('pickup_beacon_id') ?? $request->input('pickup_location_id');
         $destinationId = $request->input('destination_beacon_id') ?? $request->input('destination_location_id');
 

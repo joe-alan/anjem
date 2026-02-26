@@ -10,6 +10,7 @@ import '../../core/providers/kyc_provider.dart';
 import '../../core/providers/session_provider.dart';
 import 'ride_request_screen.dart';
 import 'active_ride_screen.dart';
+import 'driver_settings_screen.dart';
 
 class DriverHomeScreen extends ConsumerStatefulWidget {
   const DriverHomeScreen({super.key});
@@ -156,6 +157,60 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                     ),
                   ),
                 ),
+
+                const SizedBox(height: 16),
+
+                // Queue Position Card (only when online and not in active ride)
+                if (driverStatus.isOnline && !driverStatus.hasActiveRide)
+                  Card(
+                    elevation: 2,
+                    color: driverStatus.queuePosition == 1
+                        ? Colors.green[50]
+                        : Colors.blue[50],
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.queue,
+                            size: 36,
+                            color: driverStatus.queuePosition == 1
+                                ? Colors.green
+                                : config.primaryColor,
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  driverStatus.queuePosition == 0
+                                      ? 'Joining queue...'
+                                      : driverStatus.queuePosition == 1
+                                          ? 'You\'re next in queue!'
+                                          : 'Queue Position: #${driverStatus.queuePosition}',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  driverStatus.queuePosition <= 1
+                                      ? 'The next ride request will come to you'
+                                      : '${driverStatus.queuePosition - 1} driver(s) ahead of you',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
 
                 const SizedBox(height: 16),
 
@@ -416,7 +471,12 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () {
-                          // TODO: Navigate to settings
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const DriverSettingsScreen(),
+                            ),
+                          );
                         },
                         icon: const Icon(Icons.settings),
                         label: const Text('Settings'),
