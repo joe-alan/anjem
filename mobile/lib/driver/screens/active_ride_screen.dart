@@ -318,6 +318,47 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
     }
   }
 
+  Future<void> _showCancellationInfo(Ride? ride) async {
+    if (!mounted) return;
+
+    final adminReason = ride?.adminReason;
+    final isAdmin = ride?.adminOverride == true;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Ride Cancelled'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cancel_outlined, color: Colors.red, size: 48),
+            const SizedBox(height: 16),
+            if (isAdmin && adminReason != null)
+              Text(
+                'Admin reason: $adminReason',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14),
+              )
+            else
+              const Text(
+                'This ride has been cancelled.',
+                textAlign: TextAlign.center,
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+
+    _handleRideCompletion();
+  }
+
   void _handleRideCompletion() {
     // Clear active ride from driver status
     ref.read(driverStatusProvider.notifier).setActiveRide(null);
@@ -354,9 +395,23 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
     final config = AppConfig.instance;
     final rideState = ref.watch(activeRideProvider);
 
-    // Listen for ride status changes to update markers and routes
+    // Listen for ride status changes to update markers/routes, or dismiss on terminal states
     ref.listen<ActiveRideState>(activeRideProvider, (previous, next) {
-      if (previous?.ride?.status != next.ride?.status && next.ride != null) {
+      if (previous?.ride?.status == next.ride?.status) return;
+
+      final newStatus = next.ride?.status;
+
+      if (newStatus == RideStatus.cancelled) {
+        _showCancellationInfo(next.ride);
+        return;
+      }
+
+      if (newStatus == RideStatus.completed) {
+        _handleRideCompletion();
+        return;
+      }
+
+      if (next.ride != null) {
         setState(() {
           _buildMarkers(next.ride!);
         });

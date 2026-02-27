@@ -22,7 +22,14 @@ final authStateProvider = StateNotifierProvider<AuthStateNotifier, AuthState>(
   (ref) {
     final authService = ref.watch(authServiceProvider);
     final wsService = ref.watch(websocketServiceProvider);
-    return AuthStateNotifier(authService, wsService);
+    final notifier = AuthStateNotifier(authService, wsService);
+
+    // Wire global 401 handler: when a token is invalidated mid-session the
+    // Dio interceptor calls this, which logs the user out automatically.
+    // Done here (not in api_provider) to avoid a circular import.
+    ref.read(apiServiceProvider).onUnauthorized = notifier.signOut;
+
+    return notifier;
   },
 );
 

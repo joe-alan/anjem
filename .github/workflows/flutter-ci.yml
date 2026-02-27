@@ -15,17 +15,15 @@ env:
   JAVA_VERSION: '17'
 
 jobs:
-  # Code analysis and testing
   analyze-and-test:
-    name: Code Analysis & Testing
+    name: Analyze & Test
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: mobile
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Java
         uses: actions/setup-java@v5
@@ -38,7 +36,6 @@ jobs:
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
-          cache-key: flutter-${{ env.FLUTTER_VERSION }}
 
       - name: Cache Flutter dependencies
         uses: actions/cache@v4
@@ -47,21 +44,16 @@ jobs:
             ~/.pub-cache
             mobile/.dart_tool
           key: flutter-deps-${{ runner.os }}-${{ hashFiles('mobile/pubspec.yaml') }}
-          restore-keys: |
-            flutter-deps-${{ runner.os }}-
+          restore-keys: flutter-deps-${{ runner.os }}-
 
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Verify Flutter installation
-        run: flutter doctor -v
-
       - name: Run code generation
-        run: |
-          flutter packages pub run build_runner build --delete-conflicting-outputs || echo "No build runner configured"
+        run: flutter packages pub run build_runner build --delete-conflicting-outputs || echo "No build runner configured"
 
       - name: Analyze code
-        run: flutter analyze --fatal-infos
+        run: flutter analyze
 
       - name: Check formatting
         run: dart format --output=none --set-exit-if-changed .

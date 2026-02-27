@@ -192,6 +192,20 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
     final config = AppConfig.instance;
     final progress = _secondsRemaining / timeoutSeconds;
 
+    // Dismiss if the rider or admin cancelled the request while we were showing it
+    ref.listen<RideRequest?>(driverIncomingRequestProvider, (previous, next) {
+      if (previous != null && next == null && mounted) {
+        _timer?.cancel();
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Ride request was cancelled'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    });
+
     // ✅ FIX: Replace deprecated WillPopScope with PopScope (Flutter 3.12+)
     return PopScope(
       canPop: !_isProcessing,

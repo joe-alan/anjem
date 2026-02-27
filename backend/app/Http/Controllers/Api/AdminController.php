@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Events\MatchingQueuePositionChanged;
+use App\Events\RideRequestCancelled;
 use App\Events\RideStatusUpdated;
 use App\Http\Resources\RideResource;
 use App\Models\AdminAuditLog;
@@ -11,6 +13,7 @@ use App\Models\Ride;
 use App\Models\RideRequest;
 use App\Models\RouteCache;
 use App\Models\User;
+use App\Services\MatchingQueueService;
 use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -579,7 +582,7 @@ class AdminController extends Controller
      */
     public function cancelRequest(int $requestId): JsonResponse
     {
-        $request = RideRequest::find($requestId);
+        $request = RideRequest::with('rider')->find($requestId);
 
         if (! $request) {
             return response()->json([
@@ -595,7 +598,27 @@ class AdminController extends Controller
             ], 400);
         }
 
-        $request->update(['status' => 'cancelled']);
+        $request->update([
+            'status' => 'cancelled',
+            'current_driver_id' => null,
+        ]);
+
+        broadcast(new RideRequestCancelled($request, 'admin'));
+
+        try {
+            if ($request->rider) {
+                app(NotificationService::class)->sendToUser(
+                    $request->rider,
+                    'Ride Request Cancelled',
+                    'Your ride request has been cancelled by an administrator.'
+                );
+            }
+        } catch (\Exception $e) {
+            Log::warning('Failed to send admin request cancellation notification', [
+                'error' => $e->getMessage(),
+                'request_id' => $requestId,
+            ]);
+        }
 
         return response()->json([
             'success' => true,
@@ -625,10 +648,19 @@ class AdminController extends Controller
             ], 400);
         }
 
+        $previousStatus = $ride->status;
+
         $ride->update([
             'status' => 'cancelled',
             'dropoff_time' => now(),
         ]);
+
+        $ride->load(['pickupLocation', 'destinationLocation']);
+        broadcast(new RideStatusUpdated($ride, $previousStatus, 'admin', true));
+
+        if ($ride->driver_id) {
+            app(MatchingQueueService::class)->rejoinAfterRide($ride->driver_id);
+        }
 
         return response()->json([
             'success' => true,
@@ -658,10 +690,19 @@ class AdminController extends Controller
             ], 400);
         }
 
+        $previousStatus = $ride->status;
+
         $ride->update([
             'status' => 'completed',
             'dropoff_time' => now(),
         ]);
+
+        $ride->load(['pickupLocation', 'destinationLocation']);
+        broadcast(new RideStatusUpdated($ride, $previousStatus, 'admin', true));
+
+        if ($ride->driver_id) {
+            app(MatchingQueueService::class)->rejoinAfterRide($ride->driver_id);
+        }
 
         return response()->json([
             'success' => true,

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\MatchingQueuePositionChanged;
 use App\Events\NewRideRequest;
 use App\Jobs\HandleRequestTimeout;
 use App\Models\DriverProfile;
@@ -50,6 +51,8 @@ class MatchingQueueService
             'queue_joined_at' => now(),
         ]);
 
+        $this->broadcastQueuePosition($driverId);
+
         Log::info('Driver added to matching queue', ['driver_id' => $driverId]);
     }
 
@@ -63,6 +66,8 @@ class MatchingQueueService
             'queue_joined_at' => null,
         ]);
 
+        $this->broadcastQueuePosition($driverId);
+
         Log::info('Driver removed from matching queue', ['driver_id' => $driverId]);
     }
 
@@ -75,6 +80,8 @@ class MatchingQueueService
         DriverProfile::where('user_id', $driverId)->update([
             'queue_joined_at' => now(),
         ]);
+
+        $this->broadcastQueuePosition($driverId);
 
         Log::info('Driver rejoined matching queue after ride completion', ['driver_id' => $driverId]);
     }
@@ -256,6 +263,8 @@ class MatchingQueueService
         }
 
         $profile->update($updates);
+
+        $this->broadcastQueuePosition($driverId);
     }
 
     /**
@@ -354,6 +363,36 @@ class MatchingQueueService
         } catch (\Exception $e) {
             Log::error('Failed to send no-drivers notification to rider', [
                 'ride_request_id' => $rideRequest->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Broadcast the driver's current FIFO queue position to their private channel.
+     * Called whenever the driver's position in the matching queue changes.
+     */
+    private function broadcastQueuePosition(int $driverId): void
+    {
+        $profile = DriverProfile::where('user_id', $driverId)->first();
+
+        if (! $profile) {
+            return;
+        }
+
+        $position = $this->getQueuePosition($driverId);
+
+        try {
+            broadcast(new MatchingQueuePositionChanged(
+                $driverId,
+                $position,
+                $profile->isInCooldown(),
+                $profile->queue_cooldown_until?->toISOString(),
+                (float) $profile->max_pickup_radius_km
+            ));
+        } catch (\Exception $e) {
+            Log::warning('Failed to broadcast queue position change', [
+                'driver_id' => $driverId,
                 'error' => $e->getMessage(),
             ]);
         }
