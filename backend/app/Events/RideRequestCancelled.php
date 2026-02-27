@@ -13,11 +13,19 @@ class RideRequestCancelled implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
+    private readonly ?int $currentDriverId;
+
     public function __construct(
         public RideRequest $rideRequest,
         public string $cancelledBy = 'admin',
-        public ?string $reason = null
-    ) {}
+        public ?string $reason = null,
+        ?int $currentDriverId = null,
+    ) {
+        // Capture the driver ID at construction time before the model is
+        // serialised onto the queue — by the time it is re-hydrated,
+        // current_driver_id may already have been cleared.
+        $this->currentDriverId = $currentDriverId ?? $rideRequest->current_driver_id;
+    }
 
     public function broadcastOn(): array
     {
@@ -26,8 +34,8 @@ class RideRequestCancelled implements ShouldBroadcast
         ];
 
         // Notify the currently-dispatched driver on their driver channel
-        if ($this->rideRequest->current_driver_id) {
-            $channels[] = new PrivateChannel("driver.{$this->rideRequest->current_driver_id}");
+        if ($this->currentDriverId) {
+            $channels[] = new PrivateChannel("driver.{$this->currentDriverId}");
         }
 
         return $channels;

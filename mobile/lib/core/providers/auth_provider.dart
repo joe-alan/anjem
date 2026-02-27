@@ -27,7 +27,14 @@ final authStateProvider = StateNotifierProvider<AuthStateNotifier, AuthState>(
     // Wire global 401 handler: when a token is invalidated mid-session the
     // Dio interceptor calls this, which logs the user out automatically.
     // Done here (not in api_provider) to avoid a circular import.
-    ref.read(apiServiceProvider).onUnauthorized = notifier.signOut;
+    final apiService = ref.read(apiServiceProvider);
+    apiService.onUnauthorized = notifier.signOut;
+
+    // Clear the callback on disposal so a rebuilt provider doesn't call
+    // signOut on an already-disposed notifier.
+    ref.onDispose(() {
+      apiService.onUnauthorized = null;
+    });
 
     return notifier;
   },
