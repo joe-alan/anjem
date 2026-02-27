@@ -228,6 +228,8 @@ class WebSocketService {
     required int driverId,
     required Function(Map<String, dynamic>) onNewRideRequest,
     Function(Map<String, dynamic>)? onQueuePositionChanged,
+    Function(Map<String, dynamic>)? onRequestCancelled,
+    Function(Map<String, dynamic>)? onSessionReplaced,
   }) async {
     final channelName = 'driver.$driverId';
 
@@ -259,6 +261,24 @@ class WebSocketService {
           if (data != null) {
             onQueuePositionChanged(data as Map<String, dynamic>);
           }
+        });
+      }
+
+      // Listen for ride request cancellations (rider cancelled or admin cancelled while dispatched)
+      if (onRequestCancelled != null) {
+        channel.bind('ride.request.cancelled', (data) {
+          print('Received ride request cancellation: $data');
+          if (data != null) {
+            onRequestCancelled(data as Map<String, dynamic>);
+          }
+        });
+      }
+
+      // Listen for session displacement (another device logged in as this driver)
+      if (onSessionReplaced != null) {
+        channel.bind('session.replaced', (data) {
+          print('Received session.replaced — signing out displaced device');
+          onSessionReplaced(data as Map<String, dynamic>? ?? {});
         });
       }
 

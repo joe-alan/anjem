@@ -21,6 +21,7 @@ class DriverHomeScreen extends ConsumerStatefulWidget {
 
 class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
   ProviderSubscription<RideRequest?>? _incomingRequestSub;
+  ProviderSubscription<DriverStatusState>? _driverStatusSub;
   bool _isPresentingRideRequest = false;
 
   @override
@@ -45,11 +46,26 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
         _showRideRequestSheet(next);
       },
     );
+
+    // Refresh stats when a ride completes (inActiveRide → online transition)
+    _driverStatusSub = ref.listenManual<DriverStatusState>(
+      driverStatusProvider,
+      (previous, next) {
+        if (previous != null &&
+            previous.hasActiveRide &&
+            !next.hasActiveRide) {
+          Future.microtask(() {
+            if (mounted) ref.invalidate(driverStatisticsProvider);
+          });
+        }
+      },
+    );
   }
 
   @override
   void dispose() {
     _incomingRequestSub?.close();
+    _driverStatusSub?.close();
     super.dispose();
   }
 

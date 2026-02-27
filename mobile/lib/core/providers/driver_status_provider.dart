@@ -3,7 +3,7 @@ import '../models/ride_request.dart';
 import '../services/api/api_service.dart';
 import '../services/websocket/websocket_service.dart';
 import 'api_provider.dart';
-import 'auth_provider.dart';
+import 'auth_provider.dart'; // also used for authStateProvider (session.replaced)
 import 'driver_incoming_request_provider.dart';
 import 'kyc_provider.dart';
 
@@ -230,6 +230,16 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         print('DriverStatusProvider: Queue position changed - $eventData');
         final newPosition = (eventData['queue_position'] as int?) ?? 0;
         state = state.copyWith(queuePosition: newPosition);
+      },
+      onRequestCancelled: (eventData) {
+        print('DriverStatusProvider: Ride request cancelled - $eventData');
+        // Clear the incoming request so RideRequestScreen dismisses itself
+        _ref.read(driverIncomingRequestProvider.notifier).clear();
+      },
+      onSessionReplaced: (eventData) {
+        print('DriverStatusProvider: Session replaced — signing out this device');
+        // Another device logged in with this driver account; sign out locally.
+        _ref.read(authStateProvider.notifier).signOut();
       },
     );
 

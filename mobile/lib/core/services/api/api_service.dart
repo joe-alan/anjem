@@ -7,9 +7,14 @@ class ApiService {
   late final Dio _dio;
   final FlutterSecureStorage _storage;
 
+  /// Called when a 401 response cannot be recovered (token refresh failed).
+  /// Set by authStateProvider after creation to avoid a circular import.
+  /// Typically points to `authStateProvider.notifier.signOut()`.
+  void Function()? onUnauthorized;
+
   static const String _tokenKey = 'sanctum_token';
 
-  ApiService({FlutterSecureStorage? storage})
+  ApiService({FlutterSecureStorage? storage, this.onUnauthorized})
       : _storage = storage ?? const FlutterSecureStorage() {
     _dio = Dio(BaseOptions(
       baseUrl: AppConfig.instance.apiBaseUrl,
@@ -53,6 +58,10 @@ class ApiService {
               return handler.next(error);
             }
           }
+
+          // Refresh also failed — token is definitively invalid.
+          // Notify the app so it can sign the user out.
+          onUnauthorized?.call();
         }
 
         return handler.next(error);

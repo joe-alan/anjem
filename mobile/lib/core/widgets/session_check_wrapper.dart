@@ -72,7 +72,24 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
       if (!mounted) return;
 
       if (sessionState == null || sessionState.isIdle) {
-        // No active session, go to default home screen
+        // No active session, go to default home screen.
+        // However, the driver may still be online on the backend (e.g. online
+        // with no active ride → state is idle).  Sync driver status so the UI
+        // doesn't incorrectly show "Offline".
+        Future.microtask(() {
+          if (mounted) {
+            final appConfig = AppConfig.instance;
+            if (appConfig.isDriverApp &&
+                sessionState != null &&
+                sessionState.driverContext.isDriver) {
+              ref.read(driverStatusProvider.notifier).syncFromBackend(
+                isOnline: sessionState.driverContext.isOnline,
+                activeRideId: sessionState.driverContext.activeRideId,
+              );
+            }
+          }
+        });
+
         setState(() {
           _targetScreen = widget.defaultHomeScreen;
           _isChecking = false;
@@ -133,6 +150,17 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
       final sessionState = await sessionNotifier.refreshSession();
 
       if (!mounted) return;
+
+      // Always re-sync driver status so online/offline reflects backend truth
+      if (sessionState != null) {
+        final appConfig = AppConfig.instance;
+        if (appConfig.isDriverApp && sessionState.driverContext.isDriver) {
+          ref.read(driverStatusProvider.notifier).syncFromBackend(
+            isOnline: sessionState.driverContext.isOnline,
+            activeRideId: sessionState.driverContext.activeRideId,
+          );
+        }
+      }
 
       if (sessionState != null && !sessionState.isIdle) {
         // Show dialog asking if user wants to resume
