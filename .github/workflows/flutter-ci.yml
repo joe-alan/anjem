@@ -52,7 +52,7 @@ jobs:
       - name: Run code generation
         run: |
           if grep -q "build_runner" pubspec.yaml; then
-            flutter packages pub run build_runner build --delete-conflicting-outputs
+            dart run build_runner build --delete-conflicting-outputs
           else
             echo "No build_runner configured, skipping"
           fi

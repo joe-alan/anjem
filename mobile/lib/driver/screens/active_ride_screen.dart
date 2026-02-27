@@ -356,7 +356,24 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
       ),
     );
 
-    _handleRideCompletion();
+    if (!mounted) return;
+    _handleRideCancelled();
+  }
+
+  void _handleRideCancelled() {
+    ref.read(driverStatusProvider.notifier).setActiveRide(null);
+
+    if (mounted) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ride was cancelled'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   void _handleRideCompletion() {

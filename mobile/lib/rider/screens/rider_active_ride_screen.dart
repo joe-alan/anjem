@@ -570,7 +570,16 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
     try {
       final rideService = ref.read(rideServiceProvider);
       await rideService.updateRideStatus(rideId: ride.id, status: 'cancelled');
-      // ref.listen above will handle navigation once the status update arrives
+      // ref.listen above will handle navigation once the status update arrives.
+      // Fallback: if no navigation within 10 seconds, go home anyway.
+      Future.delayed(const Duration(seconds: 10), () {
+        if (mounted && _isCancelling) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const RiderHomeScreen()),
+            (route) => false,
+          );
+        }
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() => _isCancelling = false);
