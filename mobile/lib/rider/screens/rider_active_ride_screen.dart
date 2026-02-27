@@ -425,7 +425,9 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
                         : null,
                     child: ride.driver?.avatarUrl == null
                         ? Text(
-                            ride.driver?.name[0].toUpperCase() ?? 'D',
+                            (ride.driver?.name.isNotEmpty == true)
+                                ? ride.driver!.name[0].toUpperCase()
+                                : 'D',
                             style: const TextStyle(fontSize: 18),
                           )
                         : null,

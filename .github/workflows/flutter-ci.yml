@@ -50,7 +50,12 @@ jobs:
         run: flutter pub get
 
       - name: Run code generation
-        run: flutter packages pub run build_runner build --delete-conflicting-outputs || echo "No build runner configured"
+        run: |
+          if grep -q "build_runner" pubspec.yaml; then
+            flutter packages pub run build_runner build --delete-conflicting-outputs
+          else
+            echo "No build_runner configured, skipping"
+          fi
 
       - name: Analyze code
         run: flutter analyze
