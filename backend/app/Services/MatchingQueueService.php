@@ -4,9 +4,11 @@ namespace App\Services;
 
 use App\Events\MatchingQueuePositionChanged;
 use App\Events\NewRideRequest;
+use App\Events\RideRequestCancelled;
 use App\Jobs\HandleRequestTimeout;
 use App\Models\DriverProfile;
 use App\Models\RideRequest;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use MatanYadaev\EloquentSpatial\Objects\Point;
@@ -51,7 +53,7 @@ class MatchingQueueService
             'queue_joined_at' => now(),
         ]);
 
-        $this->broadcastQueuePosition($driverId);
+        $this->broadcastAllQueuePositions();
 
         Log::info('Driver added to matching queue', ['driver_id' => $driverId]);
     }
@@ -66,7 +68,10 @@ class MatchingQueueService
             'queue_joined_at' => null,
         ]);
 
+        // Tell the leaving driver their position is now 0
         $this->broadcastQueuePosition($driverId);
+        // Update positions for everyone remaining in the queue
+        $this->broadcastAllQueuePositions();
 
         Log::info('Driver removed from matching queue', ['driver_id' => $driverId]);
     }
@@ -81,7 +86,7 @@ class MatchingQueueService
             'queue_joined_at' => now(),
         ]);
 
-        $this->broadcastQueuePosition($driverId);
+        $this->broadcastAllQueuePositions();
 
         Log::info('Driver rejoined matching queue after ride completion', ['driver_id' => $driverId]);
     }
@@ -193,6 +198,9 @@ class MatchingQueueService
 
             $rideRequest->update(['current_driver_id' => null]);
 
+            // Exclude the declining/timed-out driver from the next dispatch attempt
+            $this->recordDispatchAttempt($rideRequest, $driverId);
+
             // Try next driver
             $nextDriver = $this->findTopDriver($rideRequest);
 
@@ -218,6 +226,19 @@ class MatchingQueueService
                 ]);
             }
         });
+
+        // Dismiss the previous driver's incoming-request screen.
+        // current_driver_id is already cleared on the model, so pass $driverId explicitly.
+        // This handles the timeout case where the driver never tapped Decline themselves.
+        try {
+            broadcast(new RideRequestCancelled($rideRequest, 'system', null, $driverId));
+        } catch (\Exception $e) {
+            Log::warning('Failed to broadcast dismiss event to previous driver', [
+                'driver_id' => $driverId,
+                'ride_request_id' => $rideRequest->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -308,7 +329,7 @@ class MatchingQueueService
             ->orderBy('rider_cooldown_until', 'desc')
             ->value('rider_cooldown_until');
 
-        return $cooldown ? $cooldown->toISOString() : null;
+        return $cooldown ? Carbon::parse($cooldown)->toISOString() : null;
     }
 
     /**
@@ -365,6 +386,19 @@ class MatchingQueueService
                 'ride_request_id' => $rideRequest->id,
                 'error' => $e->getMessage(),
             ]);
+        }
+    }
+
+    /**
+     * Broadcast updated positions to every driver currently in the queue.
+     * Called whenever the queue composition changes so that all drivers see
+     * the correct rank without needing to reload the app.
+     */
+    private function broadcastAllQueuePositions(): void
+    {
+        $driverIds = DriverProfile::inQueue()->notInCooldown()->pluck('user_id');
+        foreach ($driverIds as $driverId) {
+            $this->broadcastQueuePosition($driverId);
         }
     }
 

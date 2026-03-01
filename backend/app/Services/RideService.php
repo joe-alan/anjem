@@ -196,6 +196,14 @@ class RideService
                 throw new \Exception('This ride request is no longer available', 404);
             }
 
+            // Only the currently-dispatched driver may accept.
+            // current_driver_id is null when no driver has been assigned yet (edge-case
+            // on very fast acceptance before the first dispatch completes).
+            if ($rideRequest->current_driver_id !== null && $rideRequest->current_driver_id !== $driverId) {
+                DB::rollBack();
+                throw new \Exception('This ride request is assigned to another driver', 403);
+            }
+
             // Verify driver is valid and online
             $driver = User::with('driverProfile')->find($driverId);
             if (

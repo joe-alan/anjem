@@ -1,12 +1,12 @@
 # CONTINUE_HERE — Session Context Dump
 
 > **Branch:** `fix/todo-issues` (created from `feat/queue-implementation`)
-> **Last updated:** 2026-02-26
-> **Goal:** Fix all open issues from TODO.md before first full test run, then run CodeRabbit review.
+> **Last updated:** 2026-03-01
+> **Goal:** All tasks + CodeRabbit review + tests complete. Physical device testing in progress.
 
 ---
 
-## Status: ALL 11 TASKS COMPLETE ✅
+## Status: F-1 HAPPY PATH PASSING ✅ — REMAINING DEVICE TESTS PENDING
 
 ---
 
@@ -66,11 +66,88 @@
 - **`failed_jobs`:** Standard Laravel scaffold table referenced by `config/queue.php`. **Keep — do not drop.** Harmless even when Redis is the queue driver.
 - **`driver_sessions`:** Model (`DriverSession.php`) and migration exist, `User` has `driverSessions()` relation, BUT no controller or service ever calls it. The model columns (`started_at`/`ended_at`) don't match the migration columns (`went_online_at`/`went_offline_at`) — it's a planned analytics feature with a schema mismatch that was never wired up. **Do not drop yet — add to backlog to either fix and integrate or remove cleanly.**
 
+### CodeRabbit review (2026-02-26)
+- 5 findings applied: driver screen `mounted` guard, Flutter CI `build_runner` fallback, rider screen cancel spinner timeout, rider screen avatar crash (`name[0]`), `RideRequestCancelled` race condition (capture `currentDriverId` at construction time).
+
+### Tests written + fixed (2026-02-28) ✅
+- **85/85 tests passing** across 4 new test files.
+- Files: `tests/Unit/Services/MatchingQueueServiceTest.php`, `tests/Unit/Jobs/HandleRequestTimeoutTest.php`, `tests/Feature/Api/FifoQueueDriverControllerTest.php`, `tests/Feature/Api/FifoQueueRideFlowTest.php`
+
+### Production bugs caught by tests (fixed in same session)
+1. `HandleRequestTimeout` missing `Dispatchable` trait — `::dispatch()` would have failed at runtime.
+2. `RideRequest::$fillable` missing `current_driver_id` + `rider_cooldown_until` — `update()` silently dropped these fields everywhere (cancels, timeouts, cooldowns).
+3. `RideRequest::$casts` missing same fields — timestamps read back as raw strings.
+4. `MatchingQueueService::getRiderCooldown()` — called `->toISOString()` on a raw string from `->value()` (not a Carbon instance). Fixed with `Carbon::parse()`.
+5. `MatchingQueueService::handleDeclineOrTimeout()` — never recorded the declining driver in `tried_drivers` before calling `findTopDriver()`, so the same driver was immediately re-dispatched to themselves. Fixed by adding `recordDispatchAttempt($rideRequest, $driverId)` before `findTopDriver()`.
+
 ---
 
-## Next: Run CodeRabbit review
+### Device testing session (2026-03-01) — F-1 bugs found and fixed
 
-User explicitly requested CodeRabbit review on `fix/todo-issues` branch after all tasks complete.
+Six bugs surfaced during F-1 (Full Happy Path) testing. All fixed.
+
+**Bug 1 — Critical: `QUEUE_CONNECTION=sync` killed every ride request instantly**
+- `.env` had `QUEUE_CONNECTION=sync`. Laravel's sync driver ignores `->delay()`, so `HandleRequestTimeout` fired immediately on every `dispatchToDriver()` call. The request expired before the driver could see it.
+- Fix: `.env` → `QUEUE_CONNECTION=redis`, `REDIS_CLIENT=predis` (phpredis extension not installed; predis package already present).
+- Files: `backend/.env`
+
+**Bug 2 — High: Both drivers showed the ride request; wrong driver could accept**
+- On re-dispatch (timeout or decline), the previous driver's screen was never dismissed — no `ride.request.cancelled` was sent to them. Both screens showed the request simultaneously.
+- `acceptRideRequest()` had no `current_driver_id` guard, so the wrong driver could accept a request that had already been re-dispatched to someone else.
+- Fix: `handleDeclineOrTimeout()` now broadcasts `RideRequestCancelled(cancelledBy:'system', currentDriverId:$driverId)` after the transaction (dismisses previous driver's screen). `acceptRideRequest()` throws 403 if `current_driver_id` is set and doesn't match.
+- Files: `backend/app/Services/MatchingQueueService.php`, `backend/app/Services/RideService.php`
+
+**Bug 3 — High: Black screen after Accept or Decline**
+- `_clearIncomingRequest()` set Riverpod provider to null, triggering `ref.listen` → `Navigator.pop()`. The method then also called `Navigator.pop()` or `pushReplacement()`. Double navigation emptied the Navigator stack → black screen.
+- `_declineRide()` had no try/catch, so a network error left `_isProcessing = true` with `canPop: false` → frozen screen with no escape.
+- Fix: added `_isDismissing` bool flag; set it before any navigation that clears the provider; `ref.listen` checks `!_isDismissing`. Added try/catch to `_declineRide()` and `_autoDecline()`.
+- Files: `mobile/lib/driver/screens/ride_request_screen.dart`
+
+**Bug 4 — High: Rider couldn't submit new request after request expired**
+- `_fetchMatchViaApi()` only cleared state for `cancelled`, not `expired`. Expired request stayed in state → `hasActiveRequest = true` → submit button permanently disabled.
+- `RideRequestStatus` enum was also missing `completed` — the backend does set `status = completed` on ride requests when a ride finishes. `_parseStatus('completed')` fell through to `default: pending`, so completed requests were treated as still-pending.
+- Fix: added `expired` and `completed` to `RideRequestStatus` enum and `_parseStatus()`; updated `_fetchMatchViaApi()` to use `isCancelled || isExpired || isCompleted` (proper enum getters, replacing broken string comparisons).
+- Files: `mobile/lib/core/models/ride_request.dart`, `mobile/lib/core/providers/ride_request_provider.dart`
+
+**Bug 5 — Medium: Queue positions didn't cascade to other drivers**
+- `broadcastQueuePosition($driverId)` only notified the driver whose status changed. When driver A rejoined, driver B's rank shifted but their UI never updated.
+- Fix: added `broadcastAllQueuePositions()` private method (iterates all in-queue drivers); called in `addToQueue()`, `rejoinAfterRide()`. `removeFromQueue()` broadcasts 0 to the leaving driver then calls `broadcastAllQueuePositions()` for the rest.
+- Files: `backend/app/Services/MatchingQueueService.php`
+
+**Bug 6 — Medium: Accepting driver held position 1 for the entire ride**
+- `acceptRideRequest()` never removed the driver from the FIFO queue. They kept their `queue_joined_at` timestamp and stayed at position 1 until ride completion triggered `rejoinAfterRide()`. Other drivers couldn't advance.
+- Fix: `RideController::accept()` calls `matchingQueueService->removeFromQueue($driver->id)` immediately after the ride is created.
+- Files: `backend/app/Http/Controllers/Api/RideController.php`
+
+---
+
+### Environment notes (as of 2026-03-01)
+- `QUEUE_CONNECTION=redis` + `REDIS_CLIENT=predis` required in `backend/.env`
+- Queue worker must be running: `php artisan queue:work redis --sleep=3 --tries=3 --timeout=60`
+- Reverb must be running: `php artisan reverb:start`
+- All three backend processes (serve, reverb, queue:work) must be restarted after `.env` changes
+
+---
+
+## Device Testing Status
+
+See `DEVICE_TEST_LOG.md` for full step-by-step test cases.
+
+| Test | Status | Notes |
+|---|---|---|
+| F-1 Full Happy Path | ✅ Pass | Required 6 bug fixes — see session below |
+| H-1 FIFO Re-dispatch After Decline | ⬜ Not tested | |
+| H-2 Re-dispatch After App Kill (Timeout) | ⬜ Not tested | |
+| H-3 Rider Cancel Cooldown | ⬜ Not tested | |
+| M-1 Driver State Desync on Reopen | ⬜ Not tested | |
+| M-2 Single Session Enforcement | ⬜ Not tested | |
+| L-1 Global 401 Handler | ⬜ Not tested | |
+| L-2 Stale Screen After Rider Cancels | ⬜ Not tested | |
+| L-3 Info Popup on Admin Cancel | ⬜ Not tested | |
+
+## After device testing passes
+1. Merge `fix/todo-issues` → `dev`
+2. Eventually promote `dev` → `main` (pending PRs #27 and #28 also need review)
 
 ---
 
