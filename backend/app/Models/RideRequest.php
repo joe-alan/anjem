@@ -34,6 +34,8 @@ class RideRequest extends Model
         'status',
         'expires_at',
         'matched_at',
+        'current_driver_id',
+        'rider_cooldown_until',
     ];
 
     /**
@@ -49,6 +51,8 @@ class RideRequest extends Model
         'special_requests' => 'json',
         'expires_at' => 'datetime',
         'matched_at' => 'datetime',
+        'rider_cooldown_until' => 'datetime',
+        'current_driver_id' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

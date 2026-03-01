@@ -108,6 +108,10 @@ class RideController extends Controller
 
             $ride->load(['rider', 'driver', 'pickupLocation', 'destinationLocation']);
 
+            // Remove accepting driver from the FIFO queue immediately so other
+            // drivers move up without waiting for this ride to finish.
+            $this->matchingQueueService->removeFromQueue($driver->id);
+
             // Broadcast ride request matched event
             broadcast(new RideRequestMatched($rideRequest, $ride));
 

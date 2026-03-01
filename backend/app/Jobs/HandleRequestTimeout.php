@@ -4,8 +4,9 @@ namespace App\Jobs;
 
 use App\Models\RideRequest;
 use App\Services\MatchingQueueService;
+use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -18,7 +19,7 @@ use Illuminate\Support\Facades\Log;
  */
 class HandleRequestTimeout implements ShouldQueue
 {
-    use Queueable;
+    use Dispatchable, Queueable;
 
     public function __construct(
         public readonly int $rideRequestId,

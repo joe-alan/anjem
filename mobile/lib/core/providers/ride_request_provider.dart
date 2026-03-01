@@ -513,12 +513,16 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
       // Update the local request reference
       state = state.copyWith(request: latestRequest);
 
-      if (latestRequest.status == 'completed' ||
-          latestRequest.status == 'cancelled') {
-        // Ride already over - clear local state so the rider can request again
-        state = const RideRequestState(
-          successMessage: 'Ride finished',
+      if (latestRequest.isCancelled ||
+          latestRequest.isExpired ||
+          latestRequest.isCompleted) {
+        // Request is terminal — clear state so the rider can request again
+        state = RideRequestState(
+          successMessage: latestRequest.isExpired
+              ? 'No drivers available. Try again in a moment.'
+              : 'Ride finished.',
         );
+        _stopMatchPolling();
         return true;
       }
 
