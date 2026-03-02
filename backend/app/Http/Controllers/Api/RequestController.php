@@ -141,6 +141,9 @@ class RequestController extends Controller
                 'driver_id' => $driver->user_id,
             ]);
         } else {
+            // No drivers online/available — notify rider with a countdown immediately.
+            $this->matchingQueueService->handleNoDriversFound($rideRequest);
+
             Log::info('No eligible drivers in queue for new ride request', [
                 'ride_request_id' => $rideRequest->id,
             ]);

@@ -20,6 +20,9 @@ class RideRequestCancelled implements ShouldBroadcast
         public string $cancelledBy = 'admin',
         public ?string $reason = null,
         ?int $currentDriverId = null,
+        // false when re-dispatching to the next driver — rider stays on waiting screen.
+        // true for terminal cancellations (rider cancel, admin cancel, expiry).
+        public bool $notifyRider = true,
     ) {
         // Capture the driver ID at construction time before the model is
         // serialised onto the queue — by the time it is re-hydrated,
@@ -29,11 +32,14 @@ class RideRequestCancelled implements ShouldBroadcast
 
     public function broadcastOn(): array
     {
-        $channels = [
-            new PrivateChannel("user.{$this->rideRequest->rider_id}"),
-        ];
+        $channels = [];
 
-        // Notify the currently-dispatched driver on their driver channel
+        // Only send to the rider channel on terminal cancellations, not re-dispatches.
+        if ($this->notifyRider) {
+            $channels[] = new PrivateChannel("user.{$this->rideRequest->rider_id}");
+        }
+
+        // Always dismiss the driver whose request card is being cleared.
         if ($this->currentDriverId) {
             $channels[] = new PrivateChannel("driver.{$this->currentDriverId}");
         }

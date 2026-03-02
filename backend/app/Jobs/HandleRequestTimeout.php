@@ -34,8 +34,9 @@ class HandleRequestTimeout implements ShouldQueue
             return;
         }
 
-        // If request is no longer pending, the driver already responded — do nothing
-        if (! in_array($rideRequest->status, ['pending', 'matched'])) {
+        // 'matched' means a driver already accepted — do nothing.
+        // Only 'pending' requests are still awaiting a driver response.
+        if ($rideRequest->status !== 'pending') {
             return;
         }
 

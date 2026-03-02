@@ -180,6 +180,7 @@ class WebSocketService {
     required Function(Map<String, dynamic>) onRideMatched,
     Function(Map<String, dynamic>)? onNoDriversAvailable,
     Function(Map<String, dynamic>)? onRequestExpired,
+    Function(Map<String, dynamic>)? onSearchResumed,
   }) async {
     final channelName =
         'user.$userId'; // Don't add 'private-' prefix, .private() method does it automatically
@@ -233,6 +234,16 @@ class WebSocketService {
           print('Received ride.request.cancelled on user channel: $data');
           if (data != null) {
             onRequestExpired(data as Map<String, dynamic>);
+          }
+        });
+      }
+
+      // Listen for search-resumed signal when a new driver joins during countdown
+      if (onSearchResumed != null) {
+        channel.bind('ride.search.resumed', (data) {
+          print('Received ride.search.resumed: $data');
+          if (data != null) {
+            onSearchResumed(data as Map<String, dynamic>);
           }
         });
       }

@@ -38,6 +38,20 @@ class ExpireRideRequest implements ShouldQueue
             return;
         }
 
+        // A new driver was dispatched during the no-drivers countdown window.
+        // Defer expiry so the driver has time to respond (another full countdown).
+        if ($rideRequest->current_driver_id !== null) {
+            self::dispatch($this->rideRequestId)
+                ->delay(now()->addSeconds(self::RIDER_COOLDOWN_SECONDS));
+
+            Log::info('ExpireRideRequest deferred: driver dispatched during countdown', [
+                'ride_request_id'   => $this->rideRequestId,
+                'current_driver_id' => $rideRequest->current_driver_id,
+            ]);
+
+            return;
+        }
+
         $rideRequest->update([
             'status'              => 'expired',
             'rider_cooldown_until' => now()->addSeconds(self::RIDER_COOLDOWN_SECONDS),
