@@ -14,7 +14,7 @@
 | [F-1 Full Happy Path](#f-1-full-happy-path)                                           | ✅ Pass       |
 | [H-1 FIFO Re-dispatch After Decline](#h-1-fifo-re-dispatch-after-decline)             | ✅ Pass       |
 | [H-2 Re-dispatch After App Kill (Timeout)](#h-2-re-dispatch-after-app-kill-timeout)   | ✅ Pass       |
-| [H-3 Rider Cancel Cooldown](#h-3-rider-cancel-cooldown)                               | ⬜ Not tested |
+| [H-3 Rider Cancel Cooldown](#h-3-rider-cancel-cooldown)                               | ✅ Pass       |
 | [H-4 No-Drivers Countdown on Waiting Screen](#h-4-no-drivers-countdown-on-waiting-screen) | ⬜ Not tested |
 | [M-1 Driver State Desync on Reopen](#m-1-driver-state-desync-on-app-reopen)           | ⬜ Not tested |
 | [M-2 Single Session Enforcement](#m-2-single-session-enforcement)                     | ⬜ Not tested |
@@ -216,10 +216,15 @@ Edge case (Driver A reconnects within 35s):
 **Notes / Observations:**
 
 ```
-(write here)
+Passed. Cancel cooldown enforced correctly on both paths (rider cancel + expiry).
+Cooldown delivered via WS payload (rider_cooldown_until) and confirmed via API.
+
+UX observation (not yet implemented): cooldown error currently shows a static message
+with no indication of how long remains. A countdown timer showing seconds until the
+rider can request again would improve the experience.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅
 
 ---
 
