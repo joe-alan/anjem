@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/ride_request.dart';
+import '../../core/providers/api_provider.dart';
 import '../../core/providers/driver_incoming_request_provider.dart';
 import '../../core/providers/driver_status_provider.dart';
 import '../../core/providers/driver_statistics_provider.dart';
@@ -23,6 +26,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
   ProviderSubscription<RideRequest?>? _incomingRequestSub;
   ProviderSubscription<DriverStatusState>? _driverStatusSub;
   bool _isPresentingRideRequest = false;
+  Timer? _locationUpdateTimer;
 
   @override
   void initState() {
@@ -47,7 +51,8 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
       },
     );
 
-    // Refresh stats when a ride completes (inActiveRide → online transition)
+    // Refresh stats when a ride completes (inActiveRide → online transition).
+    // Also start/stop the idle location timer as online status changes.
     _driverStatusSub = ref.listenManual<DriverStatusState>(
       driverStatusProvider,
       (previous, next) {
@@ -58,14 +63,68 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
             if (mounted) ref.invalidate(driverStatisticsProvider);
           });
         }
+
+        // Start location updates when online & idle; stop otherwise.
+        if (next.isOnline && !next.hasActiveRide) {
+          _startIdleLocationUpdates();
+        } else {
+          _stopIdleLocationUpdates();
+        }
       },
     );
+
+    // Kick off immediately if already online when screen mounts.
+    final status = ref.read(driverStatusProvider);
+    if (status.isOnline && !status.hasActiveRide) {
+      _startIdleLocationUpdates();
+    }
+  }
+
+  void _startIdleLocationUpdates() {
+    if (_locationUpdateTimer?.isActive ?? false) return;
+    _sendLocationUpdate(); // send once immediately
+    _locationUpdateTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _sendLocationUpdate(),
+    );
+  }
+
+  void _stopIdleLocationUpdates() {
+    _locationUpdateTimer?.cancel();
+    _locationUpdateTimer = null;
+  }
+
+  Future<void> _sendLocationUpdate() async {
+    try {
+      final permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+
+      if (!mounted) return;
+      await ref.read(apiServiceProvider).post('/driver/location', data: {
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+        'heading': position.heading,
+        'speed': position.speed,
+      });
+    } catch (_) {
+      // Non-fatal — matching still works with last known location.
+    }
   }
 
   @override
   void dispose() {
     _incomingRequestSub?.close();
     _driverStatusSub?.close();
+    _stopIdleLocationUpdates();
     super.dispose();
   }
 

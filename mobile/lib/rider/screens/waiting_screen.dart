@@ -58,7 +58,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
     ref.listen<RideRequestState>(rideRequestProvider, (previous, next) {
       if (_isCancelling) return;
 
-      // Driver matched
+      // Driver matched — navigate to active ride
       if (next.isMatched && next.matchedRide != null && mounted) {
         _countdownTimer?.cancel();
         Navigator.of(context).pushReplacement(
@@ -71,15 +71,28 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
         return;
       }
 
-      // Start countdown when server says no drivers are available
+      // No drivers available — start countdown
       if (next.noDriversAvailableUntil != null &&
           next.noDriversAvailableUntil != previous?.noDriversAvailableUntil) {
         _startCountdown(next.noDriversAvailableUntil!);
         return;
       }
 
+      // Search resumed (new driver joined) — cancel countdown
+      if (previous?.noDriversAvailableUntil != null &&
+          next.noDriversAvailableUntil == null &&
+          next.request != null &&
+          mounted) {
+        _countdownTimer?.cancel();
+        setState(() => _countdownSeconds = 0);
+        return;
+      }
+
       // Request cleared externally (expiry WS event arrived before countdown ended)
-      if (previous?.request != null && next.request == null && !next.isMatched && mounted) {
+      if (previous?.request != null &&
+          next.request == null &&
+          !next.isMatched &&
+          mounted) {
         _countdownTimer?.cancel();
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const RiderHomeScreen()),
@@ -92,7 +105,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(noDrivers ? 'No Drivers Available' : 'Finding Driver'),
+        title: const Text('Finding Driver'),
         backgroundColor: config.primaryColor,
         foregroundColor: Colors.white,
         automaticallyImplyLeading: false,
@@ -100,169 +113,123 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
-          child: noDrivers
-              ? _buildNoDriversView(config)
-              : _buildSearchingView(config, requestState),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNoDriversView(AppConfig config) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(
-          Icons.directions_car_outlined,
-          size: 80,
-          color: Colors.grey[400],
-        ),
-        const SizedBox(height: 32),
-        const Text(
-          'No drivers available right now',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 12),
-        const Text(
-          'Your request will expire shortly.',
-          style: TextStyle(fontSize: 14),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 32),
-        // Countdown circle
-        Container(
-          width: 100,
-          height: 100,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: config.primaryColor, width: 3),
-          ),
-          child: Center(
-            child: Text(
-              '$_countdownSeconds',
-              style: TextStyle(
-                fontSize: 36,
-                fontWeight: FontWeight.bold,
-                color: config.primaryColor,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Returning to home in $_countdownSeconds seconds…',
-          style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSearchingView(AppConfig config, RideRequestState requestState) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        TweenAnimationBuilder(
-          tween: Tween<double>(begin: 0, end: 1),
-          duration: const Duration(seconds: 2),
-          builder: (context, value, child) {
-            return Transform.scale(
-              scale: 0.8 + (value * 0.2),
-              child: Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: config.primaryColor.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.search,
-                  size: 60,
-                  color: config.primaryColor,
-                ),
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: 32),
-        const Text(
-          'Finding a driver for you...',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 16),
-        if (requestState.request != null) ...[
-          Text(
-            'Queue Position: ${requestState.request!.queuePosition ?? "-"}',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 8),
-          const CircularProgressIndicator(),
-        ],
-        const SizedBox(height: 32),
-        const Text(
-          'Please wait while we match you with a nearby driver',
-          style: TextStyle(fontSize: 14),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 48),
-        OutlinedButton.icon(
-          onPressed: requestState.isLoading
-              ? null
-              : () async {
-                  final confirmed = await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Cancel Request?'),
-                      content: const Text(
-                        'Are you sure you want to cancel this ride request?',
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Searching animation
+              TweenAnimationBuilder(
+                tween: Tween<double>(begin: 0, end: 1),
+                duration: const Duration(seconds: 2),
+                builder: (context, value, child) {
+                  return Transform.scale(
+                    scale: 0.8 + (value * 0.2),
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: config.primaryColor.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
                       ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(false),
-                          child: const Text('No'),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(true),
-                          child: const Text('Yes, Cancel'),
-                        ),
-                      ],
+                      child: Icon(
+                        noDrivers ? Icons.directions_car_outlined : Icons.search,
+                        size: 60,
+                        color: noDrivers ? Colors.grey[400] : config.primaryColor,
+                      ),
                     ),
                   );
-
-                  if (confirmed == true && mounted) {
-                    setState(() => _isCancelling = true);
-
-                    await ref
-                        .read(rideRequestProvider.notifier)
-                        .cancelRequest();
-
-                    if (mounted) {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                          builder: (context) => const RiderHomeScreen(),
-                        ),
-                        (route) => false,
-                      );
-                    }
-                  }
                 },
-          icon: const Icon(Icons.close),
-          label: const Text('Cancel Request'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.red,
-            side: const BorderSide(color: Colors.red),
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                noDrivers
+                    ? 'No drivers available right now'
+                    : 'Finding a driver for you...',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              if (noDrivers) ...[
+                Text(
+                  'Retrying in $_countdownSeconds seconds…',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  textAlign: TextAlign.center,
+                ),
+              ] else ...[
+                if (requestState.request != null)
+                  Text(
+                    'Queue Position: ${requestState.request!.queuePosition ?? "-"}',
+                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                  ),
+                const SizedBox(height: 8),
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                const Text(
+                  'Please wait while we match you with a nearby driver',
+                  style: TextStyle(fontSize: 14),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+              const SizedBox(height: 48),
+              OutlinedButton.icon(
+                onPressed: requestState.isLoading
+                    ? null
+                    : () async {
+                        final nav = Navigator.of(context);
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Cancel Request?'),
+                            content: const Text(
+                              'Are you sure you want to cancel this ride request?',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.of(context).pop(false),
+                                child: const Text('No'),
+                              ),
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.of(context).pop(true),
+                                child: const Text('Yes, Cancel'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirmed == true && mounted) {
+                          setState(() => _isCancelling = true);
+
+                          await ref
+                              .read(rideRequestProvider.notifier)
+                              .cancelRequest();
+
+                          if (mounted) {
+                            nav.pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder: (context) => const RiderHomeScreen(),
+                              ),
+                              (route) => false,
+                            );
+                          }
+                        }
+                      },
+                icon: const Icon(Icons.close),
+                label: const Text('Cancel Request'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }

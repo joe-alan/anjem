@@ -12,8 +12,8 @@
 | Test                                                                                  | Status        |
 | ------------------------------------------------------------------------------------- | ------------- |
 | [F-1 Full Happy Path](#f-1-full-happy-path)                                           | ✅ Pass       |
-| [H-1 FIFO Re-dispatch After Decline](#h-1-fifo-re-dispatch-after-decline)             | ⬜ Not tested |
-| [H-2 Re-dispatch After App Kill (Timeout)](#h-2-re-dispatch-after-app-kill-timeout)   | ⬜ Not tested |
+| [H-1 FIFO Re-dispatch After Decline](#h-1-fifo-re-dispatch-after-decline)             | ✅ Pass       |
+| [H-2 Re-dispatch After App Kill (Timeout)](#h-2-re-dispatch-after-app-kill-timeout)   | ✅ Pass       |
 | [H-3 Rider Cancel Cooldown](#h-3-rider-cancel-cooldown)                               | ⬜ Not tested |
 | [H-4 No-Drivers Countdown on Waiting Screen](#h-4-no-drivers-countdown-on-waiting-screen) | ⬜ Not tested |
 | [M-1 Driver State Desync on Reopen](#m-1-driver-state-desync-on-app-reopen)           | ⬜ Not tested |
@@ -35,7 +35,7 @@
 | 60s           | No-drivers countdown before request expires (shown on waiting screen)|
 | 60s           | Rider cooldown after cancel or request expiry                        |
 | 5             | FIFO candidate pool size (nearest-first selection picks from top 5)  |
-| 300 m         | Distance tiebreaker bucket — same bucket → longer-waiting wins       |
+| 50 m          | Distance tiebreaker bucket — same bucket → longer-waiting wins       |
 | 15 min        | Driver penalty cooldown (6+ declines in window)                      |
 | 5 declines    | Driver moved to bottom of queue                                      |
 | 6 declines    | Driver suspended for 15 min                                          |
@@ -50,7 +50,7 @@
 1. All standard eligibility filters apply (verified, online, no active ride, within `max_pickup_radius_km`, not in cooldown, not already tried).
 2. Of eligible drivers, take the **5 longest-waiting** (`queue_joined_at ASC LIMIT 5`).
 3. Among those 5, pick the **closest** to the rider's pickup.
-4. Tiebreaker: drivers within the same 300 m distance bucket → **longer-waiting wins**.
+4. Tiebreaker: drivers within the same **50 m** distance bucket → **longer-waiting wins**.
 
 This means a driver can only be skipped if up to 4 others have been waiting longer AND are meaningfully closer.
 
@@ -112,7 +112,7 @@ before cancelling. Step 3 cancellation flow requires two taps.
 | #   | Step                                    | Expected Output                                                           | Result |
 | --- | --------------------------------------- | ------------------------------------------------------------------------- | ------ |
 | E1  | Only Driver A online; Driver A declines | No next driver available                                                  |        |
-| E2  | Rider's waiting screen                  | Title changes to "No Drivers Available"; countdown circle appears (~60s)  |        |
+| E2  | Rider's waiting screen                  | Title stays "Finding Driver"; icon greys out; text changes to "No drivers available right now" + "Retrying in Ns…" inline |        |
 | E3  | Countdown reaches 0 (or WS expiry fires) | Rider auto-navigated to home screen                                      |        |
 | E4  | Rider tries to submit again immediately  | **60s cooldown error** shown (cooldown delivered via WS payload + API)   |        |
 
@@ -130,10 +130,18 @@ ride.request.cancelled broadcast on private-user.{rider_id} with rider_cooldown_
 **Notes / Observations:**
 
 ```
-(write here)
+Passed. Re-dispatch to Driver B confirmed after Driver A declines.
+Rider remained on the waiting screen during re-dispatch (notifyRider:false fix confirmed).
+Driver B accepts; rider navigated to active ride screen correctly.
+
+Edge case (no next driver):
+- Waiting screen stayed on unified "Finding Driver" title throughout.
+- Icon greyed out and "No drivers available right now" + "Retrying in Ns…" appeared inline.
+- Countdown ran to zero; rider auto-navigated to home via safety-net.
+- 60s cooldown enforced on next request attempt.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅
 
 ---
 
@@ -168,10 +176,16 @@ Processing job: HandleRequestTimeout
 **Notes / Observations:**
 
 ```
-(write here)
+Passed. HandleRequestTimeout fired at ~35s as expected.
+Driver B received re-dispatched request; Driver A had no stale request on reopen.
+Driver B accepted; rider saw "Driver matched" correctly.
+
+Edge case (Driver A reconnects within 35s):
+- App killed and reopened before 35s — incoming request was still visible on reopen.
+- Driver A accepted before timeout fired; normal acceptance flow completed.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅
 
 ---
 
@@ -211,17 +225,18 @@ Processing job: HandleRequestTimeout
 
 ## H-4: No-Drivers Countdown on Waiting Screen
 
-> New feature (uncommitted as of 2026-03-02): when all drivers decline or none are available,
-> the rider's waiting screen transitions to a countdown UI instead of sitting silently.
+> When all drivers decline or none are online, the rider's waiting screen shows a countdown
+> inline — no separate screen.  Also tests re-dispatch when a driver joins mid-countdown.
 > **Requires:** Rider only (ensure no drivers are online OR all online drivers will decline)
 
 | #   | Step                                                            | Expected Output                                                           | Result |
 | --- | --------------------------------------------------------------- | ------------------------------------------------------------------------- | ------ |
 | 1   | No drivers online; Rider submits a request                      | Waiting screen shows "Finding Driver" + spinning icon                     |        |
-| 2   | Server broadcasts `ride.no_drivers_available` (fires on decline/no-match) | Screen title changes to **"No Drivers Available"** |        |
-| 3   | Countdown UI                                                    | Circular countdown showing seconds (starts ~60), text "Returning to home in N seconds…" |  |
+| 2   | Server broadcasts `ride.no_drivers_available` (fires on decline/no-match) | Title stays "Finding Driver"; icon greys out; text changes to **"No drivers available right now"** + **"Retrying in Ns…"** |        |
+| 3   | Countdown ticks                                                 | Inline "Retrying in Ns…" text decrements every second                    |        |
 | 4   | Countdown reaches 0                                             | Rider is **auto-navigated to home screen** (safety-net path)              |        |
 | 5   | Alternatively: WS `ride.request.cancelled` arrives before countdown hits 0 | Rider is navigated home immediately; countdown cancelled | |
+| 6   | **New:** Driver comes online mid-countdown                      | Countdown clears; icon becomes active; text reverts to "Finding a driver for you…"; driver receives dispatch | |
 
 **Edge case — WS event missed (no network at countdown end):**
 
@@ -396,20 +411,27 @@ Processing job: ExpireRideRequest (fires 60s after no-drivers broadcast)
 | 4   | F-1  | Rider could not submit new request after request expired — `_fetchMatchViaApi()` only cleared state for `cancelled`, not `expired`. Also `RideRequestStatus` enum was missing `completed` case (parsed silently as `pending`) | High | ✅ Added `expired` + `completed` to terminal status check; added `completed` to `RideRequestStatus` enum and `_parseStatus()` |
 | 5   | F-1  | Queue position not updating for other drivers when a driver joins/leaves — `broadcastQueuePosition()` only notified the driver whose status changed | Medium | ✅ Added `broadcastAllQueuePositions()` to `MatchingQueueService`; called on all queue mutations |
 | 6   | F-1  | Accepting driver stayed at position 1 throughout entire ride — other drivers could not move up until the ride completed | Medium | ✅ `RideController::accept()` now calls `removeFromQueue()` immediately after ride is created |
+| 7   | H-1  | Nearest-first matching not working — driver home screen never sent location updates while idle; all drivers had stale coordinates from last active ride | High | ✅ Added 30s periodic idle location update timer to `driver_home_screen.dart` |
+| 8   | H-1  | Rider kicked to home screen when driver declined (re-dispatch) — `RideRequestCancelled` always broadcast to rider channel even for re-dispatch dismissals | High | ✅ Added `notifyRider` flag to `RideRequestCancelled`; `handleDeclineOrTimeout` passes `notifyRider: false` |
+| 9   | H-4  | No countdown shown when rider submits request with zero drivers online — `RequestController` only logged, never called `handleNoDriversFound()` | High | ✅ Added `handleNoDriversFound()` call to `RequestController` else branch |
 
 ---
 
-## Pending / Uncommitted Changes (not yet in a commit as of 2026-03-02)
-
-These changes are in the working tree and affect test expectations:
+## Changes Committed This Session (2026-03-02)
 
 | File | Change | Affects |
 | ---- | ------ | ------- |
-| `MatchingQueueService.php` | Nearest-first matching: fetch top-5 FIFO candidates, pick closest. `CANDIDATE_POOL_SIZE=5`, `TIEBREAKER_DISTANCE_METERS=300` | H-1 (re-dispatch picks nearest of pool, not raw FIFO next) |
-| `waiting_screen.dart` | No-drivers view with live countdown circle; safety-net home navigation when countdown hits 0; cancel button now requires confirmation dialog | H-3 (cancel = 2 taps now), H-4 (new test) |
-| `ride_request_provider.dart` | `noDriversAvailableUntil` state field; `onNoDriversAvailable` + `onRequestExpired` WS callbacks wired | H-4, H-1 edge cases |
-| `websocket_service.dart` | `subscribeToUserChannel` accepts `onNoDriversAvailable` and `onRequestExpired` optional callbacks | H-4 |
-| `RideRequestCancelled.php` | Broadcast payload now includes `rider_cooldown_until` (ISO8601) | H-3 (cooldown delivered via WS, not just API) |
+| `MatchingQueueService.php` | Nearest-first matching (top-5 FIFO pool, closest wins). `TIEBREAKER_DISTANCE_METERS=50` | H-1 |
+| `MatchingQueueService.php` | `addToQueue()` calls `tryDispatchPendingRequest()` — re-dispatches unmatched requests to newly-joined driver | H-4 step 6 |
+| `MatchingQueueService.php` | Extracted `handleNoDriversFound()` public method; called from both `handleDeclineOrTimeout` and `RequestController` | H-4 step 1 (zero-driver immediate countdown) |
+| `RequestController.php` | `else` branch on no driver found now calls `handleNoDriversFound()` — rider sees countdown immediately on zero-driver requests | H-4, H-3 edge case |
+| `ExpireRideRequest.php` | Defers expiry by 60s if `current_driver_id` is set (new driver dispatched during countdown) | H-4 step 6 |
+| `RideSearchResumed.php` | New event — broadcasts `ride.search.resumed` to rider when search restarts | H-4 step 6 |
+| `RideRequestCancelled.php` | `notifyRider` flag — re-dispatch does not broadcast to rider channel | H-1 edge case (rider stays on waiting screen) |
+| `waiting_screen.dart` | Unified screen — no separate "No Drivers Available" view; countdown shown inline; title always "Finding Driver" | H-3, H-4 |
+| `ride_request_provider.dart` | `noDriversAvailableUntil` state; `resumeSearch()` clears it; `onSearchResumed` WS callback | H-4 |
+| `websocket_service.dart` | `onNoDriversAvailable`, `onRequestExpired`, `onSearchResumed` callbacks in `subscribeToUserChannel` | H-4 |
+| `driver_home_screen.dart` | 30s idle location update timer — drivers send location while online and not in active ride | Nearest-first accuracy |
 
 ---
 

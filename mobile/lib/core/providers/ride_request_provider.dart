@@ -378,6 +378,11 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
           cooldownUntil: eventData['rider_cooldown_until'] as String?,
         );
       },
+      onSearchResumed: (_) {
+        // A new driver joined the queue and was dispatched — cancel the
+        // no-drivers countdown and go back to the "Finding Driver" view.
+        resumeSearch();
+      },
     );
 
     print(
@@ -395,6 +400,20 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
   void reset() {
     _stopMatchPolling();
     state = const RideRequestState();
+  }
+
+  /// Clear the no-drivers-available countdown so the rider transitions back
+  /// to the "Finding Driver" view.  Called when search resumes after a new
+  /// driver joins the queue during the countdown window.
+  void resumeSearch() {
+    state = RideRequestState(
+      request: state.request,
+      fareEstimate: state.fareEstimate,
+      matchedRide: state.matchedRide,
+      isLoading: state.isLoading,
+      cooldownUntil: state.cooldownUntil,
+      noDriversAvailableUntil: null,
+    );
   }
 
   /// Set request from session resume (called by SessionCheckWrapper)

@@ -6,6 +6,7 @@ use App\Events\MatchingQueuePositionChanged;
 use App\Events\NewRideRequest;
 use App\Events\RideNoDriversAvailable;
 use App\Events\RideRequestCancelled;
+use App\Events\RideSearchResumed;
 use App\Jobs\ExpireRideRequest;
 use App\Jobs\HandleRequestTimeout;
 use App\Models\DriverProfile;
@@ -36,7 +37,8 @@ class MatchingQueueService
 
     // Starvation guard: two drivers within this many meters are treated as "equally close".
     // The one who has been waiting longer wins ties inside a distance bucket.
-    private const TIEBREAKER_DISTANCE_METERS = 300;
+    // 50 m: only very close drivers defer to FIFO; anything further and distance wins.
+    private const TIEBREAKER_DISTANCE_METERS = 50;
 
     // Decline penalty thresholds
     private const PENALTY_WINDOW_MINUTES = 15;
@@ -69,6 +71,10 @@ class MatchingQueueService
         ]);
 
         $this->broadcastAllQueuePositions();
+
+        // If a pending request has no driver currently assigned (i.e. it is sitting
+        // in the "no drivers available" countdown), try to dispatch to this new driver.
+        $this->tryDispatchPendingRequest($driverId);
 
         Log::info('Driver added to matching queue', ['driver_id' => $driverId]);
     }
@@ -241,8 +247,9 @@ class MatchingQueueService
             return;
         }
 
-        // Only process pending requests
-        if (! in_array($rideRequest->status, ['pending', 'matched'])) {
+        // Only process pending requests.
+        // 'matched' means a driver accepted — treat as already resolved.
+        if ($rideRequest->status !== 'pending') {
             return;
         }
 
@@ -266,25 +273,15 @@ class MatchingQueueService
                     'next_driver_id' => $nextDriver->user_id,
                 ]);
             } else {
-                // No eligible drivers remain — notify rider with a countdown,
-                // then expire the request after the countdown elapses.
-                broadcast(new RideNoDriversAvailable($rideRequest, self::NO_DRIVERS_COUNTDOWN_SECONDS));
-
-                ExpireRideRequest::dispatch($rideRequest->id)
-                    ->delay(now()->addSeconds(self::NO_DRIVERS_COUNTDOWN_SECONDS));
-
-                Log::info('No eligible drivers found, started expiry countdown', [
-                    'ride_request_id'    => $rideRequest->id,
-                    'countdown_seconds'  => self::NO_DRIVERS_COUNTDOWN_SECONDS,
-                ]);
+                $this->handleNoDriversFound($rideRequest);
             }
         });
 
         // Dismiss the previous driver's incoming-request screen.
         // current_driver_id is already cleared on the model, so pass $driverId explicitly.
-        // This handles the timeout case where the driver never tapped Decline themselves.
+        // notifyRider: false — the request is being re-dispatched, rider stays on waiting screen.
         try {
-            broadcast(new RideRequestCancelled($rideRequest, 'system', null, $driverId));
+            broadcast(new RideRequestCancelled($rideRequest, 'system', null, $driverId, notifyRider: false));
         } catch (\Exception $e) {
             Log::warning('Failed to broadcast dismiss event to previous driver', [
                 'driver_id' => $driverId,
@@ -292,6 +289,24 @@ class MatchingQueueService
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Notify the rider that no drivers are available and schedule request expiry.
+     * Called both on initial dispatch (zero drivers online) and after all drivers
+     * in the pool have declined/timed out.
+     */
+    public function handleNoDriversFound(RideRequest $rideRequest): void
+    {
+        broadcast(new RideNoDriversAvailable($rideRequest, self::NO_DRIVERS_COUNTDOWN_SECONDS));
+
+        ExpireRideRequest::dispatch($rideRequest->id)
+            ->delay(now()->addSeconds(self::NO_DRIVERS_COUNTDOWN_SECONDS));
+
+        Log::info('No eligible drivers found, started expiry countdown', [
+            'ride_request_id'   => $rideRequest->id,
+            'countdown_seconds' => self::NO_DRIVERS_COUNTDOWN_SECONDS,
+        ]);
     }
 
     /**
@@ -440,6 +455,45 @@ class MatchingQueueService
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * When a driver joins the queue, check if any pending ride request is sitting
+     * without an assigned driver (the "no drivers available" countdown state).
+     * If found, run the standard pool selection and dispatch — re-animating the
+     * request for the rider.  The rider is notified via RideSearchResumed so their
+     * countdown screen switches back to the "Finding Driver" view.
+     */
+    private function tryDispatchPendingRequest(int $driverId): void
+    {
+        // Pick the oldest pending request that has no driver currently dispatched.
+        $rideRequest = RideRequest::where('status', 'pending')
+            ->whereNull('current_driver_id')
+            ->oldest()
+            ->first();
+
+        if (! $rideRequest) {
+            return;
+        }
+
+        // Use standard pool logic — the newly joined driver will be a candidate
+        // (assuming they are within radius and haven't been tried before).
+        $topDriver = $this->findTopDriver($rideRequest);
+
+        if (! $topDriver) {
+            return;
+        }
+
+        $this->dispatchToDriver($rideRequest, $topDriver);
+
+        // Notify rider so their no-drivers-available countdown clears.
+        broadcast(new RideSearchResumed($rideRequest));
+
+        Log::info('Re-dispatched pending request after new driver joined queue', [
+            'ride_request_id' => $rideRequest->id,
+            'dispatched_to'   => $topDriver->user_id,
+            'triggered_by'    => $driverId,
+        ]);
     }
 
     /**
