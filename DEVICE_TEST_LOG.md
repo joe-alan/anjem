@@ -1,7 +1,7 @@
 # Device Test Log — `fix/todo-issues`
 
 > **Branch:** `fix/todo-issues`
-> **Date:** 2026-03-01
+> **Date:** 2026-03-01 (F-1 tested); remaining tests pending
 > **Devices:** Pixel 6 emulator (Driver 1), Pixel 6 emulator (Driver 2), Realme 13+ (Rider)
 > **Build flavors:** `flutter run --flavor driver` / `flutter run --flavor rider`
 
@@ -9,17 +9,18 @@
 
 ## Status Summary
 
-| Test                                                                                 | Status        |
-| ------------------------------------------------------------------------------------ | ------------- |
-| [F-1] Full Happy Path](#f-1-full-happy-path)                                         | ✅ Pass       |
-| [H-1] FIFO Re-dispatch After Decline](#h-1-fifo-re-dispatch-after-decline)           | ⬜ Not tested |
-| [H-2] Re-dispatch After App Kill (Timeout)](#h-2-re-dispatch-after-app-kill-timeout) | ⬜ Not tested |
-| [H-3] Rider Cancel Cooldown](#h-3-rider-cancel-cooldown)                             | ⬜ Not tested |
-| [M-1] Driver State Desync on Reopen](#m-1-driver-state-desync-on-reopen)             | ⬜ Not tested |
-| [M-2] Single Session Enforcement](#m-2-single-session-enforcement)                   | ⬜ Not tested |
-| [L-1] Global 401 Handler](#l-1-global-401-handler-mid-session)                       | ⬜ Not tested |
-| [L-2] Stale Screen After Rider Cancels](#l-2-stale-screen-after-rider-cancels)       | ⬜ Not tested |
-| [L-3] Info Popup on Admin Cancel](#l-3-info-popup-on-admin-cancel)                   | ⬜ Not tested |
+| Test                                                                                  | Status        |
+| ------------------------------------------------------------------------------------- | ------------- |
+| [F-1 Full Happy Path](#f-1-full-happy-path)                                           | ✅ Pass       |
+| [H-1 FIFO Re-dispatch After Decline](#h-1-fifo-re-dispatch-after-decline)             | ⬜ Not tested |
+| [H-2 Re-dispatch After App Kill (Timeout)](#h-2-re-dispatch-after-app-kill-timeout)   | ⬜ Not tested |
+| [H-3 Rider Cancel Cooldown](#h-3-rider-cancel-cooldown)                               | ⬜ Not tested |
+| [H-4 No-Drivers Countdown on Waiting Screen](#h-4-no-drivers-countdown-on-waiting-screen) | ⬜ Not tested |
+| [M-1 Driver State Desync on Reopen](#m-1-driver-state-desync-on-app-reopen)           | ⬜ Not tested |
+| [M-2 Single Session Enforcement](#m-2-single-session-enforcement)                     | ⬜ Not tested |
+| [L-1 Global 401 Handler](#l-1-global-401-handler-mid-session)                         | ⬜ Not tested |
+| [L-2 Stale Screen After Rider Cancels](#l-2-stale-screen-after-rider-cancels)         | ⬜ Not tested |
+| [L-3 Info Popup on Admin Cancel](#l-3-info-popup-on-admin-cancel)                     | ⬜ Not tested |
 
 > **Status key:** ⬜ Not tested · ✅ Pass · ❌ Fail · ⚠️ Partial
 
@@ -27,15 +28,31 @@
 
 ## Key Numbers
 
-| Value         | What                                              |
-| ------------- | ------------------------------------------------- |
-| 35s           | Server-side timeout (`HandleRequestTimeout` job)  |
-| ~30s          | Mobile UI countdown timer                         |
-| 60s           | Rider cooldown after cancel or request expiry     |
-| 15 min        | Driver penalty cooldown (6+ declines in window)   |
-| 5 declines    | Driver moved to bottom of queue                   |
-| 6 declines    | Driver suspended for 15 min                       |
-| 15 min window | Decline count resets if no new decline for 15 min |
+| Value         | What                                                                 |
+| ------------- | -------------------------------------------------------------------- |
+| 35s           | Server-side timeout (`HandleRequestTimeout` job)                     |
+| ~30s          | Mobile UI countdown timer on driver's incoming request screen        |
+| 60s           | No-drivers countdown before request expires (shown on waiting screen)|
+| 60s           | Rider cooldown after cancel or request expiry                        |
+| 5             | FIFO candidate pool size (nearest-first selection picks from top 5)  |
+| 300 m         | Distance tiebreaker bucket — same bucket → longer-waiting wins       |
+| 15 min        | Driver penalty cooldown (6+ declines in window)                      |
+| 5 declines    | Driver moved to bottom of queue                                      |
+| 6 declines    | Driver suspended for 15 min                                          |
+| 15 min window | Decline count resets if no new decline for 15 min                   |
+
+---
+
+## Matching Algorithm (current)
+
+> **Nearest-first within FIFO pool** — implemented in `MatchingQueueService::findTopDriver()` (uncommitted as of 2026-03-02).
+
+1. All standard eligibility filters apply (verified, online, no active ride, within `max_pickup_radius_km`, not in cooldown, not already tried).
+2. Of eligible drivers, take the **5 longest-waiting** (`queue_joined_at ASC LIMIT 5`).
+3. Among those 5, pick the **closest** to the rider's pickup.
+4. Tiebreaker: drivers within the same 300 m distance bucket → **longer-waiting wins**.
+
+This means a driver can only be skipped if up to 4 others have been waiting longer AND are meaningfully closer.
 
 ---
 
@@ -48,7 +65,7 @@
 | --- | ----------------------------------- | ------------------------------------------------------------------------------- | ------ |
 | 1   | Driver A goes **Online**            | Queue position = 1 shown in UI                                                  |        |
 | 2   | Driver B goes **Online**            | Driver B queue position = 2                                                     |        |
-| 3   | Rider submits a request             | Request screen shows "Looking for driver…"                                      |        |
+| 3   | Rider submits a request             | Waiting screen shows "Finding Driver" title + spinning search icon              |        |
 | 4   | Driver A receives the request       | `ride.request.new` fires; incoming request card appears with pickup/destination |        |
 | 5   | Driver A taps **Accept**            | Rider screen changes to "Driver matched" with driver info                       |        |
 | 6   | Driver A taps **Arrived at Pickup** | Rider screen changes to "Driver arrived"                                        |        |
@@ -62,6 +79,12 @@
 Passed after 6 bugs found and fixed during this session (see Bugs Found table below).
 Requires QUEUE_CONNECTION=redis in .env — sync driver ignores job delays and fires
 the 35s timeout immediately, expiring every request on creation.
+
+NOTE: Nearest-first matching is now active (top-5 FIFO pool, closest wins).
+With only 2 drivers the happy path is unaffected; it becomes observable at 3+ drivers.
+
+NOTE: Waiting screen Cancel button now shows a confirmation dialog ("Are you sure?")
+before cancelling. Step 3 cancellation flow requires two taps.
 ```
 
 **Test Result:** ✅
@@ -82,19 +105,26 @@ the 35s timeout immediately, expiring every request on creation.
 | 5   | Check Driver A                                          | Driver A does **NOT** receive the request again        |        |
 | 6   | Driver B accepts                                        | Rider sees "Driver matched" — matched to Driver B      |        |
 
+> With nearest-first matching active: re-dispatch goes to the best candidate from the remaining pool (not the raw next-in-FIFO), but with only 2 drivers the result is the same.
+
 **Edge case — no next driver:**
 
-| #   | Step                                    | Expected Output                                         | Result |
-| --- | --------------------------------------- | ------------------------------------------------------- | ------ |
-| E1  | Only Driver A online; Driver A declines | No next driver available                                |        |
-| E2  | Request status on backend               | Request becomes `expired`; rider gets push notification |        |
-| E3  | Rider tries to submit again immediately | **60s cooldown error** shown                            |        |
+| #   | Step                                    | Expected Output                                                           | Result |
+| --- | --------------------------------------- | ------------------------------------------------------------------------- | ------ |
+| E1  | Only Driver A online; Driver A declines | No next driver available                                                  |        |
+| E2  | Rider's waiting screen                  | Title changes to "No Drivers Available"; countdown circle appears (~60s)  |        |
+| E3  | Countdown reaches 0 (or WS expiry fires) | Rider auto-navigated to home screen                                      |        |
+| E4  | Rider tries to submit again immediately  | **60s cooldown error** shown (cooldown delivered via WS payload + API)   |        |
 
 **Log to watch (queue worker terminal):**
 
 ```
 Processing job: HandleRequestTimeout
 [should show dispatch to Driver B's ID, not Driver A's]
+
+ride.no_drivers_available broadcast → [ride_request_id, countdown_seconds=60]
+ExpireRideRequest job fires after 60s
+ride.request.cancelled broadcast on private-user.{rider_id} with rider_cooldown_until set
 ```
 
 **Notes / Observations:**
@@ -149,20 +179,64 @@ Processing job: HandleRequestTimeout
 
 > Previously silently broken — `rider_cooldown_until` was dropped by `update()`.
 > **Requires:** Rider (Driver optional)
+>
+> **Note (2026-03-02):** `rider_cooldown_until` is now included in the `ride.request.cancelled`
+> WebSocket broadcast payload, so the mobile client receives the cooldown timestamp via WS
+> (not just via API response). Both paths should surface the same cooldown. Test both.
 
-| #   | Step                                            | Expected Output                            | Result |
-| --- | ----------------------------------------------- | ------------------------------------------ | ------ |
-| 1   | Rider submits a request                         | Request screen shows "Looking for driver…" |        |
-| 2   | Rider taps **Cancel** immediately               | Cancel succeeds; returns to home           |        |
-| 3   | Rider tries to submit a new request immediately | **Error shown: ~60 second cooldown**       |        |
-| 4   | Wait 60 seconds, try again                      | Request goes through normally              |        |
+| #   | Step                                                                                    | Expected Output                                       | Result |
+| --- | --------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------ |
+| 1   | Rider submits a request                                                                 | Waiting screen shows "Finding Driver"                 |        |
+| 2   | Rider taps **Cancel** → **confirms** in the dialog ("Yes, Cancel")                     | Cancel succeeds; rider auto-navigated to home         |        |
+| 3   | Rider tries to submit a new request immediately                                         | **Error shown: ~60 second cooldown**                  |        |
+| 4   | Wait 60 seconds, try again                                                              | Request goes through normally                         |        |
 
 **Edge case — expiry-based cooldown:**
 
-| #   | Step                                     | Expected Output                             | Result |
-| --- | ---------------------------------------- | ------------------------------------------- | ------ |
-| E1  | No drivers online; Rider submits request | Request eventually expires (no match found) |        |
-| E2  | Rider tries to submit again immediately  | Same **60s cooldown error**                 |        |
+| #   | Step                                     | Expected Output                                                                      | Result |
+| --- | ---------------------------------------- | ------------------------------------------------------------------------------------ | ------ |
+| E1  | No drivers online; Rider submits request | Waiting screen eventually shows "No Drivers Available" countdown (~60s)              |        |
+| E2  | Countdown hits 0                         | Rider auto-navigated to home (either countdown safety-net or WS expiry event)        |        |
+| E3  | Rider tries to submit again immediately  | Same **60s cooldown error** (delivered via WS `rider_cooldown_until` or API)         |        |
+
+**Notes / Observations:**
+
+```
+(write here)
+```
+
+**Test Result:** ⬜
+
+---
+
+## H-4: No-Drivers Countdown on Waiting Screen
+
+> New feature (uncommitted as of 2026-03-02): when all drivers decline or none are available,
+> the rider's waiting screen transitions to a countdown UI instead of sitting silently.
+> **Requires:** Rider only (ensure no drivers are online OR all online drivers will decline)
+
+| #   | Step                                                            | Expected Output                                                           | Result |
+| --- | --------------------------------------------------------------- | ------------------------------------------------------------------------- | ------ |
+| 1   | No drivers online; Rider submits a request                      | Waiting screen shows "Finding Driver" + spinning icon                     |        |
+| 2   | Server broadcasts `ride.no_drivers_available` (fires on decline/no-match) | Screen title changes to **"No Drivers Available"** |        |
+| 3   | Countdown UI                                                    | Circular countdown showing seconds (starts ~60), text "Returning to home in N seconds…" |  |
+| 4   | Countdown reaches 0                                             | Rider is **auto-navigated to home screen** (safety-net path)              |        |
+| 5   | Alternatively: WS `ride.request.cancelled` arrives before countdown hits 0 | Rider is navigated home immediately; countdown cancelled | |
+
+**Edge case — WS event missed (no network at countdown end):**
+
+| #   | Step                                                  | Expected Output                                                           | Result |
+| --- | ----------------------------------------------------- | ------------------------------------------------------------------------- | ------ |
+| E1  | Airplane mode during countdown                        | Countdown still ticks (local timer is independent of WS)                  |        |
+| E2  | Countdown hits 0 while offline                        | Rider navigated to home via safety-net; no crash                          |        |
+
+**Log to watch (queue worker terminal):**
+
+```
+[broadcast] ride.no_drivers_available → {ride_request_id, countdown_seconds: 60}
+Processing job: ExpireRideRequest (fires 60s after no-drivers broadcast)
+[broadcast] ride.request.cancelled on private-user.{rider_id} with rider_cooldown_until
+```
 
 **Notes / Observations:**
 
@@ -259,11 +333,11 @@ Processing job: HandleRequestTimeout
 > Driver's incoming request screen should auto-dismiss when rider cancels.
 > **Requires:** Driver A, Rider
 
-| #   | Step                  | Expected Output                                                    | Result |
-| --- | --------------------- | ------------------------------------------------------------------ | ------ |
-| 1   | Rider submits request | Driver A receives incoming request card                            |        |
-| 2   | Rider taps **Cancel** |                                                                    |        |
-| 3   | Driver A's screen     | Incoming request card **auto-dismisses** (no manual action needed) |        |
+| #   | Step                                   | Expected Output                                                    | Result |
+| --- | -------------------------------------- | ------------------------------------------------------------------ | ------ |
+| 1   | Rider submits request                  | Driver A receives incoming request card                            |        |
+| 2   | Rider taps **Cancel** → confirms dialog |                                                                   |        |
+| 3   | Driver A's screen                      | Incoming request card **auto-dismisses** (no manual action needed) |        |
 
 **Edge case — race condition:**
 
@@ -325,12 +399,27 @@ Processing job: HandleRequestTimeout
 
 ---
 
+## Pending / Uncommitted Changes (not yet in a commit as of 2026-03-02)
+
+These changes are in the working tree and affect test expectations:
+
+| File | Change | Affects |
+| ---- | ------ | ------- |
+| `MatchingQueueService.php` | Nearest-first matching: fetch top-5 FIFO candidates, pick closest. `CANDIDATE_POOL_SIZE=5`, `TIEBREAKER_DISTANCE_METERS=300` | H-1 (re-dispatch picks nearest of pool, not raw FIFO next) |
+| `waiting_screen.dart` | No-drivers view with live countdown circle; safety-net home navigation when countdown hits 0; cancel button now requires confirmation dialog | H-3 (cancel = 2 taps now), H-4 (new test) |
+| `ride_request_provider.dart` | `noDriversAvailableUntil` state field; `onNoDriversAvailable` + `onRequestExpired` WS callbacks wired | H-4, H-1 edge cases |
+| `websocket_service.dart` | `subscribeToUserChannel` accepts `onNoDriversAvailable` and `onRequestExpired` optional callbacks | H-4 |
+| `RideRequestCancelled.php` | Broadcast payload now includes `rider_cooldown_until` (ISO8601) | H-3 (cooldown delivered via WS, not just API) |
+
+---
+
 ## Sign-off
 
 - [ ] All HIGH priority tests pass
 - [ ] All MEDIUM priority tests pass
 - [ ] All LOW priority tests pass (or deferred with justification)
 - [ ] No regressions observed on full happy path
+- [ ] Pending uncommitted changes committed before merge
 - [ ] Ready to merge `fix/todo-issues` → `dev`
 
 **Tested by:** **\*\***\_\_\_**\*\***

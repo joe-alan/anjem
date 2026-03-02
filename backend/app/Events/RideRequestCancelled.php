@@ -44,11 +44,12 @@ class RideRequestCancelled implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'request_id' => $this->rideRequest->id,
-            'rider_id' => $this->rideRequest->rider_id,
-            'cancelled_by' => $this->cancelledBy,
-            'reason' => $this->reason,
-            'timestamp' => now()->toISOString(),
+            'request_id'          => $this->rideRequest->id,
+            'rider_id'            => $this->rideRequest->rider_id,
+            'cancelled_by'        => $this->cancelledBy,
+            'reason'              => $this->reason,
+            'rider_cooldown_until' => $this->rideRequest->rider_cooldown_until?->toISOString(),
+            'timestamp'           => now()->toISOString(),
         ];
     }
 

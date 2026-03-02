@@ -25,6 +25,8 @@ class RideRequestState {
   final String? successMessage;
   /// ISO8601 timestamp until which the rider cannot create a new request.
   final String? cooldownUntil;
+  /// Set when server broadcasts no-drivers-available; rider sees countdown until this time.
+  final DateTime? noDriversAvailableUntil;
 
   const RideRequestState({
     this.request,
@@ -34,6 +36,7 @@ class RideRequestState {
     this.error,
     this.successMessage,
     this.cooldownUntil,
+    this.noDriversAvailableUntil,
   });
 
   RideRequestState copyWith({
@@ -44,6 +47,7 @@ class RideRequestState {
     String? error,
     String? successMessage,
     String? cooldownUntil,
+    DateTime? noDriversAvailableUntil,
   }) {
     return RideRequestState(
       request: request ?? this.request,
@@ -53,6 +57,7 @@ class RideRequestState {
       error: error,
       successMessage: successMessage,
       cooldownUntil: cooldownUntil ?? this.cooldownUntil,
+      noDriversAvailableUntil: noDriversAvailableUntil ?? this.noDriversAvailableUntil,
     );
   }
 
@@ -358,6 +363,20 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
             error: 'Failed to process ride match: $e',
           );
         }
+      },
+      onNoDriversAvailable: (eventData) {
+        final countdown = (eventData['countdown_seconds'] as num?)?.toInt() ?? 60;
+        state = state.copyWith(
+          noDriversAvailableUntil: DateTime.now().add(Duration(seconds: countdown)),
+        );
+      },
+      onRequestExpired: (eventData) {
+        // Server expired the request after no-drivers countdown — clear it
+        // and surface the cooldown so rider cannot immediately re-request.
+        _stopMatchPolling();
+        state = RideRequestState(
+          cooldownUntil: eventData['rider_cooldown_until'] as String?,
+        );
       },
     );
 
