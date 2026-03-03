@@ -14,7 +14,7 @@ Anjem is a campus ride-sharing platform composed of a Laravel 11 backend (`backe
 
 1. **Backend**
    - `cd backend && cp .env.example .env`, fill DB/Firebase/Mapbox keys, then `composer install`, `php artisan key:generate`, `docker-compose up -d`, `php artisan migrate --seed`, `php artisan storage:link`.
-   - Start services: `php artisan serve`, `php artisan reverb:start`, `php artisan queue:work` (Redis-backed queues).
+   - Start services: `php artisan serve`, `php artisan reverb:start`, `php artisan queue:work`, `php artisan schedule:work` (Redis-backed queues).
 2. **Mobile**
    - `cd mobile && flutter pub get`.
    - Update environment constants (e.g., `lib/core/config/environment.dart`) with API base URL, WebSocket URL, and API keys.
@@ -22,7 +22,7 @@ Anjem is a campus ride-sharing platform composed of a Laravel 11 backend (`backe
 
 ## Daily Development Flow
 
-- Backend: `php artisan serve` + `php artisan reverb:start` + `php artisan queue:work` (ensure Redis is running).
+- Backend: `php artisan serve` + `php artisan reverb:start` + `php artisan queue:work` + `php artisan schedule:work` (ensure Redis is running). All four processes must be running — `schedule:work` drives the stale-driver kick and request cleanup jobs.
 - Mobile: `flutter run --flavor rider -t lib/main_rider.dart` or `flutter run --flavor driver -t lib/main_driver.dart`.
 - Keep Docker Postgres/Redis containers running, and rerun `build_runner` whenever annotated files change.
 
