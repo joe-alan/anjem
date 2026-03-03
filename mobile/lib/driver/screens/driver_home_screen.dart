@@ -22,15 +22,30 @@ class DriverHomeScreen extends ConsumerStatefulWidget {
   ConsumerState<DriverHomeScreen> createState() => _DriverHomeScreenState();
 }
 
-class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
+class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
+    with WidgetsBindingObserver {
   ProviderSubscription<RideRequest?>? _incomingRequestSub;
   ProviderSubscription<DriverStatusState>? _driverStatusSub;
   bool _isPresentingRideRequest = false;
   Timer? _locationUpdateTimer;
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Best-effort offline call when the OS is about to destroy the app.
+    // Reliable on iOS (applicationWillTerminate); partial on Android.
+    // The heartbeat-based KickStaleDrivers job is the backstop for hard kills.
+    if (state == AppLifecycleState.detached) {
+      final driverStatus = ref.read(driverStatusProvider);
+      if (driverStatus.isOnline && !driverStatus.hasActiveRide) {
+        ref.read(driverStatusProvider.notifier).goOffline();
+      }
+    }
+  }
+
+  @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Refresh statistics when screen loads
     Future.microtask(() {
       ref.refresh(driverStatisticsProvider);
@@ -122,6 +137,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _incomingRequestSub?.close();
     _driverStatusSub?.close();
     _stopIdleLocationUpdates();

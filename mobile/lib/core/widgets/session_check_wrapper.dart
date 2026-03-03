@@ -73,19 +73,29 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
 
       if (sessionState == null || sessionState.isIdle) {
         // No active session, go to default home screen.
-        // However, the driver may still be online on the backend (e.g. online
-        // with no active ride → state is idle).  Sync driver status so the UI
-        // doesn't incorrectly show "Offline".
+        // Sync driver status with backend. On a cold launch the driver may
+        // have been left online by a force-quit / crash. Always go offline in
+        // that case so they must tap "Go Online" again — this also clears the
+        // stale went_online_at on the backend (the webhook may not have fired).
+        // Background → foreground resumes are handled by _handleAppResume, not
+        // here, so this logic is safe for the M-7 (background resume) flow.
         Future.microtask(() {
           if (mounted) {
             final appConfig = AppConfig.instance;
             if (appConfig.isDriverApp &&
                 sessionState != null &&
                 sessionState.driverContext.isDriver) {
-              ref.read(driverStatusProvider.notifier).syncFromBackend(
-                isOnline: sessionState.driverContext.isOnline,
-                activeRideId: sessionState.driverContext.activeRideId,
-              );
+              final driverCtx = sessionState.driverContext;
+              if (driverCtx.isOnline && driverCtx.activeRideId == null) {
+                // Cold launch: backend still shows online but no active ride.
+                // Kick offline so the driver starts fresh each launch.
+                ref.read(driverStatusProvider.notifier).kickOfflineOnLaunch();
+              } else {
+                ref.read(driverStatusProvider.notifier).syncFromBackend(
+                  isOnline: driverCtx.isOnline,
+                  activeRideId: driverCtx.activeRideId,
+                );
+              }
             }
           }
         });

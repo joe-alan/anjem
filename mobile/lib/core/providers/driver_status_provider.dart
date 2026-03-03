@@ -179,8 +179,9 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
       final response = await _apiService.post('/driver/offline');
       print('DriverStatusProvider: goOffline API response: ${response.data}');
 
-      // Unsubscribe from driver channel
-      await _wsService.unsubscribeFromChannel('driver.$_driverId');
+      // Keep the driver channel subscription alive so session.replaced
+      // is received immediately if another device logs in while offline.
+      // The channel is unsubscribed on sign-out via wsService.disconnect().
 
       state = state.copyWith(
         status: DriverStatusEnum.offline,
@@ -323,6 +324,35 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
     state = state.copyWith(maxPickupRadiusKm: km);
   }
 
+  /// Called on cold app launch when the backend still shows the driver online
+  /// but there is no active ride (force-quit / crash left went_online_at set).
+  ///
+  /// Sets local state to offline, subscribes the driver channel so that
+  /// session.replaced is received immediately, and notifies the backend
+  /// (fire-and-forget — the heartbeat job is the backstop on error).
+  Future<void> kickOfflineOnLaunch() async {
+    if (_driverId == null) return;
+
+    print('DriverStatusProvider: kickOfflineOnLaunch — clearing stale online state');
+
+    state = state.copyWith(
+      status: DriverStatusEnum.offline,
+      activeRideId: null,
+      queuePosition: 0,
+    );
+
+    // Stay subscribed so session.replaced works while offline.
+    await _subscribeToRideRequests();
+
+    try {
+      await _apiService.post('/driver/offline');
+      print('DriverStatusProvider: kickOfflineOnLaunch — backend notified offline');
+    } catch (e) {
+      // Non-fatal: KickStaleDrivers heartbeat will clear it within ~90s.
+      print('DriverStatusProvider: kickOfflineOnLaunch — backend notify failed (non-fatal): $e');
+    }
+  }
+
   /// Sync driver status from backend session state
   /// Called during session resumption to match backend state
   Future<void> syncFromBackend({
@@ -336,7 +366,6 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         status: DriverStatusEnum.inActiveRide,
         activeRideId: activeRideId,
       );
-      // Still subscribe to ride requests in case ride completes
       await _subscribeToRideRequests();
     } else if (isOnline) {
       print('DriverStatusProvider: Syncing status - online');
@@ -344,7 +373,6 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         status: DriverStatusEnum.online,
         activeRideId: null,
       );
-      // Re-subscribe to ride requests when restoring online status
       await _subscribeToRideRequests();
     } else {
       print('DriverStatusProvider: Syncing status - offline');
@@ -352,6 +380,9 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         status: DriverStatusEnum.offline,
         activeRideId: null,
       );
+      // Subscribe even when offline so session.replaced is received
+      // immediately if another device logs in while this one is idle.
+      await _subscribeToRideRequests();
     }
   }
 }

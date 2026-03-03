@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/ride_request.dart';
 import '../../core/providers/api_provider.dart';
+import '../../core/services/api/api_exception.dart';
 import '../../core/providers/driver_incoming_request_provider.dart';
 import '../../core/providers/driver_status_provider.dart';
 import '../../core/providers/ride_request_provider.dart';
@@ -130,39 +131,39 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
         throw Exception('Invalid response from server');
       }
     } catch (e) {
-      print('RideRequestScreen: Error accepting ride - $e');
+      // Set _isDismissing synchronously before any async work so ref.listen
+      // cannot fire a competing pop while we handle the error.
+      _isDismissing = true;
+      _timer?.cancel();
 
-      setState(() {
-        _isProcessing = false;
-        _errorMessage = _parseError(e.toString());
-      });
-
-      // Show error and go back
       if (mounted) {
+        // Show snackbar first — it persists on the parent screen after pop.
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_errorMessage ?? 'Failed to accept ride'),
+            content: Text(_parseError(e)),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
-
-        // Go back after a delay
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            Navigator.of(context).pop();
-          }
-        });
+        // Pop immediately — no delayed pop, which could fire against the wrong
+        // route if the WS listener already removed this screen from the stack.
+        Navigator.of(context).pop();
       }
     }
   }
 
-  String _parseError(String error) {
-    if (error.contains('already accepted') || error.contains('409')) {
-      return 'This ride was already accepted by another driver';
-    } else if (error.contains('active ride') || error.contains('400')) {
-      return 'You already have an active ride';
-    } else if (error.contains('404')) {
-      return 'Ride request no longer available';
+  String _parseError(Object error) {
+    if (error is ApiException) {
+      if (error.statusCode == 410) {
+        return 'This ride request was cancelled by the rider';
+      } else if (error.statusCode == 409) {
+        return 'This ride was already accepted by another driver';
+      } else if (error.statusCode == 400) {
+        return 'You already have an active ride';
+      } else if (error.statusCode == 404) {
+        return 'Ride request no longer available';
+      }
+      return error.message;
     }
     return 'Failed to accept ride. Please try again.';
   }
