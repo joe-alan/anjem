@@ -188,6 +188,12 @@ class RideService
             // ✅ FIX: Throw specific exceptions instead of returning null
             if (! $rideRequest) {
                 DB::rollBack();
+                // Secondary lookup (no lock needed — just reading status) to give
+                // the driver a meaningful error: cancelled vs accepted by someone else.
+                $actualStatus = RideRequest::where('id', $rideRequestId)->value('status');
+                if (in_array($actualStatus, ['cancelled', 'expired'])) {
+                    throw new \Exception('This ride request was cancelled by the rider', 410);
+                }
                 throw new \Exception('This ride request has already been accepted by another driver', 409);
             }
 

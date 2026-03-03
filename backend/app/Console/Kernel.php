@@ -19,6 +19,14 @@ class Kernel extends ConsoleKernel
             app(RideService::class)->cleanupExpiredRequests();
             app(MatchingQueueService::class)->cleanupTimedOutRequests();
         })->everyFiveMinutes()->name('cleanup-expired-requests')->withoutOverlapping();
+
+        // Kick drivers who stopped sending heartbeats (app crash / force-quit).
+        // The mobile idle-location timer fires every 30 s; 90 s = 3 missed heartbeats.
+        $schedule->command('drivers:kick-stale --threshold=90')
+            ->everyMinute()
+            ->name('kick-stale-drivers')
+            ->withoutOverlapping()
+            ->runInBackground();
     }
 
     /**

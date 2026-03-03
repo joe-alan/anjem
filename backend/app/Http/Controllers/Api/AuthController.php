@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\DriverOnlineStatusChanged;
+use App\Events\SessionReplaced;
 use App\Http\Controllers\Controller;
 use App\Services\FirebaseAuthService;
+use App\Services\MatchingQueueService;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,7 +17,8 @@ class AuthController extends Controller
 {
     public function __construct(
         private FirebaseAuthService $firebaseAuth,
-        private NotificationService $notificationService
+        private NotificationService $notificationService,
+        private MatchingQueueService $matchingQueueService,
     ) {}
 
     public function authenticateWithFirebase(Request $request): JsonResponse
@@ -40,6 +44,39 @@ class AuthController extends Controller
             // Update FCM token if provided
             if ($request->fcm_token) {
                 $this->notificationService->updateUserToken($user->id, $request->fcm_token);
+            }
+
+            // For drivers: enforce single-session at login time.
+            // If the driver is currently online on another device, kick them offline
+            // and revoke old tokens before issuing the new one.  The old device
+            // receives SessionReplaced via WebSocket (broadcast before token deletion
+            // so it still has a moment to react) and must go online again explicitly.
+            if ($request->device_type === 'driver') {
+                $hasOtherTokens = $user->tokens()->exists();
+
+                if ($hasOtherTokens) {
+                    $driverProfile = $user->driverProfile;
+
+                    // Always broadcast SessionReplaced so the old device signs out
+                    // regardless of whether it was online or just idle on the home screen.
+                    broadcast(new SessionReplaced($user->id));
+
+                    if ($driverProfile?->isOnline()) {
+                        $this->matchingQueueService->removeFromQueue($user->id);
+                        $driverProfile->update(['went_online_at' => null]);
+                        broadcast(new DriverOnlineStatusChanged($user, false, null));
+
+                        \Log::info('AuthController: driver kicked offline on new login', [
+                            'driver_id' => $user->id,
+                        ]);
+                    }
+
+                    $user->tokens()->delete();
+
+                    \Log::info('AuthController: old driver sessions revoked on new login', [
+                        'driver_id' => $user->id,
+                    ]);
+                }
             }
 
             // Create token with role-based abilities (no expiration)

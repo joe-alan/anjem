@@ -130,6 +130,7 @@ class RideController extends Controller
         } catch (\Exception $e) {
             // ✅ FIX: Map exception codes to HTTP status codes
             $statusCode = match ($e->getCode()) {
+                410 => 410,  // Gone (cancelled by rider)
                 409 => 409,  // Conflict (already accepted by another driver)
                 404 => 404,  // Not found (expired/cancelled)
                 403 => 403,  // Forbidden (invalid driver credentials)
