@@ -9,18 +9,18 @@
 
 ## Status Summary
 
-| Test                                                                                  | Status        |
-| ------------------------------------------------------------------------------------- | ------------- |
-| [F-1 Full Happy Path](#f-1-full-happy-path)                                           | ✅ Pass       |
-| [H-1 FIFO Re-dispatch After Decline](#h-1-fifo-re-dispatch-after-decline)             | ✅ Pass       |
-| [H-2 Re-dispatch After App Kill (Timeout)](#h-2-re-dispatch-after-app-kill-timeout)   | ✅ Pass       |
-| [H-3 Rider Cancel Cooldown](#h-3-rider-cancel-cooldown)                               | ✅ Pass       |
-| [H-4 No-Drivers Countdown on Waiting Screen](#h-4-no-drivers-countdown-on-waiting-screen) | ⬜ Not tested |
-| [M-1 Driver State Desync on Reopen](#m-1-driver-state-desync-on-app-reopen)           | ⬜ Not tested |
-| [M-2 Single Session Enforcement](#m-2-single-session-enforcement)                     | ⬜ Not tested |
-| [L-1 Global 401 Handler](#l-1-global-401-handler-mid-session)                         | ⬜ Not tested |
-| [L-2 Stale Screen After Rider Cancels](#l-2-stale-screen-after-rider-cancels)         | ⬜ Not tested |
-| [L-3 Info Popup on Admin Cancel](#l-3-info-popup-on-admin-cancel)                     | ⬜ Not tested |
+| Test                                                                                                 | Status        |
+| ---------------------------------------------------------------------------------------------------- | ------------- |
+| [F-1 Full Happy Path](#f-1-full-happy-path)                                                          | ✅ Pass       |
+| [H-1 FIFO Re-dispatch After Decline](#h-1-fifo-re-dispatch-after-decline)                            | ✅ Pass       |
+| [H-2 Re-dispatch After App Kill (Timeout)](#h-2-re-dispatch-after-app-kill-timeout)                  | ✅ Pass       |
+| [H-3 Rider Cancel Cooldown](#h-3-rider-cancel-cooldown)                                              | ✅ Pass       |
+| [H-4 No-Drivers Countdown on Waiting Screen](#h-4-no-drivers-countdown-on-waiting-screen)            | ✅ Pass       |
+| [M-1 Driver Kicked Offline on Crash/Force-Quit](#m-1-driver-kicked-offline-on-app-crash--force-quit) | ⚠️ Partial    |
+| [M-2 Single Session Enforcement (Kick at Login)](#m-2-single-session-enforcement-kick-at-login-time) | ✅ Pass       |
+| [L-1 Global 401 Handler](#l-1-global-401-handler-mid-session)                                        | ✅ Pass       |
+| [L-2 Stale Screen After Rider Cancels](#l-2-stale-screen-after-rider-cancels)                        | ✅ Pass        |
+| [L-3 Info Popup on Admin Cancel](#l-3-info-popup-on-admin-cancel)                                    | ⏭️ Deferred   |
 
 > **Status key:** ⬜ Not tested · ✅ Pass · ❌ Fail · ⚠️ Partial
 
@@ -28,18 +28,18 @@
 
 ## Key Numbers
 
-| Value         | What                                                                 |
-| ------------- | -------------------------------------------------------------------- |
-| 35s           | Server-side timeout (`HandleRequestTimeout` job)                     |
-| ~30s          | Mobile UI countdown timer on driver's incoming request screen        |
-| 60s           | No-drivers countdown before request expires (shown on waiting screen)|
-| 60s           | Rider cooldown after cancel or request expiry                        |
-| 5             | FIFO candidate pool size (nearest-first selection picks from top 5)  |
-| 50 m          | Distance tiebreaker bucket — same bucket → longer-waiting wins       |
-| 15 min        | Driver penalty cooldown (6+ declines in window)                      |
-| 5 declines    | Driver moved to bottom of queue                                      |
-| 6 declines    | Driver suspended for 15 min                                          |
-| 15 min window | Decline count resets if no new decline for 15 min                   |
+| Value         | What                                                                  |
+| ------------- | --------------------------------------------------------------------- |
+| 35s           | Server-side timeout (`HandleRequestTimeout` job)                      |
+| ~30s          | Mobile UI countdown timer on driver's incoming request screen         |
+| 60s           | No-drivers countdown before request expires (shown on waiting screen) |
+| 60s           | Rider cooldown after cancel or request expiry                         |
+| 5             | FIFO candidate pool size (nearest-first selection picks from top 5)   |
+| 50 m          | Distance tiebreaker bucket — same bucket → longer-waiting wins        |
+| 15 min        | Driver penalty cooldown (6+ declines in window)                       |
+| 5 declines    | Driver moved to bottom of queue                                       |
+| 6 declines    | Driver suspended for 15 min                                           |
+| 15 min window | Decline count resets if no new decline for 15 min                     |
 
 ---
 
@@ -109,12 +109,12 @@ before cancelling. Step 3 cancellation flow requires two taps.
 
 **Edge case — no next driver:**
 
-| #   | Step                                    | Expected Output                                                           | Result |
-| --- | --------------------------------------- | ------------------------------------------------------------------------- | ------ |
-| E1  | Only Driver A online; Driver A declines | No next driver available                                                  |        |
-| E2  | Rider's waiting screen                  | Title stays "Finding Driver"; icon greys out; text changes to "No drivers available right now" + "Retrying in Ns…" inline |        |
-| E3  | Countdown reaches 0 (or WS expiry fires) | Rider auto-navigated to home screen                                      |        |
-| E4  | Rider tries to submit again immediately  | **60s cooldown error** shown (cooldown delivered via WS payload + API)   |        |
+| #   | Step                                     | Expected Output                                                                                                           | Result |
+| --- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------ |
+| E1  | Only Driver A online; Driver A declines  | No next driver available                                                                                                  |        |
+| E2  | Rider's waiting screen                   | Title stays "Finding Driver"; icon greys out; text changes to "No drivers available right now" + "Retrying in Ns…" inline |        |
+| E3  | Countdown reaches 0 (or WS expiry fires) | Rider auto-navigated to home screen                                                                                       |        |
+| E4  | Rider tries to submit again immediately  | **60s cooldown error** shown (cooldown delivered via WS payload + API)                                                    |        |
 
 **Log to watch (queue worker terminal):**
 
@@ -198,20 +198,20 @@ Edge case (Driver A reconnects within 35s):
 > WebSocket broadcast payload, so the mobile client receives the cooldown timestamp via WS
 > (not just via API response). Both paths should surface the same cooldown. Test both.
 
-| #   | Step                                                                                    | Expected Output                                       | Result |
-| --- | --------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------ |
-| 1   | Rider submits a request                                                                 | Waiting screen shows "Finding Driver"                 |        |
-| 2   | Rider taps **Cancel** → **confirms** in the dialog ("Yes, Cancel")                     | Cancel succeeds; rider auto-navigated to home         |        |
-| 3   | Rider tries to submit a new request immediately                                         | **Error shown: ~60 second cooldown**                  |        |
-| 4   | Wait 60 seconds, try again                                                              | Request goes through normally                         |        |
+| #   | Step                                                               | Expected Output                               | Result |
+| --- | ------------------------------------------------------------------ | --------------------------------------------- | ------ |
+| 1   | Rider submits a request                                            | Waiting screen shows "Finding Driver"         |        |
+| 2   | Rider taps **Cancel** → **confirms** in the dialog ("Yes, Cancel") | Cancel succeeds; rider auto-navigated to home |        |
+| 3   | Rider tries to submit a new request immediately                    | **Error shown: ~60 second cooldown**          |        |
+| 4   | Wait 60 seconds, try again                                         | Request goes through normally                 |        |
 
 **Edge case — expiry-based cooldown:**
 
-| #   | Step                                     | Expected Output                                                                      | Result |
-| --- | ---------------------------------------- | ------------------------------------------------------------------------------------ | ------ |
-| E1  | No drivers online; Rider submits request | Waiting screen eventually shows "No Drivers Available" countdown (~60s)              |        |
-| E2  | Countdown hits 0                         | Rider auto-navigated to home (either countdown safety-net or WS expiry event)        |        |
-| E3  | Rider tries to submit again immediately  | Same **60s cooldown error** (delivered via WS `rider_cooldown_until` or API)         |        |
+| #   | Step                                     | Expected Output                                                               | Result |
+| --- | ---------------------------------------- | ----------------------------------------------------------------------------- | ------ |
+| E1  | No drivers online; Rider submits request | Waiting screen eventually shows "No Drivers Available" countdown (~60s)       |        |
+| E2  | Countdown hits 0                         | Rider auto-navigated to home (either countdown safety-net or WS expiry event) |        |
+| E3  | Rider tries to submit again immediately  | Same **60s cooldown error** (delivered via WS `rider_cooldown_until` or API)  |        |
 
 **Notes / Observations:**
 
@@ -231,24 +231,24 @@ rider can request again would improve the experience.
 ## H-4: No-Drivers Countdown on Waiting Screen
 
 > When all drivers decline or none are online, the rider's waiting screen shows a countdown
-> inline — no separate screen.  Also tests re-dispatch when a driver joins mid-countdown.
+> inline — no separate screen. Also tests re-dispatch when a driver joins mid-countdown.
 > **Requires:** Rider only (ensure no drivers are online OR all online drivers will decline)
 
-| #   | Step                                                            | Expected Output                                                           | Result |
-| --- | --------------------------------------------------------------- | ------------------------------------------------------------------------- | ------ |
-| 1   | No drivers online; Rider submits a request                      | Waiting screen shows "Finding Driver" + spinning icon                     |        |
-| 2   | Server broadcasts `ride.no_drivers_available` (fires on decline/no-match) | Title stays "Finding Driver"; icon greys out; text changes to **"No drivers available right now"** + **"Retrying in Ns…"** |        |
-| 3   | Countdown ticks                                                 | Inline "Retrying in Ns…" text decrements every second                    |        |
-| 4   | Countdown reaches 0                                             | Rider is **auto-navigated to home screen** (safety-net path)              |        |
-| 5   | Alternatively: WS `ride.request.cancelled` arrives before countdown hits 0 | Rider is navigated home immediately; countdown cancelled | |
-| 6   | **New:** Driver comes online mid-countdown                      | Countdown clears; icon becomes active; text reverts to "Finding a driver for you…"; driver receives dispatch | |
+| #   | Step                                                                       | Expected Output                                                                                                            | Result |
+| --- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 1   | No drivers online; Rider submits a request                                 | Waiting screen shows "Finding Driver" + spinning icon                                                                      |        |
+| 2   | Server broadcasts `ride.no_drivers_available` (fires on decline/no-match)  | Title stays "Finding Driver"; icon greys out; text changes to **"No drivers available right now"** + **"Retrying in Ns…"** |        |
+| 3   | Countdown ticks                                                            | Inline "Retrying in Ns…" text decrements every second                                                                      |        |
+| 4   | Countdown reaches 0                                                        | Rider is **auto-navigated to home screen** (safety-net path)                                                               |        |
+| 5   | Alternatively: WS `ride.request.cancelled` arrives before countdown hits 0 | Rider is navigated home immediately; countdown cancelled                                                                   |        |
+| 6   | **New:** Driver comes online mid-countdown                                 | Countdown clears; icon becomes active; text reverts to "Finding a driver for you…"; driver receives dispatch               |        |
 
 **Edge case — WS event missed (no network at countdown end):**
 
-| #   | Step                                                  | Expected Output                                                           | Result |
-| --- | ----------------------------------------------------- | ------------------------------------------------------------------------- | ------ |
-| E1  | Airplane mode during countdown                        | Countdown still ticks (local timer is independent of WS)                  |        |
-| E2  | Countdown hits 0 while offline                        | Rider navigated to home via safety-net; no crash                          |        |
+| #   | Step                           | Expected Output                                          | Result |
+| --- | ------------------------------ | -------------------------------------------------------- | ------ |
+| E1  | Airplane mode during countdown | Countdown still ticks (local timer is independent of WS) |        |
+| E2  | Countdown hits 0 while offline | Rider navigated to home via safety-net; no crash         |        |
 
 **Log to watch (queue worker terminal):**
 
@@ -261,69 +261,157 @@ Processing job: ExpireRideRequest (fires 60s after no-drivers broadcast)
 **Notes / Observations:**
 
 ```
-(write here)
+Passed. All main steps confirmed as expected.
+- Waiting screen stayed on unified "Finding Driver" title throughout.
+- Icon greyed out and "No drivers available right now" + "Retrying in Ns…" appeared inline on no-driver broadcast.
+- Countdown ticked down correctly each second.
+- Countdown reached 0; rider auto-navigated to home via safety-net.
+- Driver joining mid-countdown: countdown cleared, icon became active, text reverted to
+  "Finding a driver for you…", and driver received dispatch correctly.
+
+Edge case (airplane mode / no network at countdown end): NOT tested — airplane mode on
+device does not cut connection to local dev server, so this edge case is not reproducible
+in the current test environment. Deferred.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅
 
 ---
 
-## M-1: Driver State Desync on App Reopen
+## M-1: Driver Kicked Offline on App Crash / Force-Quit
 
-> Bug: driver was online on backend, but UI showed "Offline" after app reopen.
+> When a driver force-quits (or crashes), the backend should remove them from the
+> queue and mark them offline.
+>
+> **Primary mechanism — `KickStaleDrivers` heartbeat (~90–150 s):**
+> The idle-location timer in `driver_home_screen.dart` fires every 30 s while the
+> driver is online and not in an active ride, updating `last_location_update`.
+> `KickStaleDrivers` (scheduled every 1 min) kicks any queued driver whose
+> `last_location_update` is older than 90 s.
+>
+> **Mobile safety net — `kickOfflineOnLaunch()` (immediate on reopen):**
+> On cold app launch, if the backend still shows the driver online with no active ride,
+> the app calls `POST /driver/offline` immediately and shows the driver as Offline.
+> Driver must tap Go Online again. Closes the UX gap where a driver reopens before
+> KickStaleDrivers has run.
+>
+> **Note — Reverb `channel_vacated` webhook (investigated and removed):**
+> A webhook-based instant-kick was implemented and investigated on physical device.
+> Reverb v1.6.0 source inspection confirmed: zero occurrences of "webhook" or
+> "channel_vacated" in vendor source — Reverb does not implement Pusher-style webhook
+> delivery. The `webhooks` config key is silently ignored. 0/10 webhook kicks observed.
+> All webhook code removed. Deferred — revisit if a future Reverb version adds support.
+>
 > **Requires:** Driver A
 
-| #   | Step                                                               | Expected Output                                 | Result |
-| --- | ------------------------------------------------------------------ | ----------------------------------------------- | ------ |
-| 1   | Driver goes **Online**                                             | Queue position visible; UI shows "Online"       |        |
-| 2   | **Force-kill** the driver app                                      |                                                 |        |
-| 3   | Reopen the app                                                     | UI immediately shows **Online** (not "Offline") |        |
-| 4   | Put app in background for **5+ minutes**, then bring to foreground | UI still shows **Online** after resume          |        |
+| #   | Step                                            | Expected Output                                                              | Result |
+| --- | ----------------------------------------------- | ---------------------------------------------------------------------------- | ------ |
+| 1   | Driver goes **Online**                          | Queue position visible; UI shows "Online"                                    |        |
+| 2   | **Force-kill** the driver app                   | Backend still shows driver online; KickStaleDrivers clears within ~90–150 s  |        |
+| 3   | Reopen the driver app **before** kick runs      | `kickOfflineOnLaunch()` fires → UI shows **Offline** immediately             |        |
+| 4   | Driver taps **Go Online** again                 | Rejoins queue at the back; queue position assigned                           |        |
+| 5   | Force-kill and wait **>150 s** before reopening | KickStaleDrivers log shows kick; backend shows offline on reopen             |        |
 
-**Edge case — offline on reopen:**
+**Edge case — driver in active ride when app crashes:**
 
-| #   | Step                                          | Expected Output                | Result |
-| --- | --------------------------------------------- | ------------------------------ | ------ |
-| E1  | Driver goes **Offline**, then force-kills app |                                |        |
-| E2  | Reopen app                                    | UI correctly shows **Offline** |        |
+| #   | Step                                                 | Expected Output                                                              | Result |
+| --- | ---------------------------------------------------- | ---------------------------------------------------------------------------- | ------ |
+| E4  | Driver accepts a ride, then force-kills app mid-ride | `kickOfflineOnLaunch()` skips kick (active ride detected); ride continues    |        |
+| E5  | Reopen the app                                       | `syncFromBackend()` restores active ride state; ride continues               |        |
+
+**Log to watch (scheduler terminal):**
+
+```
+[Illuminate\Console\Scheduling\Event] Running scheduled command: drivers:kick-stale --threshold=90
+[KICKING] driver_id=X  last_heartbeat=NNs ago
+KickStaleDrivers: driver force-kicked offline {"driver_id":X, ...}
+```
 
 **Notes / Observations:**
 
 ```
-(write here)
+Tested 2026-03-03 on physical device. 10 force-kill + reopen cycles.
+
+Reverb channel_vacated webhook (investigated and removed):
+- Webhook was implemented but had never fired. Two root causes found during investigation:
+  1. APP_URL=http://localhost (no port) → webhook POSTed to port 80 → conn refused.
+  2. After URL fix, still 0/10 webhook kicks. Reverb v1.6.0 source inspection confirmed:
+     zero occurrences of "webhook" or "channel_vacated" in vendor source.
+     Reverb simply does not implement Pusher-style webhook delivery.
+- The 1/10 apparent success observed was kickOfflineOnLaunch() (mobile fix), not webhook.
+- All webhook code removed: ReverbWebhookController.php, route, config block, .env key.
+
+KickStaleDrivers heartbeat:
+- Consistent ~90–150s detection across all 10 runs. Kick log confirmed every run.
+- Sole reliable backend detection mechanism.
+
+kickOfflineOnLaunch() (mobile):
+- On cold launch, if backend shows online with no active ride: calls POST /driver/offline,
+  sets local state to offline immediately. Driver must tap Go Online again.
+- Closes the gap between force-quit and the KickStaleDrivers detection window.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ⚠️ Partial — no instant backend kick on force-quit (Reverb webhooks unsupported). KickStaleDrivers clears within ~90–150 s consistently. `kickOfflineOnLaunch()` ensures correct UI on reopen. Acceptable for current phase.
 
 ---
 
-## M-2: Single Session Enforcement
+## M-2: Single Session Enforcement (Kick at Login Time)
 
-> Same driver account active on 2 devices simultaneously should not be allowed.
+> Same driver account logged in on 2 devices simultaneously is not allowed.
+> Session kick now happens at **login**, not at "Go Online".
+> When Device A2 authenticates, Device A1 is immediately kicked offline and signed out.
+> Device A2 starts in the **Offline** state — driver must tap "Go Online" explicitly.
 > **Requires:** Driver A on 2 physical devices (Device A1, Device A2)
 
-| #   | Step                                                 | Expected Output                                                                     | Result |
-| --- | ---------------------------------------------------- | ----------------------------------------------------------------------------------- | ------ |
-| 1   | Driver logs into **Device A1**, goes **Online**      | Device A1 active                                                                    |        |
-| 2   | Driver logs into **Device A2** with same credentials | Login succeeds                                                                      |        |
-| 3   | Driver taps **Go Online** on **Device A2**           |                                                                                     |        |
-| 4   | **Device A1**                                        | Receives `session.replaced` event → **auto signs out** → redirected to login screen |        |
-| 5   | **Device A2**                                        | Goes online successfully; queue position shows                                      |        |
+| #   | Step                                                 | Expected Output                                                                                                            | Result |
+| --- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 1   | Driver logs into **Device A1**, taps **Go Online**   | Device A1 online; queue position shows                                                                                     |        |
+| 2   | Driver logs into **Device A2** with same credentials | Login API call kicks Device A1: `removeFromQueue`, `went_online_at = null`, `SessionReplaced` broadcast, old token deleted |        |
+| 3   | **Device A1** (while still open)                     | Receives `session.replaced` WS event → **auto signs out** → redirected to login screen                                     |        |
+| 4   | **Device A2** immediately after login                | Starts as **Offline** — no queue position shown; must tap "Go Online"                                                      |        |
+| 5   | Driver taps **Go Online** on Device A2               | Goes online normally; queue position assigned from back of queue                                                           |        |
 
-**Edge case — Device A1 has no network when A2 goes online:**
+**Edge case — Device A1 has no network when A2 logs in:**
 
-| #   | Step                                                          | Expected Output                               | Result |
-| --- | ------------------------------------------------------------- | --------------------------------------------- | ------ |
-| E1  | Device A1 goes offline (airplane mode), Device A2 goes online | Device A1 token revoked silently              |        |
-| E2  | Device A1 comes back online and makes any API call            | Gets **401** → 401 handler redirects to login |        |
+| #   | Step                                                   | Expected Output                                                                                         | Result |
+| --- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- | ------ |
+| E1  | Device A1 has no network; Driver A logs into Device A2 | `SessionReplaced` broadcast fires but A1 can't receive it; token revoked server-side | Skipped (local server) |
+| E2  | Device A1 comes back online and makes any API call     | Gets **401** → global 401 handler redirects to login                                                    |        |
+
+**Edge case — Driver A1 was offline (idle on home screen) when A2 logs in:**
+
+| #   | Step                                                         | Expected Output                                                                                 | Result |
+| --- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- | ------ |
+| E3  | Driver A1 is offline (idle on home screen); Driver A2 logs in | `SessionReplaced` always broadcast now (not gated on isOnline); A1 receives it → auto signs out | ✅     |
+| E4  | Device A2 starts as **Offline**, taps "Go Online"            | Goes online normally                                                                            | ✅     |
+
+**Log to watch (backend):**
+
+```
+AuthController: old driver sessions revoked on new login  {"driver_id": X}
+AuthController: driver kicked offline on new login  {"driver_id": X}  ← only if was online
+```
 
 **Notes / Observations:**
 
 ```
-(write here)
+Main test (steps 1–5): passed as expected.
+E1: skipped — local dev server, cannot isolate device network.
+E3/E4: passed. Required two fixes:
+  1. Backend (AuthController): moved SessionReplaced broadcast outside the isOnline
+     guard — it now always fires when a new login invalidates old tokens, regardless
+     of whether the old device was online or idle.
+  2. Mobile (driver_status_provider): syncFromBackend(offline) now also calls
+     _subscribeToRideRequests(), so the driver channel is subscribed as soon as
+     the app loads — not only when the driver taps Go Online. Without this,
+     session.replaced had no listener on A1 while it was idle/offline.
+     WebSocketService already guards against double-subscription, so the channel
+     is only opened once and stays alive through offline↔online transitions.
+Note: if A1's app is fully closed, the WS event won't reach it — it will be redirected
+  to login on next API call via the 401 handler (existing behavior, confirmed working).
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅
 
 ---
 
@@ -341,10 +429,13 @@ Processing job: ExpireRideRequest (fires 60s after no-drivers broadcast)
 **Notes / Observations:**
 
 ```
-(write here)
+Tested 2026-03-03 on physical device. Passed as expected.
+Deleted token from personal_access_tokens where tokenable_id = {user_id}.
+Next API action in app triggered 401 → global handler redirected to login screen.
+No generic error shown, no crash.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅
 
 ---
 
@@ -353,11 +444,11 @@ Processing job: ExpireRideRequest (fires 60s after no-drivers broadcast)
 > Driver's incoming request screen should auto-dismiss when rider cancels.
 > **Requires:** Driver A, Rider
 
-| #   | Step                                   | Expected Output                                                    | Result |
-| --- | -------------------------------------- | ------------------------------------------------------------------ | ------ |
-| 1   | Rider submits request                  | Driver A receives incoming request card                            |        |
-| 2   | Rider taps **Cancel** → confirms dialog |                                                                   |        |
-| 3   | Driver A's screen                      | Incoming request card **auto-dismisses** (no manual action needed) |        |
+| #   | Step                                    | Expected Output                                                    | Result |
+| --- | --------------------------------------- | ------------------------------------------------------------------ | ------ |
+| 1   | Rider submits request                   | Driver A receives incoming request card                            |        |
+| 2   | Rider taps **Cancel** → confirms dialog |                                                                    |        |
+| 3   | Driver A's screen                       | Incoming request card **auto-dismisses** (no manual action needed) |        |
 
 **Edge case — race condition:**
 
@@ -368,10 +459,28 @@ Processing job: ExpireRideRequest (fires 60s after no-drivers broadcast)
 **Notes / Observations:**
 
 ```
-(write here)
+Tested 2026-03-03 on physical device.
+
+Main test (steps 1–3): passed. Incoming request card auto-dismissed on driver's screen
+when rider cancelled. No manual action required.
+
+Edge case — race condition (rider cancels + driver taps Accept simultaneously):
+Two bugs found and fixed before pass:
+  1. Wrong error message: driver saw "another driver already accepted" instead of
+     "cancelled by the rider". Root cause: RideService used a single lockForUpdate()
+     query that returned null for both cancelled AND accepted-by-another — no distinction.
+     Fix: added secondary status lookup after null result → throws 410 for cancelled,
+     409 for accepted-by-another. RideController mapped 410 → HTTP 410.
+  2. Black screen after error: Future.delayed(2s, Navigator.pop) fired against the
+     wrong route when the WS event popped RideRequestScreen before the API response
+     returned. Fix: removed delayed pop entirely; pop immediately in catch block after
+     setting _isDismissing = true synchronously. _parseError now uses ApiException
+     type directly (statusCode field) rather than string matching on toString().
+After fixes: cancel wins → driver sees correct snackbar "cancelled by the rider" and
+returns to home screen cleanly. Accept wins → rider notified of match as expected.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅
 
 ---
 
@@ -399,44 +508,52 @@ Processing job: ExpireRideRequest (fires 60s after no-drivers broadcast)
 **Notes / Observations:**
 
 ```
-(write here)
+Deferred — all admin-facing tests are being grouped and will run once admin
+functionality is fully implemented.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ⏭️ Deferred
 
 ---
 
 ## Bugs Found During Testing
 
-| #   | Test | Description | Severity | Fixed? |
-| --- | ---- | ----------- | -------- | ------ |
-| 1   | F-1  | `QUEUE_CONNECTION=sync` caused `HandleRequestTimeout` to fire immediately (delay ignored), expiring every ride request on creation | Critical | ✅ Changed to `redis`, added `REDIS_CLIENT=predis` |
-| 2   | F-1  | Both drivers received the ride request simultaneously — stale screen not dismissed on re-dispatch. `acceptRideRequest()` also had no `current_driver_id` guard, letting any driver accept | High | ✅ Added `current_driver_id` check in `RideService`; `handleDeclineOrTimeout()` now broadcasts `ride.request.cancelled` to previous driver after re-dispatch |
-| 3   | F-1  | Black screen after tapping Accept or Decline — double `Navigator.pop()` from `_clearIncomingRequest()` triggering `ref.listen` while screen also called pop/pushReplacement. Decline had no try/catch, leaving screen frozen on network error | High | ✅ Added `_isDismissing` flag to `ride_request_screen.dart`; added try/catch to `_declineRide()` and `_autoDecline()` |
-| 4   | F-1  | Rider could not submit new request after request expired — `_fetchMatchViaApi()` only cleared state for `cancelled`, not `expired`. Also `RideRequestStatus` enum was missing `completed` case (parsed silently as `pending`) | High | ✅ Added `expired` + `completed` to terminal status check; added `completed` to `RideRequestStatus` enum and `_parseStatus()` |
-| 5   | F-1  | Queue position not updating for other drivers when a driver joins/leaves — `broadcastQueuePosition()` only notified the driver whose status changed | Medium | ✅ Added `broadcastAllQueuePositions()` to `MatchingQueueService`; called on all queue mutations |
-| 6   | F-1  | Accepting driver stayed at position 1 throughout entire ride — other drivers could not move up until the ride completed | Medium | ✅ `RideController::accept()` now calls `removeFromQueue()` immediately after ride is created |
-| 7   | H-1  | Nearest-first matching not working — driver home screen never sent location updates while idle; all drivers had stale coordinates from last active ride | High | ✅ Added 30s periodic idle location update timer to `driver_home_screen.dart` |
-| 8   | H-1  | Rider kicked to home screen when driver declined (re-dispatch) — `RideRequestCancelled` always broadcast to rider channel even for re-dispatch dismissals | High | ✅ Added `notifyRider` flag to `RideRequestCancelled`; `handleDeclineOrTimeout` passes `notifyRider: false` |
-| 9   | H-4  | No countdown shown when rider submits request with zero drivers online — `RequestController` only logged, never called `handleNoDriversFound()` | High | ✅ Added `handleNoDriversFound()` call to `RequestController` else branch |
+| #   | Test | Description                                                                                                                                                                                                                                   | Severity | Fixed?                                                                                                                                                       |
+| --- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | F-1  | `QUEUE_CONNECTION=sync` caused `HandleRequestTimeout` to fire immediately (delay ignored), expiring every ride request on creation                                                                                                            | Critical | ✅ Changed to `redis`, added `REDIS_CLIENT=predis`                                                                                                           |
+| 2   | F-1  | Both drivers received the ride request simultaneously — stale screen not dismissed on re-dispatch. `acceptRideRequest()` also had no `current_driver_id` guard, letting any driver accept                                                     | High     | ✅ Added `current_driver_id` check in `RideService`; `handleDeclineOrTimeout()` now broadcasts `ride.request.cancelled` to previous driver after re-dispatch |
+| 3   | F-1  | Black screen after tapping Accept or Decline — double `Navigator.pop()` from `_clearIncomingRequest()` triggering `ref.listen` while screen also called pop/pushReplacement. Decline had no try/catch, leaving screen frozen on network error | High     | ✅ Added `_isDismissing` flag to `ride_request_screen.dart`; added try/catch to `_declineRide()` and `_autoDecline()`                                        |
+| 4   | F-1  | Rider could not submit new request after request expired — `_fetchMatchViaApi()` only cleared state for `cancelled`, not `expired`. Also `RideRequestStatus` enum was missing `completed` case (parsed silently as `pending`)                 | High     | ✅ Added `expired` + `completed` to terminal status check; added `completed` to `RideRequestStatus` enum and `_parseStatus()`                                |
+| 5   | F-1  | Queue position not updating for other drivers when a driver joins/leaves — `broadcastQueuePosition()` only notified the driver whose status changed                                                                                           | Medium   | ✅ Added `broadcastAllQueuePositions()` to `MatchingQueueService`; called on all queue mutations                                                             |
+| 6   | F-1  | Accepting driver stayed at position 1 throughout entire ride — other drivers could not move up until the ride completed                                                                                                                       | Medium   | ✅ `RideController::accept()` now calls `removeFromQueue()` immediately after ride is created                                                                |
+| 7   | H-1  | Nearest-first matching not working — driver home screen never sent location updates while idle; all drivers had stale coordinates from last active ride                                                                                       | High     | ✅ Added 30s periodic idle location update timer to `driver_home_screen.dart`                                                                                |
+| 8   | H-1  | Rider kicked to home screen when driver declined (re-dispatch) — `RideRequestCancelled` always broadcast to rider channel even for re-dispatch dismissals                                                                                     | High     | ✅ Added `notifyRider` flag to `RideRequestCancelled`; `handleDeclineOrTimeout` passes `notifyRider: false`                                                  |
+| 9   | H-4  | No countdown shown when rider submits request with zero drivers online — `RequestController` only logged, never called `handleNoDriversFound()`                                                                                               | High     | ✅ Added `handleNoDriversFound()` call to `RequestController` else branch                                                                                    |
+| 10  | M-1  | Force-quit left driver online for up to 2–3 minutes — `KickStaleDrivers` was the only removal path (90 s threshold + scheduler lag). Reverb webhook attempted but Reverb v1.6.0 does not implement webhook delivery (source confirmed, 0/10 on physical device). Webhook code removed. | High | ✅ `kickOfflineOnLaunch()` added to mobile — driver always starts offline on cold launch, calls `POST /driver/offline` immediately. KickStaleDrivers remains sole backend path (~90–150 s). |
+| 11  | —    | Two drivers joining the queue at the same millisecond both showed queue position #1 — `getQueuePosition()` used strict `<` on `queue_joined_at`; same-timestamp entries counted zero drivers ahead of themselves                            | Medium   | ✅ Added `user_id` tiebreaker to `getQueuePosition()` — same-timestamp drivers are ordered deterministically by ID                                           |
+| 12  | L-2  | Race condition: rider cancels while driver taps Accept — driver saw "already accepted by another driver" instead of "cancelled by the rider". Root cause: `lockForUpdate().where('status','pending')` returns null for both cancelled and accepted-by-another with no distinction | High | ✅ Added secondary status lookup in `RideService::acceptRideRequest()` — throws 410 for cancelled/expired, 409 for accepted-by-another. `RideController` maps 410 → HTTP 410 |
+| 13  | L-2  | Black screen after race condition error — `Future.delayed(2s, Navigator.pop)` fired against `DriverHomeScreen` when WS event had already popped `RideRequestScreen` before the API response returned, and `mounted` was still true on the disposed widget | High | ✅ Removed delayed pop entirely; pop immediately in catch block. `_isDismissing = true` set synchronously before any async work. `_parseError` now uses `ApiException.statusCode` directly |
 
 ---
 
 ## Changes Committed This Session (2026-03-02)
 
-| File | Change | Affects |
-| ---- | ------ | ------- |
-| `MatchingQueueService.php` | Nearest-first matching (top-5 FIFO pool, closest wins). `TIEBREAKER_DISTANCE_METERS=50` | H-1 |
-| `MatchingQueueService.php` | `addToQueue()` calls `tryDispatchPendingRequest()` — re-dispatches unmatched requests to newly-joined driver | H-4 step 6 |
-| `MatchingQueueService.php` | Extracted `handleNoDriversFound()` public method; called from both `handleDeclineOrTimeout` and `RequestController` | H-4 step 1 (zero-driver immediate countdown) |
-| `RequestController.php` | `else` branch on no driver found now calls `handleNoDriversFound()` — rider sees countdown immediately on zero-driver requests | H-4, H-3 edge case |
-| `ExpireRideRequest.php` | Defers expiry by 60s if `current_driver_id` is set (new driver dispatched during countdown) | H-4 step 6 |
-| `RideSearchResumed.php` | New event — broadcasts `ride.search.resumed` to rider when search restarts | H-4 step 6 |
-| `RideRequestCancelled.php` | `notifyRider` flag — re-dispatch does not broadcast to rider channel | H-1 edge case (rider stays on waiting screen) |
-| `waiting_screen.dart` | Unified screen — no separate "No Drivers Available" view; countdown shown inline; title always "Finding Driver" | H-3, H-4 |
-| `ride_request_provider.dart` | `noDriversAvailableUntil` state; `resumeSearch()` clears it; `onSearchResumed` WS callback | H-4 |
-| `websocket_service.dart` | `onNoDriversAvailable`, `onRequestExpired`, `onSearchResumed` callbacks in `subscribeToUserChannel` | H-4 |
-| `driver_home_screen.dart` | 30s idle location update timer — drivers send location while online and not in active ride | Nearest-first accuracy |
+| File                         | Change                                                                                                                         | Affects                                       |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------- |
+| `MatchingQueueService.php`   | Nearest-first matching (top-5 FIFO pool, closest wins). `TIEBREAKER_DISTANCE_METERS=50`                                        | H-1                                           |
+| `MatchingQueueService.php`   | `addToQueue()` calls `tryDispatchPendingRequest()` — re-dispatches unmatched requests to newly-joined driver                   | H-4 step 6                                    |
+| `MatchingQueueService.php`   | Extracted `handleNoDriversFound()` public method; called from both `handleDeclineOrTimeout` and `RequestController`            | H-4 step 1 (zero-driver immediate countdown)  |
+| `RequestController.php`      | `else` branch on no driver found now calls `handleNoDriversFound()` — rider sees countdown immediately on zero-driver requests | H-4, H-3 edge case                            |
+| `ExpireRideRequest.php`      | Defers expiry by 60s if `current_driver_id` is set (new driver dispatched during countdown)                                    | H-4 step 6                                    |
+| `RideSearchResumed.php`      | New event — broadcasts `ride.search.resumed` to rider when search restarts                                                     | H-4 step 6                                    |
+| `RideRequestCancelled.php`   | `notifyRider` flag — re-dispatch does not broadcast to rider channel                                                           | H-1 edge case (rider stays on waiting screen) |
+| `waiting_screen.dart`        | Unified screen — no separate "No Drivers Available" view; countdown shown inline; title always "Finding Driver"                | H-3, H-4                                      |
+| `ride_request_provider.dart` | `noDriversAvailableUntil` state; `resumeSearch()` clears it; `onSearchResumed` WS callback                                     | H-4                                           |
+| `websocket_service.dart`     | `onNoDriversAvailable`, `onRequestExpired`, `onSearchResumed` callbacks in `subscribeToUserChannel`                            | H-4                                           |
+| `driver_home_screen.dart`    | 30s idle location update timer — drivers send location while online and not in active ride                                     | Nearest-first accuracy                        |
+| `driver_status_provider.dart` | Added `kickOfflineOnLaunch()` — on cold launch with no active ride, calls `POST /driver/offline` and sets local state to offline | M-1 (UX fix on reopen)   |
+| `session_check_wrapper.dart`  | `_checkSession()` calls `kickOfflineOnLaunch()` instead of `syncFromBackend(online)` when driver is online with no active ride  | M-1 (UX fix on reopen)   |
+| `MatchingQueueService.php`   | `getQueuePosition()`: added `user_id` tiebreaker for same-timestamp entries — prevents two drivers from both seeing #1         | Bug #11                                       |
 
 ---
 
