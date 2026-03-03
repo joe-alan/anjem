@@ -368,9 +368,17 @@ class MatchingQueueService
             return 0;
         }
 
+        // Use user_id as a tiebreaker for drivers who joined at the exact same timestamp,
+        // ensuring a stable, deterministic position and preventing both from showing #1.
         $position = DriverProfile::inQueue()
             ->notInCooldown()
-            ->where('queue_joined_at', '<', $profile->queue_joined_at)
+            ->where(function ($q) use ($profile) {
+                $q->where('queue_joined_at', '<', $profile->queue_joined_at)
+                    ->orWhere(function ($q2) use ($profile) {
+                        $q2->where('queue_joined_at', $profile->queue_joined_at)
+                            ->where('user_id', '<', $profile->user_id);
+                    });
+            })
             ->count();
 
         return $position + 1;
