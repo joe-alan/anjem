@@ -23,10 +23,13 @@ class RideService
 
     private QueueService $queueService;
 
-    public function __construct(LocationService $locationService, QueueService $queueService)
+    private CreditService $creditService;
+
+    public function __construct(LocationService $locationService, QueueService $queueService, CreditService $creditService)
     {
         $this->locationService = $locationService;
         $this->queueService = $queueService;
+        $this->creditService = $creditService;
     }
 
     /**
@@ -237,6 +240,9 @@ class RideService
                 DB::rollBack();
                 throw new \Exception('You cannot accept a ride while you have an active ride as a rider.', 400);
             }
+
+            // Deduct one credit for accepting this ride
+            $this->creditService->deductCredit($driverId, $rideRequest->id);
 
             // Create the ride
             $ride = Ride::create([

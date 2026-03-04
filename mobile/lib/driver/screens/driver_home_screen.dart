@@ -6,6 +6,7 @@ import '../../core/config/app_config.dart';
 import '../../core/models/ride_request.dart';
 import '../../core/providers/api_provider.dart';
 import '../../core/providers/driver_incoming_request_provider.dart';
+import '../../core/providers/credits_provider.dart';
 import '../../core/providers/driver_status_provider.dart';
 import '../../core/providers/driver_statistics_provider.dart';
 import '../../core/providers/auth_provider.dart';
@@ -172,6 +173,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     final driverStatus = ref.watch(driverStatusProvider);
     final statisticsAsync = ref.watch(driverStatisticsProvider);
     final isDriverVerified = ref.watch(isDriverVerifiedProvider);
+    final creditsAsync = ref.watch(creditsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -200,6 +202,30 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         backgroundColor: config.primaryColor,
         foregroundColor: Colors.white,
         actions: [
+          // Credit balance chip
+          creditsAsync.whenData(
+            (balance) => Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: Chip(
+                label: Text(
+                  'Credits: $balance',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: balance == 0 ? Colors.white : Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                backgroundColor: balance == 0
+                    ? Colors.red[700]
+                    : balance < 5
+                        ? Colors.orange[700]
+                        : Colors.green[700],
+                padding: EdgeInsets.zero,
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+          ).value ??
+              const SizedBox.shrink(),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
@@ -540,6 +566,55 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                       ),
                     ),
                   ),
+
+                // Low-credit warning (only when offline)
+                if (!driverStatus.isOnline)
+                  creditsAsync.whenData((balance) {
+                    if (balance == 0) {
+                      return Card(
+                        color: Colors.red[50],
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.credit_card_off,
+                                  color: Colors.red, size: 28),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Text(
+                                  'You have no credits. Contact admin to top up before going online.',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    } else if (balance < 5) {
+                      return Card(
+                        color: Colors.orange[50],
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.warning_amber,
+                                  color: Colors.orange, size: 28),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Low credits: $balance remaining. Contact admin to top up soon.',
+                                  style:
+                                      const TextStyle(color: Colors.deepOrange),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  }).value ??
+                      const SizedBox.shrink(),
 
                 const SizedBox(height: 24),
 
