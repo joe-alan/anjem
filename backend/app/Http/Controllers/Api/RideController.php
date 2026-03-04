@@ -134,6 +134,7 @@ class RideController extends Controller
                 409 => 409,  // Conflict (already accepted by another driver)
                 404 => 404,  // Not found (expired/cancelled)
                 403 => 403,  // Forbidden (invalid driver credentials)
+                402 => 402,  // Insufficient credits
                 400 => 400,  // Bad request (driver has active ride)
                 default => 500,  // Internal server error
             };

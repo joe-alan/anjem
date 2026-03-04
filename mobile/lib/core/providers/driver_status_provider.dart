@@ -4,6 +4,7 @@ import '../services/api/api_service.dart';
 import '../services/websocket/websocket_service.dart';
 import 'api_provider.dart';
 import 'auth_provider.dart'; // also used for authStateProvider (session.replaced)
+import 'credits_provider.dart';
 import 'driver_incoming_request_provider.dart';
 import 'kyc_provider.dart';
 
@@ -113,6 +114,21 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         error: 'Please wait for your profile to load, then try again',
       );
       return;
+    }
+
+    // Credit gate: driver must have at least 1 credit to go online
+    try {
+      final creditService = _ref.read(creditServiceProvider);
+      final balance = await creditService.getBalance();
+      if (balance < 1) {
+        state = state.copyWith(
+          error:
+              'You need at least 1 credit to go online. Contact admin to top up.',
+        );
+        return;
+      }
+    } catch (_) {
+      // If credit check fails, allow online — do not block on network errors
     }
 
     state = state.copyWith(isLoading: true, error: null);
