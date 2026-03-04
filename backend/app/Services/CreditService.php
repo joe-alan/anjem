@@ -30,6 +30,10 @@ class CreditService
      */
     public function deductCredit(int $driverId, int $rideId): void
     {
+        if (DB::transactionLevel() === 0) {
+            throw new \LogicException('deductCredit must be called within a DB transaction');
+        }
+
         $profile = DriverProfile::where('user_id', $driverId)->lockForUpdate()->first();
 
         if (! $profile || $profile->credits_balance < 1) {
@@ -59,6 +63,10 @@ class CreditService
      */
     public function addCredits(int $driverId, int $amount, string $description = 'Admin grant'): void
     {
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException('Amount must be positive');
+        }
+
         DB::transaction(function () use ($driverId, $amount, $description) {
             $profile = DriverProfile::where('user_id', $driverId)->lockForUpdate()->first();
 
