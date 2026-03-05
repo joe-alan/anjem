@@ -9,6 +9,12 @@ class WebSocketService {
 
   bool _isInitialized = false;
   bool _isConnected = false;
+  bool _intentionalDisconnect = false;
+
+  // Reconnect state
+  Timer? _reconnectTimer;
+  int _reconnectAttempts = 0;
+  static const int _maxReconnectDelaySecs = 30;
 
   final Map<String, dynamic> _channels = {};
   final StreamController<WsConnectionState> _connectionStateController =
@@ -20,6 +26,31 @@ class WebSocketService {
   bool get isConnected => _isConnected;
 
   WebSocketService({required ApiService apiService}) : _apiService = apiService;
+
+  void _scheduleReconnect() {
+    _reconnectTimer?.cancel();
+    // Exponential backoff: 2s, 4s, 8s, 16s, 30s (capped)
+    final delaySecs = (_reconnectAttempts < 4
+            ? (2 << _reconnectAttempts) // 2, 4, 8, 16
+            : _maxReconnectDelaySecs)
+        .clamp(2, _maxReconnectDelaySecs);
+    _reconnectAttempts++;
+    _reconnectTimer = Timer(Duration(seconds: delaySecs), () {
+      if (_intentionalDisconnect) return;
+      _pusher?.connect();
+    });
+  }
+
+  void _resubscribeChannels() {
+    if (_channels.isEmpty) return;
+    for (final entry in _channels.entries) {
+      try {
+        entry.value.subscribe();
+      } catch (e, st) {
+        print('Failed to resubscribe to ${entry.key}: $e\n$st');
+      }
+    }
+  }
 
   Future<void> initialize() async {
     if (_isInitialized) return;
@@ -55,7 +86,10 @@ class WebSocketService {
       _pusher!.onConnectionEstablished((data) {
         print('Connection established: $data');
         _isConnected = true;
+        _reconnectAttempts = 0;
+        _reconnectTimer?.cancel();
         _connectionStateController.add(WsConnectionState.connected);
+        _resubscribeChannels();
       });
 
       // Setup error listener
@@ -63,6 +97,7 @@ class WebSocketService {
         print('WebSocket connection error: $error');
         _isConnected = false;
         _connectionStateController.add(WsConnectionState.disconnected);
+        if (!_intentionalDisconnect) _scheduleReconnect();
       });
 
       // Setup disconnected listener
@@ -70,6 +105,7 @@ class WebSocketService {
         print('WebSocket disconnected: $data');
         _isConnected = false;
         _connectionStateController.add(WsConnectionState.disconnected);
+        if (!_intentionalDisconnect) _scheduleReconnect();
       });
 
       // Setup general error listener
@@ -91,6 +127,7 @@ class WebSocketService {
     }
 
     try {
+      _intentionalDisconnect = false;
       _connectionStateController.add(WsConnectionState.connecting);
       _pusher?.connect();
       print('Connecting to WebSocket...');
@@ -102,6 +139,9 @@ class WebSocketService {
 
   Future<void> disconnect() async {
     if (!_isInitialized || _pusher == null) return;
+
+    _intentionalDisconnect = true;
+    _reconnectTimer?.cancel();
 
     try {
       // Unsubscribe from all channels
