@@ -11,7 +11,9 @@ class CreditService {
   Future<int> getBalance() async {
     try {
       final response = await _apiService.get('/driver/credits/balance');
-      return (response.data['data']['balance'] as num).toInt();
+      final data = response.data['data'];
+      if (data == null || data['balance'] == null) return 0;
+      return (data['balance'] as num).toInt();
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     }
@@ -20,8 +22,9 @@ class CreditService {
   Future<List<CreditTransaction>> getTransactions() async {
     try {
       final response = await _apiService.get('/driver/credits/transactions');
-      final list = response.data['data'] as List<dynamic>;
-      return list
+      final raw = response.data['data'];
+      if (raw is! List) return [];
+      return raw
           .map((e) => CreditTransaction.fromJson(e as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
