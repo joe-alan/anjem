@@ -28,7 +28,7 @@ class CreditService
      * Deduct one credit for accepting a ride.
      * Must be called inside an existing DB transaction.
      */
-    public function deductCredit(int $driverId, int $rideId): void
+    public function deductCredit(int $driverId, ?int $rideId = null): void
     {
         if (DB::transactionLevel() === 0) {
             throw new \LogicException('deductCredit must be called within a DB transaction');

@@ -57,6 +57,7 @@ class FifoQueueDriverControllerTest extends TestCase
             'went_online_at' => null,
             'queue_joined_at' => null,
             'max_pickup_radius_km' => 5.0,
+            'credits_balance' => 10,
         ], $profileOverrides));
 
         return $user;
