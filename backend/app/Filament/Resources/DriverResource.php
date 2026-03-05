@@ -214,21 +214,23 @@ class DriverResource extends Resource
                     ])
                     ->requiresConfirmation()
                     ->action(function (User $record, array $data) {
-                        app(CreditService::class)->addCredits($record->id, (int) $data['amount'], $data['reason']);
-                        $record->driverProfile->refresh();
-                        AdminAuditLog::create([
-                            'admin_id'    => auth()->id(),
-                            'action_type' => 'credit_grant',
-                            'target_type' => DriverProfile::class,
-                            'target_id'   => $record->driverProfile->id,
-                            'changes'     => [
-                                'amount'      => (int) $data['amount'],
-                                'new_balance' => $record->driverProfile->credits_balance,
-                            ],
-                            'reason'      => $data['reason'],
-                            'ip_address'  => request()->ip(),
-                            'user_agent'  => request()->userAgent(),
-                        ]);
+                        DB::transaction(function () use ($record, $data) {
+                            app(CreditService::class)->addCredits($record->id, (int) $data['amount'], $data['reason']);
+                            $record->driverProfile->refresh();
+                            AdminAuditLog::create([
+                                'admin_id'    => auth()->id(),
+                                'action_type' => 'credit_grant',
+                                'target_type' => DriverProfile::class,
+                                'target_id'   => $record->driverProfile->id,
+                                'changes'     => [
+                                    'amount'      => (int) $data['amount'],
+                                    'new_balance' => $record->driverProfile->credits_balance,
+                                ],
+                                'reason'      => $data['reason'],
+                                'ip_address'  => request()->ip(),
+                                'user_agent'  => request()->userAgent(),
+                            ]);
+                        });
                     })
                     ->successNotificationTitle('Credits granted'),
 
@@ -332,7 +334,7 @@ class DriverResource extends Resource
                     ->icon('heroicon-o-document')
                     ->visible(fn (User $record) => !empty($record->driverProfile?->ktm_url))
                     ->modalContent(fn (User $record) => new \Illuminate\Support\HtmlString(
-                        '<div class="text-center p-4"><img src="' . asset('storage/' . $record->driverProfile->ktm_url) . '" class="max-w-full mx-auto rounded shadow" alt="KTM Document"></div>'
+                        '<div class="text-center p-4"><img src="' . e(asset('storage/' . $record->driverProfile->ktm_url)) . '" class="max-w-full mx-auto rounded shadow" alt="KTM Document"></div>'
                     ))
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close'),

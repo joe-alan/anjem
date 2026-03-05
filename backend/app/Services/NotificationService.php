@@ -368,8 +368,8 @@ class NotificationService
 
         $message = [
             'title' => 'KYC Verification Rejected',
-            'body' => "Your verification was rejected: {$reason}. Please resubmit with updated documents.",
-            'data' => ['type' => 'kyc_rejected', 'reason' => $reason],
+            'body' => 'Your verification was not approved. Please open the app for details and resubmit your documents.',
+            'data' => ['type' => 'kyc_rejected'],
         ];
 
         $this->sendNotification($driver->fcm_token, $message);

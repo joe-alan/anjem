@@ -286,22 +286,30 @@ class RideController extends Controller
                     $ride->refresh();
                     broadcast(new RideStatusUpdated($ride, $previousStatus, 'driver'));
                     $this->notificationService->sendRideCompletedNotifications($ride);
-                    // If the driver has exhausted their credits, kick them offline so they
-                    // don't occupy a queue slot and receive dispatches they cannot accept.
-                    if ($this->creditService->getBalance($user->id) < 1) {
-                        $driverProfile = $user->driverProfile;
-                        $this->matchingQueueService->removeFromQueue($user->id);
-                        if ($driverProfile) {
-                            $driverProfile->update(['went_online_at' => null]);
+                    try {
+                        // If the driver has exhausted their credits, kick them offline so they
+                        // don't occupy a queue slot and receive dispatches they cannot accept.
+                        if ($this->creditService->getBalance($user->id) < 1) {
+                            $driverProfile = $user->driverProfile;
+                            $this->matchingQueueService->removeFromQueue($user->id);
+                            if ($driverProfile) {
+                                $driverProfile->update(['went_online_at' => null]);
+                            }
+                            broadcast(new DriverOnlineStatusChanged($user, false, null));
+                            \Log::info('Driver auto-kicked offline: zero credits after ride completion', [
+                                'driver_id' => $user->id,
+                                'ride_id'   => $ride->id,
+                            ]);
+                        } else {
+                            // Driver rejoins the FIFO queue at the back after completing a ride
+                            $this->matchingQueueService->rejoinAfterRide($user->id);
                         }
-                        broadcast(new DriverOnlineStatusChanged($user, false, null));
-                        \Log::info('Driver auto-kicked offline: zero credits after ride completion', [
+                    } catch (\Throwable $creditSyncError) {
+                        \Log::error('Post-completion credit/queue sync failed', [
                             'driver_id' => $user->id,
                             'ride_id'   => $ride->id,
+                            'error'     => $creditSyncError->getMessage(),
                         ]);
-                    } else {
-                        // Driver rejoins the FIFO queue at the back after completing a ride
-                        $this->matchingQueueService->rejoinAfterRide($user->id);
                     }
                 }
                 break;

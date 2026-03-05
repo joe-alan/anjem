@@ -265,6 +265,7 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         final isOnline = eventData['is_online'] as bool? ?? true;
         if (!isOnline) {
           print('DriverStatusProvider: Auto-kicked offline by backend (zero credits)');
+          _ref.read(driverIncomingRequestProvider.notifier).clear();
           state = state.copyWith(
             status: DriverStatusEnum.offline,
             activeRideId: null,

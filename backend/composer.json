@@ -7,7 +7,7 @@
     "require": {
         "php": "^8.1",
         "doctrine/dbal": "^3.10",
-        "filament/filament": "^3.2",
+        "filament/filament": "^3.2.123",
         "guzzlehttp/guzzle": "^7.10",
         "kreait/firebase-php": "^7.22",
         "laravel/framework": "^10.10",

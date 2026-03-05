@@ -379,30 +379,40 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
     }
   }
 
+  bool _isHandlingCompletion = false;
+
   Future<void> _handleRideCompletion() async {
-    // Fetch fresh balance before clearing active ride state — the credit was
-    // deducted at accept time so balance is already 0 in the DB.
-    ref.invalidate(creditsProvider);
-    final balance = await ref.read(creditsProvider.future).catchError((_) => -1);
+    if (_isHandlingCompletion) return;
+    _isHandlingCompletion = true;
+    try {
+      // Fetch fresh balance before clearing active ride state — the credit was
+      // deducted at accept time so balance is already 0 in the DB.
+      ref.invalidate(creditsProvider);
+      final balance = await ref.read(creditsProvider.future).catchError((_) => -1);
 
-    if (balance == 0) {
-      // Zero credits: go offline immediately without waiting for the WS event.
-      // Clear hasActiveRide first so goOffline() doesn't block on it.
-      ref.read(driverStatusProvider.notifier).setActiveRide(null);
-      ref.read(driverStatusProvider.notifier).goOffline();
-    } else {
-      // Credits remain: return to online/queue state.
-      ref.read(driverStatusProvider.notifier).setActiveRide(null);
+      if (balance == 0) {
+        // Zero credits: go offline immediately without waiting for the WS event.
+        // Clear hasActiveRide first so goOffline() doesn't block on it.
+        ref.read(driverStatusProvider.notifier).setActiveRide(null);
+        await ref.read(driverStatusProvider.notifier).goOffline();
+      } else {
+        // Credits remain: return to online/queue state.
+        ref.read(driverStatusProvider.notifier).setActiveRide(null);
+      }
+
+      final shouldStayOnline = balance > 0;
+
+      // Clear session rideActive state so session_check_wrapper reactively
+      // navigates to home in both the normal push-flow and session-restore flow.
+      ref.read(sessionStateProvider.notifier).updateSessionState(
+        SessionState(
+          state: SessionStateType.idle,
+          driverContext: DriverContext(isDriver: true, isOnline: shouldStayOnline),
+        ),
+      );
+    } finally {
+      _isHandlingCompletion = false;
     }
-
-    // Clear session rideActive state so session_check_wrapper reactively
-    // navigates to home in both the normal push-flow and session-restore flow.
-    ref.read(sessionStateProvider.notifier).updateSessionState(
-      const SessionState(
-        state: SessionStateType.idle,
-        driverContext: DriverContext(isDriver: true, isOnline: false),
-      ),
-    );
 
     if (mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);
