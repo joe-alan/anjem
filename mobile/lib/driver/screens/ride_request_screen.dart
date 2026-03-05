@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/ride_request.dart';
 import '../../core/providers/api_provider.dart';
-import '../../core/providers/credits_provider.dart';
 import '../../core/services/api/api_exception.dart';
 import '../../core/providers/driver_incoming_request_provider.dart';
 import '../../core/providers/driver_status_provider.dart';
@@ -208,8 +207,6 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
     final progress = _secondsRemaining / timeoutSeconds;
-    final creditsAsync = ref.watch(creditsProvider);
-    final hasCredits = creditsAsync.value == null || creditsAsync.value! > 0;
 
     // Dismiss if the rider/admin cancelled or the backend re-dispatched to another driver.
     // _isDismissing guards against a double-pop when _acceptRide/_declineRide already
@@ -426,7 +423,7 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
                     // Action Buttons
                     if (!_isProcessing) ...[
                       ElevatedButton.icon(
-                        onPressed: hasCredits ? _acceptRide : null,
+                        onPressed: _acceptRide,
                         icon: const Icon(Icons.check_circle),
                         label: const Text('Accept Ride'),
                         style: ElevatedButton.styleFrom(

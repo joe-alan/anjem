@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\DriverOnlineStatusChanged;
 use App\Events\RideRequestMatched;
 use App\Events\RideStatusUpdated;
 use App\Http\Controllers\Controller;
@@ -10,6 +11,7 @@ use App\Http\Requests\UpdateRideStatusRequest;
 use App\Http\Resources\RideResource;
 use App\Models\Ride;
 use App\Models\RideRequest;
+use App\Services\CreditService;
 use App\Services\MatchingQueueService;
 use App\Services\NotificationService;
 use App\Services\RideService;
@@ -22,6 +24,7 @@ class RideController extends Controller
         private RideService $rideService,
         private NotificationService $notificationService,
         private MatchingQueueService $matchingQueueService,
+        private CreditService $creditService,
     ) {}
 
     /**
@@ -283,8 +286,23 @@ class RideController extends Controller
                     $ride->refresh();
                     broadcast(new RideStatusUpdated($ride, $previousStatus, 'driver'));
                     $this->notificationService->sendRideCompletedNotifications($ride);
-                    // Driver rejoins the FIFO queue at the back after completing a ride
-                    $this->matchingQueueService->rejoinAfterRide($user->id);
+                    // If the driver has exhausted their credits, kick them offline so they
+                    // don't occupy a queue slot and receive dispatches they cannot accept.
+                    if ($this->creditService->getBalance($user->id) < 1) {
+                        $driverProfile = $user->driverProfile;
+                        $this->matchingQueueService->removeFromQueue($user->id);
+                        if ($driverProfile) {
+                            $driverProfile->update(['went_online_at' => null]);
+                        }
+                        broadcast(new DriverOnlineStatusChanged($user, false, null));
+                        \Log::info('Driver auto-kicked offline: zero credits after ride completion', [
+                            'driver_id' => $user->id,
+                            'ride_id'   => $ride->id,
+                        ]);
+                    } else {
+                        // Driver rejoins the FIFO queue at the back after completing a ride
+                        $this->matchingQueueService->rejoinAfterRide($user->id);
+                    }
                 }
                 break;
 

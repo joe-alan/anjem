@@ -9,18 +9,18 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateLocationRequest;
 use App\Models\Location;
 use App\Models\Ride;
+use App\Services\CreditService;
 use App\Services\LocationService;
 use App\Services\MatchingQueueService;
-use App\Services\QueueService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class DriverController extends Controller
 {
     public function __construct(
-        private QueueService $queueService,
         private LocationService $locationService,
         private MatchingQueueService $matchingQueueService,
+        private CreditService $creditService,
     ) {}
 
     /**
@@ -100,6 +100,13 @@ class DriverController extends Controller
             ]);
         }
 
+        if (! $this->creditService->canGoOnline($driver->id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You need at least 1 credit to go online. Contact admin to top up.',
+            ], 402);
+        }
+
         if ($request->has('current_latitude') && $request->has('current_longitude')) {
             $this->locationService->updateDriverLocation(
                 $driver->id,
@@ -176,28 +183,6 @@ class DriverController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Successfully went offline',
-        ]);
-    }
-
-    /**
-     * Get current queue status for driver (beacon-level queue)
-     */
-    public function getQueue(Request $request): JsonResponse
-    {
-        $driver = $request->user();
-
-        if (! $driver->tokenCan('driver:go-online')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: Driver permissions required',
-            ], 403);
-        }
-
-        $queueStatus = $this->queueService->getDriverQueueStatus($driver->id);
-
-        return response()->json([
-            'success' => true,
-            'data' => $queueStatus,
         ]);
     }
 
@@ -322,28 +307,6 @@ class DriverController extends Controller
     }
 
     /**
-     * Get available beacons for joining queue
-     */
-    public function getAvailableBeacons(Request $request): JsonResponse
-    {
-        $driver = $request->user();
-
-        if (! $driver->tokenCan('driver:go-online')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: Driver permissions required',
-            ], 403);
-        }
-
-        $beacons = $this->queueService->getAllBeaconStatistics();
-
-        return response()->json([
-            'success' => true,
-            'data' => $beacons,
-        ]);
-    }
-
-    /**
      * Get driver statistics and performance
      */
     public function getStatistics(Request $request): JsonResponse
@@ -396,12 +359,6 @@ class DriverController extends Controller
                 'max_pickup_radius_km' => (float) ($driverProfile->max_pickup_radius_km ?? 5.0),
             ],
         ];
-
-        // Add beacon queue status if currently in beacon queue
-        $queueStatus = $this->queueService->getDriverQueueStatus($driver->id);
-        if ($queueStatus['in_queue']) {
-            $stats['current_beacon_queue'] = $queueStatus;
-        }
 
         return response()->json([
             'success' => true,

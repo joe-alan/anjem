@@ -156,6 +156,9 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         queuePosition: queuePosition,
       );
 
+      // Refresh balance so the chip and request screen show the current value.
+      _ref.invalidate(creditsProvider);
+
       // Subscribe to driver channel for incoming ride requests
       await _subscribeToRideRequests();
 
@@ -257,6 +260,19 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         print('DriverStatusProvider: Session replaced — signing out this device');
         // Another device logged in with this driver account; sign out locally.
         _ref.read(authStateProvider.notifier).signOut();
+      },
+      onDriverStatusChanged: (eventData) {
+        final isOnline = eventData['is_online'] as bool? ?? true;
+        if (!isOnline) {
+          print('DriverStatusProvider: Auto-kicked offline by backend (zero credits)');
+          state = state.copyWith(
+            status: DriverStatusEnum.offline,
+            activeRideId: null,
+            queuePosition: 0,
+          );
+          // Invalidate credits so the chip and warning card reflect balance = 0
+          _ref.invalidate(creditsProvider);
+        }
       },
     );
 
