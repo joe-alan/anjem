@@ -2,10 +2,14 @@
 
 namespace App\Filament\Resources;
 
+use App\Events\DriverCreditsUpdated;
+use App\Events\DriverKycStatusChanged;
+use App\Events\UserAccountStatusChanged;
 use App\Models\AdminAuditLog;
 use App\Models\DriverProfile;
 use App\Models\User;
 use App\Services\CreditService;
+use App\Services\NotificationService;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
@@ -170,6 +174,15 @@ class DriverResource extends Resource
                                 'user_agent'  => request()->userAgent(),
                             ]);
                         });
+                        try {
+                            app(NotificationService::class)->sendKycApprovedToDriver($record);
+                        } catch (\Exception $e) {
+                            \Log::warning('Failed to send KYC approved notification', [
+                                'driver_id' => $record->id,
+                                'error'     => $e->getMessage(),
+                            ]);
+                        }
+                        broadcast(new DriverKycStatusChanged($record->fresh(['driverProfile']), true));
                     })
                     ->successNotificationTitle('KYC approved'),
 
@@ -196,6 +209,15 @@ class DriverResource extends Resource
                                 'user_agent'  => request()->userAgent(),
                             ]);
                         });
+                        try {
+                            app(NotificationService::class)->sendKycRejectedToDriver($record, $data['reason']);
+                        } catch (\Exception $e) {
+                            \Log::warning('Failed to send KYC rejected notification', [
+                                'driver_id' => $record->id,
+                                'error'     => $e->getMessage(),
+                            ]);
+                        }
+                        broadcast(new DriverKycStatusChanged($record->fresh(['driverProfile']), false, $data['reason']));
                     })
                     ->successNotificationTitle('KYC rejected'),
 
@@ -231,6 +253,8 @@ class DriverResource extends Resource
                                 'user_agent'  => request()->userAgent(),
                             ]);
                         });
+                        $fresh = $record->fresh(['driverProfile']);
+                        broadcast(new DriverCreditsUpdated($fresh, $fresh->driverProfile->credits_balance, (int) $data['amount'], 'grant'));
                     })
                     ->successNotificationTitle('Credits granted'),
 
@@ -268,6 +292,7 @@ class DriverResource extends Resource
                                 'ip_address'  => request()->ip(),
                                 'user_agent'  => request()->userAgent(),
                             ]);
+                            broadcast(new DriverCreditsUpdated($record->fresh(['driverProfile']), $result['balance_after'], (int) $data['amount'], 'deduct'));
                         } catch (\RuntimeException $e) {
                             Notification::make()
                                 ->danger()
@@ -304,6 +329,7 @@ class DriverResource extends Resource
                                 'user_agent'  => request()->userAgent(),
                             ]);
                         });
+                        broadcast(new UserAccountStatusChanged($record->fresh(['driverProfile']), true, $data['reason'] ?? null));
                     })
                     ->successNotificationTitle('Driver suspended'),
 
@@ -326,6 +352,7 @@ class DriverResource extends Resource
                                 'user_agent'  => request()->userAgent(),
                             ]);
                         });
+                        broadcast(new UserAccountStatusChanged($record->fresh(['driverProfile']), false));
                     })
                     ->successNotificationTitle('Driver unsuspended'),
 

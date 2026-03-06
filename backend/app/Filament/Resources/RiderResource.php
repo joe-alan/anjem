@@ -1,6 +1,7 @@
 <?php
 namespace App\Filament\Resources;
 
+use App\Events\UserAccountStatusChanged;
 use App\Models\AdminAuditLog;
 use App\Models\User;
 use Filament\Forms\Components\TextInput;
@@ -73,6 +74,7 @@ class RiderResource extends Resource
                                 'user_agent'  => request()->userAgent(),
                             ]);
                         });
+                        broadcast(new UserAccountStatusChanged($record->fresh(['driverProfile']), true, $data['reason'] ?? null));
                     })
                     ->successNotificationTitle('Rider suspended'),
 
@@ -95,6 +97,7 @@ class RiderResource extends Resource
                                 'user_agent'  => request()->userAgent(),
                             ]);
                         });
+                        broadcast(new UserAccountStatusChanged($record->fresh(['driverProfile']), false));
                     })
                     ->successNotificationTitle('Rider unsuspended'),
             ])

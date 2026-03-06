@@ -221,6 +221,7 @@ class WebSocketService {
     Function(Map<String, dynamic>)? onNoDriversAvailable,
     Function(Map<String, dynamic>)? onRequestExpired,
     Function(Map<String, dynamic>)? onSearchResumed,
+    Function(Map<String, dynamic>)? onAccountStatusChanged,
   }) async {
     final channelName =
         'user.$userId'; // Don't add 'private-' prefix, .private() method does it automatically
@@ -288,6 +289,16 @@ class WebSocketService {
         });
       }
 
+      // Listen for admin account suspension / unsuspension
+      if (onAccountStatusChanged != null) {
+        channel.bind('account.status.changed', (data) {
+          print('Received account.status.changed (rider): $data');
+          if (data != null) {
+            onAccountStatusChanged(data as Map<String, dynamic>);
+          }
+        });
+      }
+
       _channels[channelName] = channel;
       print('Subscribed to user channel: $channelName');
     } catch (e) {
@@ -304,6 +315,9 @@ class WebSocketService {
     Function(Map<String, dynamic>)? onRequestCancelled,
     Function(Map<String, dynamic>)? onSessionReplaced,
     Function(Map<String, dynamic>)? onDriverStatusChanged,
+    Function(Map<String, dynamic>)? onKycStatusChanged,
+    Function(Map<String, dynamic>)? onCreditsUpdated,
+    Function(Map<String, dynamic>)? onAccountStatusChanged,
   }) async {
     final channelName = 'driver.$driverId';
 
@@ -362,6 +376,36 @@ class WebSocketService {
           print('Received driver.status.changed: $data');
           if (data != null) {
             onDriverStatusChanged(data as Map<String, dynamic>);
+          }
+        });
+      }
+
+      // Listen for admin KYC approval / rejection
+      if (onKycStatusChanged != null) {
+        channel.bind('driver.kyc.updated', (data) {
+          print('Received driver.kyc.updated: $data');
+          if (data != null) {
+            onKycStatusChanged(data as Map<String, dynamic>);
+          }
+        });
+      }
+
+      // Listen for admin credit grant / deduct
+      if (onCreditsUpdated != null) {
+        channel.bind('driver.credits.updated', (data) {
+          print('Received driver.credits.updated: $data');
+          if (data != null) {
+            onCreditsUpdated(data as Map<String, dynamic>);
+          }
+        });
+      }
+
+      // Listen for admin account suspension / unsuspension
+      if (onAccountStatusChanged != null) {
+        channel.bind('account.status.changed', (data) {
+          print('Received account.status.changed (driver): $data');
+          if (data != null) {
+            onAccountStatusChanged(data as Map<String, dynamic>);
           }
         });
       }

@@ -275,6 +275,23 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
           _ref.invalidate(creditsProvider);
         }
       },
+      onKycStatusChanged: (eventData) {
+        print('DriverStatusProvider: Admin changed KYC status — refreshing');
+        _ref.read(kycStateProvider.notifier).refreshKycStatus();
+      },
+      onCreditsUpdated: (eventData) {
+        print('DriverStatusProvider: Admin updated credits — refreshing balance');
+        _ref.invalidate(creditsProvider);
+      },
+      onAccountStatusChanged: (eventData) {
+        final isSuspended = eventData['is_suspended'] as bool? ?? false;
+        if (isSuspended) {
+          print('DriverStatusProvider: Account suspended by admin — signing out');
+          _ref.read(driverIncomingRequestProvider.notifier).clear();
+          state = const DriverStatusState();
+          _ref.read(authStateProvider.notifier).signOut();
+        }
+      },
     );
 
     print('DriverStatusProvider: Subscribed to ride requests');
