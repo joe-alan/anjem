@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/kyc_provider.dart';
 import '../../core/config/app_config.dart';
-import 'driver_home_screen.dart';
+import 'kyc_pending_approval_screen.dart';
 
 // Paste handler for verification code
 class PasteTextInputFormatter extends TextInputFormatter {
@@ -147,10 +147,12 @@ class _EmailVerificationScreenState
         );
 
     if (success && mounted) {
-      // Navigate to driver home screen
+      // Email verified — admin approval is now required before going online.
+      // Navigate to the pending screen and clear the back-stack so the driver
+      // cannot return to the verification form.
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: (context) => const DriverHomeScreen(),
+          builder: (context) => const KycPendingApprovalScreen(),
         ),
         (route) => false,
       );
