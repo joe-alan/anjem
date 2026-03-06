@@ -38,10 +38,16 @@ class DriverController extends Controller
         }
 
         $driverProfile = $driver->driverProfile;
-        if (! $driverProfile || ! $driverProfile->is_verified) {
+        if (! $driverProfile || ! $driverProfile->email_verified_at) {
             return response()->json([
                 'success' => false,
-                'message' => 'Please complete driver verification (KYC) before going online',
+                'message' => 'Please verify your student email before going online',
+            ], 403);
+        }
+        if (! $driverProfile->is_verified) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Your KYC is pending admin approval. Please wait for review.',
             ], 403);
         }
 
@@ -340,7 +346,7 @@ class DriverController extends Controller
 
         $stats = [
             'total_rides' => $driverProfile->total_rides_given ?? 0,
-            'rating' => (float) ($driverProfile->driver_rating_avg ?? 0.0),
+            'rating' => (float) ($driverProfile->rating_average ?? 0.0),
             'today_rides' => $todayRides,
             'today_earnings' => (float) ($todayEarnings ?? 0.0),
             'is_verified' => $driverProfile->is_verified,

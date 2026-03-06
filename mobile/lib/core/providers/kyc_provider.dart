@@ -230,6 +230,7 @@ class KycStateNotifier extends StateNotifier<KycState> {
   }
 
   Future<void> refreshKycStatus() async {
+    if (state.isLoading) return;
     await _loadKycStatus();
   }
 

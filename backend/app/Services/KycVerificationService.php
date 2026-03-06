@@ -98,11 +98,11 @@ class KycVerificationService
         // Mark code as verified
         $verificationCode->markAsVerified();
 
-        // Update driver profile if exists
+        // Update driver profile if exists — email OTP only sets email_verified_at.
+        // is_verified remains false until an admin explicitly approves the KYC.
         $driverProfile = DriverProfile::where('student_email', $email)->first();
         if ($driverProfile) {
             $driverProfile->update([
-                'is_verified' => true,
                 'email_verified_at' => now(),
             ]);
         }
