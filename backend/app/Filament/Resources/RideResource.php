@@ -1,8 +1,10 @@
 <?php
 namespace App\Filament\Resources;
 
+use App\Events\RideStatusUpdated;
 use App\Models\AdminAuditLog;
 use App\Models\Ride;
+use App\Services\MatchingQueueService;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
@@ -97,8 +99,8 @@ class RideResource extends Resource
                     ->form([TextInput::make('reason')->required()->minLength(10)->label('Reason (min 10 chars)')])
                     ->requiresConfirmation()
                     ->action(function (Ride $record, array $data): void {
+                        $previousStatus = $record->status;
                         DB::transaction(function () use ($record, $data): void {
-                            $previousStatus = $record->status;
                             $record->update(['status' => 'completed', 'dropoff_time' => now()]);
                             AdminAuditLog::create([
                                 'admin_id'    => auth()->id(),
@@ -111,6 +113,13 @@ class RideResource extends Resource
                                 'user_agent'  => request()->userAgent(),
                             ]);
                         });
+                        broadcast(new RideStatusUpdated(
+                            $record->fresh(['pickupLocation', 'destinationLocation']),
+                            $previousStatus,
+                            'admin',
+                            true,
+                            $data['reason']
+                        ));
                     })
                     ->successNotificationTitle('Ride marked as completed'),
 
@@ -122,8 +131,9 @@ class RideResource extends Resource
                     ->form([TextInput::make('reason')->required()->minLength(10)->label('Reason (min 10 chars)')])
                     ->requiresConfirmation()
                     ->action(function (Ride $record, array $data): void {
+                        $previousStatus = $record->status;
+                        $driverId = $record->driver_id;
                         DB::transaction(function () use ($record, $data): void {
-                            $previousStatus = $record->status;
                             $record->update(['status' => 'cancelled', 'dropoff_time' => now()]);
                             AdminAuditLog::create([
                                 'admin_id'    => auth()->id(),
@@ -136,6 +146,16 @@ class RideResource extends Resource
                                 'user_agent'  => request()->userAgent(),
                             ]);
                         });
+                        broadcast(new RideStatusUpdated(
+                            $record->fresh(['pickupLocation', 'destinationLocation']),
+                            $previousStatus,
+                            'admin',
+                            true,
+                            $data['reason']
+                        ));
+                        if ($driverId) {
+                            app(MatchingQueueService::class)->rejoinAfterRide($driverId);
+                        }
                     })
                     ->successNotificationTitle('Ride cancelled'),
             ])

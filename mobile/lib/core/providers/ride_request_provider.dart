@@ -383,6 +383,14 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
         // no-drivers countdown and go back to the "Finding Driver" view.
         resumeSearch();
       },
+      onAccountStatusChanged: (eventData) {
+        final isSuspended = eventData['is_suspended'] as bool? ?? false;
+        if (isSuspended) {
+          print('RideRequestProvider: Account suspended by admin — clearing ride request state');
+          _stopMatchPolling();
+          state = const RideRequestState();
+        }
+      },
     );
 
     print(

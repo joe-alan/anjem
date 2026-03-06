@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Events\DriverCreditsUpdated;
+use App\Events\DriverKycStatusChanged;
 use App\Events\MatchingQueuePositionChanged;
 use App\Events\RideRequestCancelled;
 use App\Events\RideStatusUpdated;
+use App\Events\UserAccountStatusChanged;
 use App\Http\Resources\RideResource;
 use App\Models\AdminAuditLog;
 use App\Models\DriverProfile;
@@ -180,6 +183,8 @@ class AdminController extends Controller
             ]);
         });
 
+        broadcast(new UserAccountStatusChanged($driver->fresh(['driverProfile']), $request->suspended, $request->reason));
+
         return response()->json([
             'success' => true,
             'message' => $request->suspended ? 'Driver suspended successfully' : 'Driver unsuspended successfully',
@@ -295,6 +300,8 @@ class AdminController extends Controller
                 'user_agent'  => $request->userAgent(),
             ]);
         });
+
+        broadcast(new UserAccountStatusChanged($rider->fresh(['driverProfile']), $request->suspended, $request->reason));
 
         return response()->json([
             'success' => true,
@@ -795,6 +802,8 @@ class AdminController extends Controller
             ]);
         }
 
+        broadcast(new DriverKycStatusChanged($driver->fresh(['driverProfile']), true));
+
         return response()->json([
             'success' => true,
             'message' => 'KYC approved successfully',
@@ -841,6 +850,8 @@ class AdminController extends Controller
             ]);
         }
 
+        broadcast(new DriverKycStatusChanged($driver->fresh(['driverProfile']), false, $request->reason));
+
         return response()->json([
             'success' => true,
             'message' => 'KYC rejected successfully',
@@ -882,6 +893,8 @@ class AdminController extends Controller
             'ip_address'  => $request->ip(),
             'user_agent'  => $request->userAgent(),
         ]);
+
+        broadcast(new DriverCreditsUpdated($driver, $driver->driverProfile->credits_balance, $request->amount, 'grant'));
 
         return response()->json([
             'success' => true,
@@ -930,6 +943,8 @@ class AdminController extends Controller
             'ip_address'  => $request->ip(),
             'user_agent'  => $request->userAgent(),
         ]);
+
+        broadcast(new DriverCreditsUpdated($driver, $result['balance_after'], $request->amount, 'deduct'));
 
         return response()->json([
             'success' => true,
