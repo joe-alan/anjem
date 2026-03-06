@@ -29,6 +29,7 @@
 | [A-15 Live Monitoring Page](#a-15-live-monitoring-page)                                               | ⬜ Not tested |
 | [A-16 Non-Admin Access Blocked](#a-16-non-admin-access-blocked)                                       | ⬜ Not tested |
 | [A-17 Phase 1 API — KYC & Credits (direct)](#a-17-phase-1-api--kyc--credits-direct)                  | ⬜ Not tested |
+| [A-18 KYC Pending Screen — Session Resume](#a-18-kyc-pending-screen--session-resume)                  | ⬜ Not tested |
 
 > **Status key:** ⬜ Not tested · ✅ Pass · ❌ Fail · ⚠️ Partial
 
@@ -53,9 +54,22 @@ php artisan db:seed --class=AdminUserSeeder
 # Confirm admin exists
 php artisan tinker --execute="echo App\Models\User::where('role','admin')->first()->email;"
 
-# Seed a test driver with a profile for KYC/credit tests
-# (or use an existing driver from the dev DB)
-php artisan tinker --execute="App\Models\User::where('role','driver')->first();"
+# ── KYC flow note ──────────────────────────────────────────────────────────────
+# driver_profiles rows are NOT seeded at registration. They are created when a
+# driver submits their KYC form in-app (POST /api/v1/driver/kyc/submit).
+# After email OTP verification, is_verified remains false — admin approval is now
+# a required second step before the driver can go online.
+#
+# To get a driver into each state for testing:
+#
+# State A — KYC submitted, email not yet verified:
+#   php artisan tinker --execute="App\Models\DriverProfile::where('user_id',{id})->update(['email_verified_at'=>null,'is_verified'=>false]);"
+#
+# State B — Email verified, awaiting admin approval (normal state after OTP):
+#   php artisan tinker --execute="App\Models\DriverProfile::where('user_id',{id})->update(['email_verified_at'=>now(),'is_verified'=>false]);"
+#
+# State C — Fully approved (admin approved):
+#   php artisan tinker --execute="App\Models\DriverProfile::where('user_id',{id})->update(['is_verified'=>true]);"
 ```
 
 ---
@@ -137,28 +151,34 @@ php artisan tinker --execute="App\Models\User::where('role','driver')->first();"
 
 ## A-4: KYC Approve
 
-> Approves a driver's KYC. Sets `is_verified = true`, sends FCM notification, writes audit log. Requires driver with `is_verified = false`.
+> Approves a driver's KYC. Sets `is_verified = true`, sends FCM notification, writes audit log.
+> Admin approval is now a **required second step** — after email OTP the driver is in "Email Verified"
+> state (`email_verified_at` set, `is_verified = false`) and cannot go online until admin approves.
 
 **Setup:**
 
 ```bash
-# Find a driver that is not verified
-php artisan tinker --execute="App\Models\DriverProfile::where('is_verified',false)->first()->user_id;"
+# A driver who completed email OTP is already in the correct state (is_verified=false).
+# If you need to reset a driver to "Email Verified, awaiting approval":
+php artisan tinker --execute="App\Models\DriverProfile::where('user_id',{id})->update(['email_verified_at'=>now(),'is_verified'=>false]);"
 
-# Or reset a driver to unverified
-php artisan tinker --execute="App\Models\DriverProfile::where('user_id',{id})->update(['is_verified'=>false]);"
+# Confirm state
+php artisan tinker --execute="App\Models\DriverProfile::where('user_id',{id})->first(['email_verified_at','is_verified']);"
 ```
 
 | #  | Step                                                       | Expected Output                                                      | Result |
 |----|------------------------------------------------------------|----------------------------------------------------------------------|--------|
-| 1  | Find a driver with KYC badge **Pending** or **Email Verified** | Row visible in Drivers table                                   |        |
-| 2  | Click **Approve KYC** action on that row                  | Confirmation modal opens — optional reason field shown               |        |
-| 3  | Leave reason blank; confirm                               | Success notification: "KYC approved"                                 |        |
-| 4  | Observe KYC badge on that row                             | Badge changes to **Approved** (green)                                |        |
-| 5  | Confirm via tinker: `DriverProfile::where('user_id',{id})->value('is_verified')` | Returns `true`                   |        |
-| 6  | Confirm audit log written                                 | `AdminAuditLog::where('action_type','kyc_approve')->where('target_id',{dp_id})->exists()` returns `true` |        |
-| 7  | Verify **Approve KYC** action is now **hidden** on that row | Action button disappears (driver is already approved)               |        |
-| 8  | **[Driver app]** Check driver device                      | System push notification received: "Your KYC has been approved" (or similar from `NotificationService::sendKycApprovedToDriver`) |        |
+| 1  | Find a driver with KYC badge **Email Verified** (yellow)   | Row visible in Drivers table — `email_verified_at` set, `is_verified = false` |   |
+| 2  | **[Driver app]** Confirm driver is on `KycPendingApprovalScreen` | Screen shows "Pending Admin Review" with submitted details    |        |
+| 3  | **[Driver app]** Confirm driver cannot go online yet       | Tapping Go Online (if accessible) returns 403 "pending admin approval" |      |
+| 4  | Click **Approve KYC** action on that row                   | Confirmation modal opens — optional reason field shown               |        |
+| 5  | Leave reason blank; confirm                                | Success notification: "KYC approved"                                 |        |
+| 6  | Observe KYC badge on that row                              | Badge changes to **Approved** (green)                                |        |
+| 7  | Confirm via tinker: `DriverProfile::where('user_id',{id})->value('is_verified')` | Returns `true`  |        |
+| 8  | Confirm audit log written                                  | `AdminAuditLog::where('action_type','kyc_approve')->where('target_id',{dp_id})->exists()` returns `true` |  |
+| 9  | Verify **Approve KYC** action is now **hidden** on that row | Action button disappears (driver is already approved)               |        |
+| 10 | **[Driver app]** Check driver device                       | System push notification received: "Your KYC has been approved" (or similar from `NotificationService::sendKycApprovedToDriver`) | |
+| 11 | **[Driver app]** Observe KYC status in-app (no restart)    | `driver.kyc.updated` WebSocket event received; 30s poll or WebSocket triggers `kycStateProvider` refresh; `AuthenticationWrapper` reroutes driver from `KycPendingApprovalScreen` to `DriverHomeScreen` automatically | |
 
 **Edge case — approve an already-approved driver:**
 
@@ -179,17 +199,21 @@ php artisan tinker --execute="App\Models\DriverProfile::where('user_id',{id})->u
 ## A-5: KYC Reject
 
 > Rejects KYC. Sets `is_verified = false`, clears `email_verified_at`, sends FCM push, writes audit log. Reason is required (min 10 chars).
+> Because `email_verified_at` is cleared, the driver is routed back to the **email verification screen**
+> (not just blocked from going online) when they next open the app.
 
 | #  | Step                                                          | Expected Output                                                      | Result |
 |----|---------------------------------------------------------------|----------------------------------------------------------------------|--------|
-| 1  | Click **Reject KYC** on a driver                             | Modal opens — **Reason** field required                              |        |
+| 1  | Click **Reject KYC** on a driver with badge **Email Verified** or **Approved** | Modal opens — **Reason** field required         |        |
 | 2  | Submit with reason blank                                      | Validation error: reason required                                    |        |
 | 3  | Submit with reason < 10 chars (e.g., "bad docs")              | Validation error: min 10 chars                                       |        |
-| 4  | Submit with valid reason ("Documents are blurry, please resubmit.") | Success notification; KYC badge reverts to **Pending**          |        |
-| 5  | Confirm via tinker: `DriverProfile::where('user_id',{id})->value('is_verified')` | Returns `false`                    |        |
+| 4  | Submit with valid reason ("Documents are blurry, please resubmit.") | Success notification; KYC badge reverts to **Pending** (red) |        |
+| 5  | Confirm via tinker: `DriverProfile::where('user_id',{id})->first(['is_verified','email_verified_at'])` | `is_verified = false`, `email_verified_at = null` | |
 | 6  | Confirm audit log action_type = `kyc_reject` with reason stored |                                                                    |        |
 | 7  | Confirm FCM notification sent (check backend queue log or device) | Driver device receives: "Your verification was not approved..." |        |
 | 8  | **[Driver app]** Check driver device                              | System push notification received with rejection reason visible in notification body; **no raw reason in FCM data payload** (security fix applied in `ae69898`) |        |
+| 9  | **[Driver app]** Observe KYC status in-app (no restart)           | `driver.kyc.updated` WebSocket event received; `kycStateProvider` refreshes; `AuthenticationWrapper` reroutes driver from `KycPendingApprovalScreen` to `EmailVerificationScreen` (because `email_verified_at` is now null) |        |
+| 10 | **[Driver app]** Force-kill and reopen app after rejection        | App resumes at `EmailVerificationScreen` (KycStatus.submitted), not home — session resume works correctly |        |
 
 **Notes / Observations:**
 
@@ -222,7 +246,7 @@ php artisan tinker --execute="App\Models\DriverProfile::where('user_id',{id})->v
 | 6  | Confirm via tinker: `getBalance({id})`                              | Returns previous balance + 5                                          |        |
 | 7  | Confirm CreditTransaction created                                   | `CreditTransaction::where('driver_id',{dp_id})->where('type','admin_grant')->latest()->first()` exists |        |
 | 8  | Confirm audit log: `action_type = credit_grant`, `changes.amount = 5` |                                                                    |        |
-| 9  | **[Driver app]** Pull-to-refresh on driver home screen              | Credits balance chip updates to reflect new balance (no real-time push — balance is fetched on refresh) |        |
+| 9  | **[Driver app]** Observe credits chip on driver home screen (no interaction) | `driver.credits.updated` WebSocket event received; balance chip updates in real-time without any refresh |        |
 
 **Notes / Observations:**
 
@@ -253,7 +277,7 @@ php artisan tinker --execute="(new App\Services\CreditService())->addCredits({id
 | 4  | Confirm CreditTransaction: `type = admin_deduction`, `amount = -3`           |                                                             |        |
 | 5  | Now attempt to deduct 10 (more than remaining balance of 7)                  | Error notification: "Insufficient credits" (cannot go negative) |        |
 | 6  | Confirm via tinker: balance still = 7 (no partial deduction)                |                                                             |        |
-| 7  | **[Driver app]** Pull-to-refresh on driver home screen                      | Credits balance chip reflects deducted balance (no real-time push — balance is fetched on refresh) |        |
+| 7  | **[Driver app]** Observe credits chip on driver home screen (no interaction) | `driver.credits.updated` WebSocket event received; balance chip updates in real-time without any refresh |        |
 
 **Notes / Observations:**
 
@@ -315,7 +339,7 @@ php artisan tinker --execute="App\Models\DriverProfile::where('user_id',{id})->u
 |----|--------------------------------------------------------|----------------------------------------------------------------------------|--------|
 | E1 | Suspend a driver via admin panel                       |                                                                            |        |
 | E2 | **[Driver app]** Tap Go Online                         | 403 or error returned — driver cannot go online; app shows an error toast  |        |
-| E3 | **[Driver app]** If driver was already online when suspended | Driver's session continues until next API call fails with 403; no instant push to force-offline (known limitation — no WebSocket event sent on suspend) |        |
+| E3 | **[Driver app]** If driver was already online when suspended | `account.status.changed` WebSocket event received immediately; driver is signed out in real-time regardless of current state (online, waiting for request, or idle) |        |
 
 **Notes / Observations:**
 
@@ -345,6 +369,7 @@ php artisan tinker --execute="App\Models\DriverProfile::where('user_id',{id})->u
 |----|---------------------------------------------------------------|-------------------------------------------------------------------|--------|
 | E1 | Suspend a rider via admin panel                               |                                                                   |        |
 | E2 | **[Rider app]** Attempt to request a ride                     | 403 or error returned — rider cannot book; app shows an error     |        |
+| E3 | **[Rider app]** If rider was actively searching when suspended | `account.status.changed` WebSocket event received; waiting screen clears and ride request state is reset in real-time |        |
 
 **Notes / Observations:**
 
@@ -559,6 +584,34 @@ export DID="<driver_user_id>"
 
 ---
 
+## A-18: KYC Pending Screen — Session Resume
+
+> Verifies that the driver app correctly resumes to the right KYC screen after a force-kill,
+> regardless of which step the driver was on. Covers the two new states introduced by the
+> mandatory admin-approval gate (`feat(kyc)` commit `ca1860e`).
+
+| #  | Step                                                                          | Expected Output                                                                 | Result |
+|----|-------------------------------------------------------------------------------|---------------------------------------------------------------------------------|--------|
+| 1  | Driver submits KYC form and is on the email verification screen; force-kill app | On reopen, app resumes at `EmailVerificationScreen` (not the form, not home) — a new OTP code is auto-sent | |
+| 2  | Driver verifies email OTP; app navigates to `KycPendingApprovalScreen`        | Screen shows "Pending Admin Review" with submitted name, email, student ID, vehicle |      |
+| 3  | Back button / swipe on `KycPendingApprovalScreen`                             | Nothing happens — `PopScope(canPop: false)` blocks navigation                  |        |
+| 4  | Force-kill app while on `KycPendingApprovalScreen`                            | On reopen, app resumes at `KycPendingApprovalScreen` (not home, not the form)  |        |
+| 5  | Wait up to 30 seconds on `KycPendingApprovalScreen` with no interaction       | "Check Status" button is temporarily replaced by a `CircularProgressIndicator` during each poll; button returns after call completes | |
+| 6  | Tap **Check Status** manually                                                 | Spinner shows; status re-fetched; no duplicate concurrent requests if tapped while a call is in flight | |
+| 7  | Admin approves via Filament while driver has `KycPendingApprovalScreen` open  | Within 30s (next poll), `kycStateProvider` updates; `AuthenticationWrapper` reroutes driver to `DriverHomeScreen` automatically | |
+| 8  | Admin **rejects** KYC while driver has `KycPendingApprovalScreen` open        | Within 30s, `kycStateProvider` updates; `AuthenticationWrapper` reroutes driver to `EmailVerificationScreen` (email_verified_at cleared) | |
+| 9  | Force-kill app after admin rejection; reopen app                              | App resumes at `EmailVerificationScreen` with stored student email pre-filled  |        |
+
+**Notes / Observations:**
+
+```
+(fill in)
+```
+
+**Test Result:** ⬜
+
+---
+
 ## Bugs Found During Testing
 
 | #  | Test  | Description | Severity | Fixed? |
@@ -572,12 +625,12 @@ export DID="<driver_user_id>"
 - [ ] Admin login works; non-admin access blocked (A-1, A-16)
 - [ ] Dashboard KPIs and chart render correctly (A-2)
 - [ ] Driver list filters (KYC status, online) work (A-3)
-- [ ] KYC approve sets is_verified, writes audit log, **driver app receives FCM push** (A-4)
-- [ ] KYC reject requires reason ≥10 chars, clears email_verified_at, **driver app receives FCM push** (A-5)
-- [ ] Grant credits: amount validated, balance updated, CreditTransaction created, **driver app balance refreshes** (A-6)
-- [ ] Deduct credits: negative balance blocked, **driver app balance refreshes** (A-7)
+- [ ] KYC approve sets is_verified; driver on pending screen auto-navigates to home on next poll; audit log written; **FCM push received** (A-4)
+- [ ] KYC reject requires reason ≥10 chars, clears email_verified_at; driver on pending screen auto-navigates back to email verification; **FCM push received** (A-5)
+- [ ] Grant credits: amount validated, balance updated, CreditTransaction created, **driver app balance updates in real-time** (A-6)
+- [ ] Deduct credits: negative balance blocked, **driver app balance updates in real-time** (A-7)
 - [ ] KTM document opens in modal, URL is escaped (A-8)
-- [ ] Suspend/unsuspend driver with audit log; **suspended driver blocked from going online** (A-9)
+- [ ] Suspend/unsuspend driver with audit log; **suspended driver signed out in real-time via WebSocket** (A-9)
 - [ ] Suspend/unsuspend rider with audit log; **suspended rider blocked from booking** (A-10)
 - [ ] Force complete ride: reason required, status updated, audit log written; **driver + rider apps show completion** (A-11)
 - [ ] Force cancel ride: reason required, status updated, audit log written; **driver + rider apps show admin cancellation dialog with reason** (A-12)
@@ -585,6 +638,7 @@ export DID="<driver_user_id>"
 - [ ] Audit log: read-only, all mutations logged, JSON diff readable (A-14)
 - [ ] Live monitor auto-refreshes without manual interaction (A-15)
 - [ ] Phase 1 API: all endpoints return correct status codes (A-17)
+- [ ] KYC pending screen: session resume lands at correct screen after force-kill; back button blocked; auto-routes on approval/rejection (A-18)
 
 **Tested by:** __________
 **Date:** __________
