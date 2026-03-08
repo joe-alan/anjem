@@ -396,10 +396,14 @@ class DriverResource extends Resource
                         ->dateTime(),
                     TextEntry::make('driverProfile.student_email')
                         ->label('Student Email'),
+                    TextEntry::make('driverProfile.student_id')
+                        ->label('Student ID'),
+                    TextEntry::make('driverProfile.student_name')
+                        ->label('Student Name'),
                     TextEntry::make('driverProfile.ktm_url')
                         ->label('KTM Path'),
                 ])
-                ->columns(2),
+                ->columns(3),
 
             Section::make('Vehicle')
                 ->schema([
