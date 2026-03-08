@@ -10,7 +10,6 @@ import 'widgets/session_check_wrapper.dart';
 import '../rider/screens/rider_home_screen.dart';
 import '../driver/screens/driver_home_screen.dart';
 import '../driver/screens/kyc_form_screen.dart';
-import '../driver/screens/kyc_pending_approval_screen.dart';
 import '../driver/screens/email_verification_screen.dart';
 
 class AnjerApp extends ConsumerWidget {
@@ -112,12 +111,9 @@ class AuthenticationWrapper extends ConsumerWidget {
           // Fallback: email missing in profile, restart the form.
           return const KycFormScreen();
 
-        // Email verified but admin has not approved yet.
+        // Email verified (awaiting admin) or fully approved — go to home.
+        // The home screen handles displaying unverified status.
         case KycStatus.emailVerified:
-          print('AuthWrapper: Showing KYC pending approval screen');
-          return const KycPendingApprovalScreen();
-
-        // Fully approved — check for active session and go to home.
         case KycStatus.verified:
           print('AuthWrapper: Showing driver home - verified');
           return const SessionCheckWrapper(
