@@ -403,6 +403,9 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
       }
     });
 
+    final rejectionReason =
+        ref.watch(kycStatusProvider)?.rejectionReason;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Driver Verification'),
@@ -411,6 +414,44 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
       ),
       body: Column(
           children: [
+            // Rejection reason banner
+            if (rejectionReason != null)
+              Container(
+                width: double.infinity,
+                color: Colors.red[50],
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.cancel_outlined,
+                        color: Colors.red, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'KYC Rejected',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            rejectionReason,
+                            style: TextStyle(
+                                color: Colors.red[700], fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             // Progress indicator
             LinearProgressIndicator(
               value: (_currentPage + 1) / 3,

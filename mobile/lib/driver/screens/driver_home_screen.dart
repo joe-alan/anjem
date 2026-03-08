@@ -32,9 +32,13 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Safety net: re-fetch user and KYC state in case a suspend/unsuspend
+      // WebSocket event was missed while the app was backgrounded.
+      ref.read(authStateProvider.notifier).refreshUser();
+      ref.read(kycStateProvider.notifier).refreshKycStatus();
+    }
     // Best-effort offline call when the OS is about to destroy the app.
-    // Reliable on iOS (applicationWillTerminate); partial on Android.
-    // The heartbeat-based KickStaleDrivers job is the backstop for hard kills.
     if (state == AppLifecycleState.detached) {
       final driverStatus = ref.read(driverStatusProvider);
       if (driverStatus.isOnline && !driverStatus.hasActiveRide) {
@@ -283,6 +287,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     final statisticsAsync = ref.watch(driverStatisticsProvider);
     final isDriverVerified = ref.watch(isDriverVerifiedProvider);
     final creditsAsync = ref.watch(creditsProvider);
+    final kycSubmission = ref.watch(kycStatusProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -626,14 +631,32 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                     child: Padding(
                       padding: const EdgeInsets.all(12.0),
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.block,
-                              color: Colors.red, size: 28),
+                          const Icon(Icons.block, color: Colors.red, size: 28),
                           const SizedBox(width: 12),
-                          const Expanded(
-                            child: Text(
-                              'Your account has been suspended. You cannot go online. Contact admin.',
-                              style: TextStyle(color: Colors.red),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Your account has been suspended. Contact admin.',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                if (kycSubmission?.suspendReason != null) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Reason: ${kycSubmission!.suspendReason}',
+                                    style: TextStyle(
+                                      color: Colors.red[700],
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                         ],

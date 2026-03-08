@@ -197,7 +197,17 @@ class DriverResource extends Resource
                     ->requiresConfirmation()
                     ->action(function (User $record, array $data) {
                         DB::transaction(function () use ($record, $data) {
-                            $record->driverProfile->update(['is_verified' => false, 'email_verified_at' => null]);
+                            $record->driverProfile->update([
+                                'is_verified'      => false,
+                                'email_verified_at' => null,
+                                'student_email'    => null,
+                                'student_id'       => null,
+                                'student_name'     => null,
+                                'vehicle_type'     => null,
+                                'vehicle_plate'    => null,
+                                'vehicle_color'    => null,
+                                'ktm_url'          => null,
+                            ]);
                             AdminAuditLog::create([
                                 'admin_id'    => auth()->id(),
                                 'action_type' => 'kyc_reject',
