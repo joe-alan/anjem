@@ -37,6 +37,13 @@ class DriverController extends Controller
             ], 403);
         }
 
+        if (! $driver->is_active) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Your account has been suspended. Please contact admin.',
+            ], 403);
+        }
+
         $driverProfile = $driver->driverProfile;
         if (! $driverProfile || ! $driverProfile->email_verified_at) {
             return response()->json([
