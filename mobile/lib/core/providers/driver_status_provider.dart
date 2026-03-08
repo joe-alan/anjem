@@ -286,11 +286,15 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
       onAccountStatusChanged: (eventData) {
         final isSuspended = eventData['is_suspended'] as bool? ?? false;
         if (isSuspended) {
-          print('DriverStatusProvider: Account suspended by admin — signing out');
+          print('DriverStatusProvider: Account suspended — going offline');
           _ref.read(driverIncomingRequestProvider.notifier).clear();
           state = const DriverStatusState();
-          _ref.read(authStateProvider.notifier).signOut();
+        } else {
+          print('DriverStatusProvider: Account unsuspended');
         }
+        // Refresh user (updates isActive) and KYC status (updates suspendReason).
+        _ref.read(authStateProvider.notifier).refreshUser();
+        _ref.read(kycStateProvider.notifier).refreshKycStatus();
       },
     );
 
