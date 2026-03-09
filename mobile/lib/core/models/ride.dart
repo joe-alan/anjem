@@ -112,10 +112,10 @@ class Ride extends Equatable {
   }
 
   static List<LatLng>? _parseRouteGeometry(dynamic geometry) {
-    if (geometry == null) return null;
+    if (geometry == null || geometry is! Map) return null;
     final coords = geometry['coordinates'];
-    if (coords == null) return null;
-    return (coords as List)
+    if (coords == null || coords is! List) return null;
+    return coords
         .map((c) => LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()))
         .toList();
   }
