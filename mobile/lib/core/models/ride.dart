@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'lat_lng.dart';
 import 'location.dart';
 import 'user.dart';
 
@@ -31,6 +32,7 @@ class Ride extends Equatable {
   final String? cancellationReason;
   final bool? adminOverride;
   final String? adminReason;
+  final List<LatLng>? routeCoordinates;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -55,6 +57,7 @@ class Ride extends Equatable {
     this.cancellationReason,
     this.adminOverride,
     this.adminReason,
+    this.routeCoordinates,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -102,9 +105,19 @@ class Ride extends Equatable {
       cancellationReason: json['cancellation_reason'] as String?,
       adminOverride: json['admin_override'] as bool?,
       adminReason: json['admin_reason'] as String?,
+      routeCoordinates: _parseRouteGeometry(json['route_geometry']),
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
+  }
+
+  static List<LatLng>? _parseRouteGeometry(dynamic geometry) {
+    if (geometry == null) return null;
+    final coords = geometry['coordinates'];
+    if (coords == null) return null;
+    return (coords as List)
+        .map((c) => LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()))
+        .toList();
   }
 
   Map<String, dynamic> toJson() {
@@ -195,6 +208,7 @@ class Ride extends Equatable {
     String? cancellationReason,
     bool? adminOverride,
     String? adminReason,
+    List<LatLng>? routeCoordinates,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -219,6 +233,7 @@ class Ride extends Equatable {
       cancellationReason: cancellationReason ?? this.cancellationReason,
       adminOverride: adminOverride ?? this.adminOverride,
       adminReason: adminReason ?? this.adminReason,
+      routeCoordinates: routeCoordinates ?? this.routeCoordinates,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -246,6 +261,7 @@ class Ride extends Equatable {
         cancellationReason,
         adminOverride,
         adminReason,
+        routeCoordinates,
         createdAt,
         updatedAt,
       ];

@@ -83,7 +83,7 @@ class RideController extends Controller
             ], 403);
         }
 
-        $ride->load(['rider', 'driver', 'pickupLocation', 'destinationLocation', 'ratings']);
+        $ride->load(['rider', 'driver', 'pickupLocation', 'destinationLocation', 'ratings', 'rideRequest']);
 
         return response()->json([
             'success' => true,
@@ -109,7 +109,7 @@ class RideController extends Controller
         try {
             $ride = $this->rideService->acceptRideRequest($rideRequest->id, $driver->id);
 
-            $ride->load(['rider', 'driver', 'pickupLocation', 'destinationLocation']);
+            $ride->load(['rider', 'driver', 'pickupLocation', 'destinationLocation', 'rideRequest']);
 
             // Remove accepting driver from the FIFO queue immediately so other
             // drivers move up without waiting for this ride to finish.
