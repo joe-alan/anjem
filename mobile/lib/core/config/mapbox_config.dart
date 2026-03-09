@@ -33,7 +33,7 @@ class MapboxConfig {
       'https://api.mapbox.com/directions/v5/mapbox';
 
   /// Default profile for directions (driving, walking, cycling)
-  static const String defaultDirectionsProfile = 'driving';
+  static const String defaultDirectionsProfile = 'driving-traffic';
 
   /// Default camera settings
   static const double defaultZoom = 15.0;

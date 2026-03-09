@@ -54,7 +54,7 @@ class RouteCacheService
         float $originLng,
         float $destLat,
         float $destLng,
-        string $profile = 'driving'
+        string $profile = 'driving-traffic'
     ): array {
         // Try to find cached route
         $cachedRoute = RouteCache::forRoute($originLocationId, $destinationLocationId, $profile)
@@ -165,7 +165,7 @@ class RouteCacheService
         float $originLng,
         float $destLat,
         float $destLng,
-        string $profile = 'driving'
+        string $profile = 'driving-traffic'
     ): array {
         Log::info('Manually refreshing route cache', [
             'origin_id' => $originLocationId,

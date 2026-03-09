@@ -42,7 +42,7 @@ class MapboxService
             // Mapbox Directions API expects lng,lat format
             $coordinates = "{$originLng},{$originLat};{$destLng},{$destLat}";
 
-            $url = "{$this->baseUrl}/directions/v5/mapbox/driving/{$coordinates}";
+            $url = "{$this->baseUrl}/directions/v5/mapbox/driving-traffic/{$coordinates}";
 
             $response = Http::timeout(10)->get($url, [
                 'access_token' => $this->accessToken,
