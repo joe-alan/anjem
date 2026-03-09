@@ -3,7 +3,7 @@
 ## Current State
 
 **Branch:** `feat/mapbox-optimisation`
-**Next action:** Phase 2 — Enable Search Box API — backend done, run `php artisan test` then CodeRabbit review
+**Next action:** Open PR against `main` — all 7 phases complete ✅
 
 ---
 
@@ -11,27 +11,15 @@
 
 | Phase | Title | Status |
 |---|---|---|
-| 1 | Eliminate duplicate Directions calls | ✅ Done — committed `38350ad`, `7735bb4` |
-| 2 | Enable Search Box API for production | 🔄 In progress |
-| 3 | Switch to `driving-traffic` profile | ⬜ Pending |
-| 4 | Schedule route cache cleanup | ⬜ Pending |
-| 5 | Adaptive driver location updates | ⬜ Pending |
-| 6 | Security — move hardcoded token | ⬜ Pending |
-| 7 | Update outdated docs | ⬜ Pending |
+| 1 | Eliminate duplicate Directions calls | ✅ Done |
+| 2 | Enable Search Box API for production | ✅ Done |
+| 3 | Switch to `driving-traffic` profile | ✅ Done |
+| 4 | Schedule route cache cleanup | ✅ Done |
+| 5 | Adaptive driver location updates | ✅ Done |
+| 6 | Security — move hardcoded token | ✅ Done |
+| 7 | Update outdated docs | ✅ Done |
 
-Full plan: `mapbox_optimisation.md`
-
----
-
-## Phase 2 Changes (this session)
-
-### What changed
-
-| File | Change |
-|---|---|
-| `backend/app/Services/PlaceSearchService.php` | `MIN_RESULTS_THRESHOLD` 0→3; session token; campus bbox |
-| `backend/config/services.php` | Added `search_bbox` to mapbox config |
-| `mobile/lib/rider/screens/location_selection_screen.dart` | Fixed misleading error message for null-ID locations |
+Full plan: `mapbox_optimisation.md` · Implementation reference: `docs/optimization/ROUTE_API_CACHING_PLAN.md`
 
 ---
 
