@@ -45,9 +45,9 @@ class MapboxConfig {
   static const double defaultPitch = 0.0;
   static const double defaultBearing = 0.0;
 
-  /// UI Campus center (default location for Indonesia University)
-  static const double uiCampusLatitude = -6.3615;
-  static const double uiCampusLongitude = 106.8242;
+  /// Undip (Universitas Diponegoro) Tembalang campus center — Semarang
+  static const double uiCampusLatitude = -7.0523;
+  static const double uiCampusLongitude = 110.4381;
 
   /// Search radius for nearby beacons (in meters)
   static const double searchRadiusMeters = 5000.0; // 5km

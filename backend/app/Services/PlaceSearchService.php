@@ -229,13 +229,18 @@ class PlaceSearchService
             return null;
         }
 
+        // poi_category is a list in the Mapbox API response (e.g. ["cafe","coffee_shop"])
+        // Normalise to a single string so it survives JSON round-trips and Flutter casts
+        $poiCategory = $properties['poi_category'] ?? null;
+        $categoryString = is_array($poiCategory) ? ($poiCategory[0] ?? null) : $poiCategory;
+
         return [
             'name' => $properties['name'] ?? 'Unknown',
             'address' => $properties['full_address'] ?? $properties['place_formatted'] ?? '',
             'longitude' => $coordinates[0],
             'latitude' => $coordinates[1],
             'mapbox_id' => $mapboxId,
-            'category' => $properties['poi_category'] ?? null,
+            'category' => $categoryString,
         ];
     }
 
@@ -316,7 +321,13 @@ class PlaceSearchService
                 ],
                 'is_beacon' => $location->is_beacon,
                 'usage_count' => $location->usage_count ?? 0,
-                'category' => $location->metadata['category'] ?? ($location->is_beacon ? 'beacon' : 'destination'),
+                'category' => (function ($cat, $isBeacon) {
+                    if (is_array($cat)) {
+                        return $cat[0] ?? ($isBeacon ? 'beacon' : 'destination');
+                    }
+
+                    return $cat ?? ($isBeacon ? 'beacon' : 'destination');
+                })($location->metadata['category'] ?? null, $location->is_beacon),
             ];
 
             // Add distance if user coordinates provided

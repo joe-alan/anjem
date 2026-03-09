@@ -70,7 +70,7 @@ class _LocationSelectionScreenState
     // This works better than empty query which causes backend errors
     await ref.read(placeSearchProvider.notifier).search(
       query: 'gate', // Search for campus gates/beacons by default
-      userLocation: userLocation ?? const LatLng(-6.3615, 106.8242),
+      userLocation: userLocation, // null if GPS not yet resolved — backend omits distance rather than computing a wrong one
       radius: 5.0,
       limit: 20,
     );
