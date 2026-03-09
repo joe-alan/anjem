@@ -89,31 +89,42 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
       print('Failed to get initial location: $e');
     }
 
-    // Update driver location every 10 seconds
-    _locationUpdateTimer =
-        Timer.periodic(const Duration(seconds: 10), (timer) async {
+    // Start adaptive location update loop
+    _scheduleNextLocationUpdate();
+  }
+
+  // Adaptive location update interval based on speed:
+  //   > 15 km/h  →  5 s  (fast-moving, high precision)
+  //   2–15 km/h  → 10 s  (normal driving)
+  //   < 2 km/h   → 30 s  (stationary/slow, save battery)
+  void _scheduleNextLocationUpdate() {
+    if (!mounted) return;
+    Future.delayed(const Duration(seconds: 5), () async {
+      if (!mounted) return;
       try {
-        // ✅ FIX: Use new LocationSettings API instead of deprecated desiredAccuracy
         final position = await Geolocator.getCurrentPosition(
           locationSettings: const LocationSettings(
             accuracy: LocationAccuracy.high,
-            distanceFilter: 10, // Only update if moved 10 meters
+            distanceFilter: 10,
           ),
         );
 
         // Update current driver location
-        setState(() {
-          _currentDriverLocation = LatLng(position.latitude, position.longitude);
-        });
+        if (mounted) {
+          setState(() {
+            _currentDriverLocation = LatLng(position.latitude, position.longitude);
+          });
+        }
 
-        // ✅ OPTIMIZATION: Do NOT fetch route on every location update
-        // Route is only fetched when:
-        // 1. Initial load (line 49)
-        // 2. Status changes (lines 278, 342)
-        // This saves 10-30 Mapbox API calls per ride (90% cost reduction)
+        // Determine adaptive interval from speed (m/s → km/h)
+        final speedKmh = (position.speed < 0 ? 0 : position.speed) * 3.6;
+        final interval = speedKmh > 15
+            ? const Duration(seconds: 5)
+            : speedKmh >= 2
+                ? const Duration(seconds: 10)
+                : const Duration(seconds: 30);
 
         final apiService = ref.read(apiServiceProvider);
-
         await apiService.post('/driver/location', data: {
           'latitude': position.latitude,
           'longitude': position.longitude,
@@ -121,11 +132,18 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
           'speed': position.speed,
         });
 
-        print(
-            'Driver location updated: ${position.latitude}, ${position.longitude}');
+        print('Driver location updated (${interval.inSeconds}s interval, ${speedKmh.toStringAsFixed(1)} km/h)');
+
+        // Schedule next update after the adaptive interval
+        if (mounted) {
+          _locationUpdateTimer = Timer(interval, _scheduleNextLocationUpdate);
+        }
       } catch (e) {
         print('Failed to update location: $e');
-        // Don't stop timer, just skip this update
+        // Retry after default interval on error
+        if (mounted) {
+          _locationUpdateTimer = Timer(const Duration(seconds: 10), _scheduleNextLocationUpdate);
+        }
       }
     });
   }
