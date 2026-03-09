@@ -50,6 +50,7 @@ return [
     'mapbox' => [
         'public_token' => env('MAPBOX_PUBLIC_TOKEN'),
         'secret_token' => env('MAPBOX_SECRET_TOKEN'), // Optional for MVP
+        'search_bbox' => env('MAPBOX_SEARCH_BBOX', '106.80,-6.39,106.86,-6.33'), // UI campus bounding box
     ],
 
 ];
