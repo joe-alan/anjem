@@ -120,7 +120,7 @@ class AdminController extends Controller
         $stats = [
             'total_rides' => $driver->driverRides()->where('status', 'completed')->count(),
             'total_earnings' => $driver->driverRides()->where('status', 'completed')->sum('actual_fare_rp'),
-            'average_rating' => $driver->driverProfile->rating_average ?? 5.0,
+            'average_rating' => $driver->driverProfile->rating_average ?? 0.0,
             'rating_count' => $driver->driverProfile->rating_count ?? 0,
             'acceptance_rate' => $this->calculateAcceptanceRate($driver),
             'cancellation_rate' => $this->calculateCancellationRate($driver),
@@ -477,7 +477,7 @@ class AdminController extends Controller
                 'name' => $driver->name,
                 'total_rides' => $driver->total_rides ?? 0,
                 'total_earnings' => $driver->total_earnings ?? 0,
-                'rating' => $driver->driverProfile->rating_average ?? 5.0,
+                'rating' => $driver->driverProfile->rating_average ?? 0.0,
                 'rating_count' => $driver->driverProfile->rating_count ?? 0,
             ];
         });
@@ -1048,7 +1048,7 @@ class AdminController extends Controller
             'ktm_url' => $driver->driverProfile->ktm_url ?? null,
             'student_email' => $driver->driverProfile->student_email ?? null,
             'email_verified_at' => $driver->driverProfile->email_verified_at?->toISOString(),
-            'rating' => $driver->driverProfile->rating_average ?? 5.0,
+            'rating' => $driver->driverProfile->rating_average ?? 0.0,
             'rating_count' => $driver->driverProfile->rating_count ?? 0,
             'is_online' => $driver->driverProfile->went_online_at !== null,
             'went_online_at' => $driver->driverProfile->went_online_at?->toISOString(),

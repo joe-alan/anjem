@@ -3,85 +3,81 @@
 ## Current State
 
 **Branch:** `feat/admin-dashboard-phase1`
-**Next action:** Test the admin dashboard using `ADMIN_DASHBOARD_TEST_LOG.md`
+**Next action:** Continue manual testing of the admin dashboard (`ADMIN_DASHBOARD_TEST_LOG.md`). Resume at **A-8** (View KTM Document). A-1 through A-7 passed.
 
 ---
 
-## What Was Done This Session
+## This Session (2026-03-08) — KYC Resource + Rider Suspend + WS Race Fix
 
-### Phase 1 — Backend API (commit `9f66af1`)
-New endpoints added to `AdminController`:
-- `POST /api/v1/admin/drivers/{id}/kyc/approve`
-- `POST /api/v1/admin/drivers/{id}/kyc/reject` (reason required, min 10 chars)
-- `POST /api/v1/admin/drivers/{id}/credits/grant` (amount 1–100)
-- `POST /api/v1/admin/drivers/{id}/credits/deduct`
-- `GET  /api/v1/admin/drivers/{id}/document`
-- `GET  /api/v1/admin/audit-logs` (paginated, filterable)
+### Commits this session
+No commits yet — all changes are unstaged. Commit before starting next session.
 
-Retrofitted audit logging (`AdminAuditLog`) onto existing mutations:
-`suspendDriver`, `suspendRider`, `cancelRequest`, `cancelRide`, `completeRide`
-
-New service methods:
-- `CreditService::adminDeductCredits()` — with `lockForUpdate` + negative-balance guard
-- `NotificationService::sendKycApprovedToDriver()` / `sendKycRejectedToDriver()`
-
-New migration: `make_reason_nullable_on_admin_audit_logs`
-New tests: `tests/Feature/Api/AdminKycCreditTest.php` — **14/14 passing**
-
-### Phase 2 — Filament Dashboard (commits `cff1858`, `ae69898`)
-Filament 3.2 installed at `/admin`. Full panel with:
-
-| File | Purpose |
+### Changed files this session
+| File | What changed |
 |---|---|
-| `app/Providers/Filament/AdminPanelProvider.php` | Panel config, nav groups, Indigo theme |
-| `app/Models/User.php` | Added `FilamentUser` interface + `canAccessPanel()` |
-| `app/Filament/Resources/DriverResource.php` | 7 actions: approve/reject KYC, grant/deduct credits, suspend/unsuspend, view document |
-| `app/Filament/Resources/RiderResource.php` | Suspend/unsuspend with audit log |
-| `app/Filament/Resources/RideResource.php` | Force-complete/cancel, stuck-rides filter |
-| `app/Filament/Resources/AuditLogResource.php` | Read-only, all 12 action types, JSON diff infolist |
-| `app/Filament/Pages/Dashboard.php` | 3 widgets stacked |
-| `app/Filament/Pages/LiveMonitoringPage.php` | Active rides + online drivers, wire:poll auto-refresh |
-| `app/Filament/Widgets/StatsOverviewWidget.php` | Total Users, Online Drivers, Active Rides, Revenue 30d (IDR) |
-| `app/Filament/Widgets/DailyRidesChartWidget.php` | 30-day completed rides line chart |
-| `app/Filament/Widgets/KycPendingWidget.php` | Unverified driver count with deep-link |
-| `database/migrations/2026_03_05_133537_add_two_factor_columns_to_users_table.php` | 2FA columns (secret, recovery_codes, confirmed_at) |
-| `resources/views/filament/pages/live-monitoring.blade.php` | Blade view for LiveMonitoringPage |
-
-### CodeRabbit Fixes Applied (commit `ae69898`)
-- `DriverResource`: grantCredits wrapped in `DB::transaction`; `ktm_url` escaped with `e()`
-- `NotificationService`: raw KYC rejection reason removed from FCM push payload
-- `RideController`: post-completion credit/queue side-effects wrapped in `try/catch(\Throwable)`
-- `composer.json`: `filament/filament` tightened to `^3.2.123` (CVE-2024-47186, CVE-2024-51758)
-- `active_ride_screen.dart`: idempotency guard `_isHandlingCompletion`, `await goOffline()`, `isOnline` derived from balance
-- `driver_status_provider.dart`: clears `driverIncomingRequestProvider` on forced-offline
-- `credit_service.dart`: null guards for `getBalance` and `getTransactions`
+| `backend/app/Filament/Resources/KycResource.php` | **NEW** — dedicated KYC review section in admin panel |
+| `backend/app/Filament/Resources/KycResource/Pages/ListKyc.php` | **NEW** — Filament list page for KYC resource |
+| `backend/app/Filament/Resources/DriverResource.php` | Removed approve/reject KYC and view_document actions; now only credits + suspend |
+| `backend/app/Filament/Widgets/KycPendingWidget.php` | Dashboard KYC badge now links to new KYC section |
+| `backend/app/Providers/Filament/AdminPanelProvider.php` | Registered `KycResource` |
+| `backend/app/Events/UserAccountStatusChanged.php` | Broadcasts to BOTH `private-driver.{id}` AND `private-user.{id}` (was either/or) |
+| `backend/app/Http/Controllers/Api/AdminController.php` | `rating_average ?? 5.0` → `?? 0.0` (3 spots) |
+| `backend/app/Http/Resources/UserResource.php` | `rating_average ?? 5.0` → `?? 0.0` |
+| `backend/routes/api.php` | Auth throttle: `5,1` → `10,1` |
+| `mobile/lib/core/providers/auth_provider.dart` | `_initializeWebSocket()` now runs **before** `isAuthenticated: true` (race fix) |
+| `mobile/lib/core/providers/kyc_provider.dart` | Removed `if (state.isLoading) return` guard in `refreshKycStatus()` |
+| `mobile/lib/core/providers/ride_request_provider.dart` | Always subscribes to user channel on login (not just when pending); added `onAccountSuspended` callback |
+| `mobile/lib/rider/screens/rider_home_screen.dart` | Suspended banner + disabled button; refresh button calls `refreshUser()` |
 
 ---
 
-## Starting the Admin Panel
+## KYC Section — How It Works Now
 
-```bash
-# From backend/
-php artisan serve          # API + Filament panel
-php artisan reverb:start   # WebSocket (needed for live monitoring)
-php artisan queue:work     # FCM notifications + jobs
+**New "KYC" nav item** under Users group (sort: 2), with a red badge showing pending count.
 
-# Visit: http://localhost:8000/admin
-# Credentials: see database/seeders/AdminUserSeeder.php
-```
+- Shows **all drivers** by default, filtered to "Pending Review" (email verified, not approved)
+- Filter options: Pending Review / Approved / Not Ready
+- **Review action** opens a `4xl` modal:
+  - Left: KTM photo
+  - Right: student name, ID, email, vehicle plate, color
+  - Toggle buttons: **Approve** (green) / **Reject** (red)
+  - Reject shows conditional reason textarea (min 10 chars, required)
+- Approve/reject both delete the KTM photo from disk, write `AdminAuditLog`, send FCM, broadcast WebSocket
+- Visible for drivers with `email_verified_at` set OR `is_verified = true` (allows rejecting false approvals)
 
----
-
-## Test Log
-
-`ADMIN_DASHBOARD_TEST_LOG.md` — 17 test cases covering every admin feature.
-Fill it in during manual testing. All cases are ⬜ Not tested.
+**Drivers section** now only has: Grant Credits, Deduct Credits, Suspend, Unsuspend.
 
 ---
 
-## Uncommitted Changes (pre-existing, not our work)
+## Rider Suspend — How It Works Now
 
-- `backend/app/Http/Controllers/Api/DriverController.php` — modified before this session; not related to admin dashboard; investigate separately if needed.
+**Backend:** `UserAccountStatusChanged` broadcasts to both `private-driver.{id}` and `private-user.{id}` — fixes the case where a user has both roles or where the channel routing was wrong.
+
+**Mobile:**
+- `RideRequestProvider` always subscribes to `private-user.{id}` at login (previously only when a request was pending)
+- `onAccountStatusChanged` → clears ride request state + calls `refreshUser()` via `onAccountSuspended` callback
+- `refreshUser()` updates `authState.user.isActive` → rider home screen shows red suspended banner, Request Ride button disabled
+- Refresh button also calls `refreshUser()` as a fallback
+
+**Race condition fix:** `_initializeWebSocket()` now completes before `isAuthenticated: true` is set. This ensures `_pusher` is non-null when `rideRequestProvider` first subscribes to the user channel.
+
+---
+
+## Admin Test Log Status
+
+| Test | Status |
+|---|---|
+| A-1 Admin Login & Panel Access | ✅ Pass |
+| A-2 Dashboard KPIs & Widgets | ✅ Pass |
+| A-3 Driver List — Filters & Columns | ✅ Pass |
+| A-4 KYC Approve | ✅ Pass |
+| A-5 KYC Reject | ✅ Pass |
+| A-6 Grant Credits | ✅ Pass |
+| A-7 Deduct Credits | ✅ Pass |
+| A-8 View KTM Document | ⬜ Not tested (moved to KYC section) |
+| A-9 through A-18 | ⬜ Not tested |
+
+> Note: A-8 "View Document" no longer exists as a standalone action in Drivers. KTM review is now inside the KYC section's Review modal. Update the test log accordingly before testing.
 
 ---
 
@@ -89,16 +85,34 @@ Fill it in during manual testing. All cases are ⬜ Not tested.
 
 | # | Description | Severity | File |
 |---|---|---|---|
-| 1 | Pull-to-refresh while backend is down shows Flutter error screen instead of silently hiding the credit chip. `ApiException` escapes `onRefresh` before `AsyncValue.guard` catches it. | Low | `mobile/lib/driver/screens/driver_home_screen.dart` |
-| 2 | After session-restore (app kill mid-ride + reopen), completing the ride leaves the driver stuck on `ActiveRideScreen` — `Navigator.popUntil(isFirst)` is a no-op when `ActiveRideScreen` is the root widget. | Medium | `mobile/lib/driver/screens/active_ride_screen.dart` |
+| 1 | Pull-to-refresh while backend is down shows Flutter error screen instead of silently hiding the credit chip. | Low | `mobile/lib/driver/screens/driver_home_screen.dart` |
+| 2 | After session-restore (app kill mid-ride + reopen), completing the ride leaves the driver stuck on `ActiveRideScreen`. | Medium | `mobile/lib/driver/screens/active_ride_screen.dart` |
 
 ---
 
-## Test Results So Far
+## Starting the Dev Server
 
-| Test suite | Status |
-|---|---|
-| `AdminKycCreditTest` (14 tests) | ✅ 14/14 pass |
-| `AdminControllerTest` (existing) | ⚠️ 3 pre-existing failures (view rider details, view ride details, force update status) — unrelated to admin dashboard work |
-| PHPStan `app/` | ⚠️ 2 pre-existing errors in `Http/Resources/RatingResource.php` and `Http/Resources/RideResource.php` — not introduced by this work |
-| Filament PHP syntax | ✅ All 17 files pass `php -l` |
+```bash
+# From backend/
+php artisan serve          # http://127.0.0.1:8000
+php artisan reverb:start   # WebSocket on :8080
+php artisan queue:work     # Jobs + FCM
+php artisan schedule:work  # Stale driver kick + cleanup
+
+# Admin panel: http://localhost:8000/admin
+# Credentials: see database/seeders/AdminUserSeeder.php
+
+# Mobile (driver flavor):
+flutter run --flavor driver -t lib/main_driver.dart
+
+# Mobile (rider flavor):
+flutter run --flavor rider -t lib/main_rider.dart
+```
+
+---
+
+## Uncommitted Changes (pre-existing, not our work)
+
+- `CREDIT_SYSTEM_DEVICE_TEST_LOG.md` — deleted (unstaged)
+- `docs/DEVICE_TEST_LOG.md` — deleted (unstaged)
+- `backend/app/Exceptions/Handler.php` — redirects unauthenticated to Filament login (unstaged, pre-existing)

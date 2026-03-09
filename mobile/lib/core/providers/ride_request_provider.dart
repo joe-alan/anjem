@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/ride_request.dart';
 import '../models/ride.dart';
@@ -91,6 +92,7 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
   final RideRequestService _service;
   final WebSocketService _wsService;
   final dynamic _apiService;
+  final VoidCallback? onAccountSuspended;
   int? _activeUserId;
   Timer? _matchPollingTimer;
   int _pollAttempts = 0;
@@ -100,8 +102,9 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
   RideRequestNotifier(
     this._service,
     this._wsService,
-    this._apiService,
-  ) : super(const RideRequestState());
+    this._apiService, {
+    this.onAccountSuspended,
+  }) : super(const RideRequestState());
 
   @override
   void dispose() {
@@ -134,8 +137,11 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
     _activeUserId = nextUserId;
     await _checkPendingRequest();
 
+    // Always subscribe to the user channel so account suspension events
+    // are received even when the rider has no active request.
+    await _subscribeToMatching();
+
     if (state.isPending) {
-      await _subscribeToMatching();
       _startMatchPolling();
     }
   }
@@ -390,6 +396,7 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
           _stopMatchPolling();
           state = const RideRequestState();
         }
+        onAccountSuspended?.call();
       },
     );
 
@@ -647,7 +654,12 @@ final rideRequestProvider =
   final service = ref.watch(rideRequestServiceProvider);
   final wsService = ref.watch(websocketServiceProvider);
   final apiService = ref.watch(apiServiceProvider);
-  final notifier = RideRequestNotifier(service, wsService, apiService);
+  final notifier = RideRequestNotifier(
+    service,
+    wsService,
+    apiService,
+    onAccountSuspended: () => ref.read(authStateProvider.notifier).refreshUser(),
+  );
 
   ref.listen(currentUserProvider, (previous, next) {
     notifier.handleUserChanged(

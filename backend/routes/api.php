@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
 
     // Authentication routes (no auth required) - Strict rate limiting
-    Route::prefix('auth')->middleware('throttle:5,1')->group(function () {
+    Route::prefix('auth')->middleware('throttle:10,1')->group(function () {
         Route::post('firebase', [AuthController::class, 'authenticateWithFirebase']);
         Route::get('google', [AuthController::class, 'googleRedirect']);
         Route::get('google/callback', [AuthController::class, 'googleCallback']);
