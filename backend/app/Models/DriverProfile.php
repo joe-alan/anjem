@@ -53,6 +53,7 @@ class DriverProfile extends Model
         'credits_balance',
         'credits_total_earned',
         'credits_total_spent',
+        'ktm_url',
     ];
 
     /**

@@ -3,13 +3,11 @@
 namespace App\Filament\Resources;
 
 use App\Events\DriverCreditsUpdated;
-use App\Events\DriverKycStatusChanged;
 use App\Events\UserAccountStatusChanged;
 use App\Models\AdminAuditLog;
 use App\Models\DriverProfile;
 use App\Models\User;
 use App\Services\CreditService;
-use App\Services\NotificationService;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
@@ -151,86 +149,6 @@ class DriverResource extends Resource
                     ),
             ])
             ->actions([
-                Action::make('approve_kyc')
-                    ->label('Approve KYC')
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
-                    ->visible(fn (User $record) => !($record->driverProfile && $record->driverProfile->is_verified && $record->driverProfile->email_verified_at))
-                    ->form([
-                        TextInput::make('reason')->label('Reason (optional)'),
-                    ])
-                    ->requiresConfirmation()
-                    ->action(function (User $record, array $data) {
-                        DB::transaction(function () use ($record, $data) {
-                            $record->driverProfile->update(['is_verified' => true]);
-                            AdminAuditLog::create([
-                                'admin_id'    => auth()->id(),
-                                'action_type' => 'kyc_approve',
-                                'target_type' => DriverProfile::class,
-                                'target_id'   => $record->driverProfile->id,
-                                'changes'     => ['is_verified' => true],
-                                'reason'      => $data['reason'] ?? null,
-                                'ip_address'  => request()->ip(),
-                                'user_agent'  => request()->userAgent(),
-                            ]);
-                        });
-                        try {
-                            app(NotificationService::class)->sendKycApprovedToDriver($record);
-                        } catch (\Exception $e) {
-                            \Log::warning('Failed to send KYC approved notification', [
-                                'driver_id' => $record->id,
-                                'error'     => $e->getMessage(),
-                            ]);
-                        }
-                        broadcast(new DriverKycStatusChanged($record->fresh(['driverProfile']), true));
-                    })
-                    ->successNotificationTitle('KYC approved'),
-
-                Action::make('reject_kyc')
-                    ->label('Reject KYC')
-                    ->icon('heroicon-o-x-circle')
-                    ->color('danger')
-                    ->visible(fn (User $record) => $record->driverProfile?->is_verified || $record->driverProfile?->email_verified_at)
-                    ->form([
-                        TextInput::make('reason')->label('Reason')->required()->minLength(10),
-                    ])
-                    ->requiresConfirmation()
-                    ->action(function (User $record, array $data) {
-                        DB::transaction(function () use ($record, $data) {
-                            $record->driverProfile->update([
-                                'is_verified'      => false,
-                                'email_verified_at' => null,
-                                'student_email'    => null,
-                                'student_id'       => null,
-                                'student_name'     => null,
-                                'vehicle_type'     => null,
-                                'vehicle_plate'    => null,
-                                'vehicle_color'    => null,
-                                'ktm_url'          => null,
-                            ]);
-                            AdminAuditLog::create([
-                                'admin_id'    => auth()->id(),
-                                'action_type' => 'kyc_reject',
-                                'target_type' => DriverProfile::class,
-                                'target_id'   => $record->driverProfile->id,
-                                'changes'     => ['is_verified' => false, 'email_verified_at' => null],
-                                'reason'      => $data['reason'],
-                                'ip_address'  => request()->ip(),
-                                'user_agent'  => request()->userAgent(),
-                            ]);
-                        });
-                        try {
-                            app(NotificationService::class)->sendKycRejectedToDriver($record, $data['reason']);
-                        } catch (\Exception $e) {
-                            \Log::warning('Failed to send KYC rejected notification', [
-                                'driver_id' => $record->id,
-                                'error'     => $e->getMessage(),
-                            ]);
-                        }
-                        broadcast(new DriverKycStatusChanged($record->fresh(['driverProfile']), false, $data['reason']));
-                    })
-                    ->successNotificationTitle('KYC rejected'),
-
                 Action::make('grant_credits')
                     ->label('Grant Credits')
                     ->icon('heroicon-o-plus-circle')
@@ -366,15 +284,6 @@ class DriverResource extends Resource
                     })
                     ->successNotificationTitle('Driver unsuspended'),
 
-                Action::make('view_document')
-                    ->label('View Document')
-                    ->icon('heroicon-o-document')
-                    ->visible(fn (User $record) => !empty($record->driverProfile?->ktm_url))
-                    ->modalContent(fn (User $record) => new \Illuminate\Support\HtmlString(
-                        '<div class="text-center p-4"><img src="' . e(asset('storage/' . $record->driverProfile->ktm_url)) . '" class="max-w-full mx-auto rounded shadow" alt="KTM Document"></div>'
-                    ))
-                    ->modalSubmitAction(false)
-                    ->modalCancelActionLabel('Close'),
             ]);
     }
 

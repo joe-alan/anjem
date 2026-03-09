@@ -21,16 +21,13 @@ class UserAccountStatusChanged implements ShouldBroadcast
 
     public function broadcastOn(): array
     {
-        // Ensure driverProfile is loaded without triggering an extra query if already present.
-        $this->user->loadMissing('driverProfile');
-
-        // Drivers subscribe to private-driver.{id} — always active when logged in.
-        // Riders subscribe to private-user.{id} — active during ride request flow.
-        if ($this->user->driverProfile) {
-            return [new PrivateChannel("driver.{$this->user->id}")];
-        }
-
-        return [new PrivateChannel("user.{$this->user->id}")];
+        // Broadcast to both channels — the driver app subscribes to private-driver.{id}
+        // and the rider app subscribes to private-user.{id}. A user with both roles
+        // (or a test account) would only receive it on one channel otherwise.
+        return [
+            new PrivateChannel("driver.{$this->user->id}"),
+            new PrivateChannel("user.{$this->user->id}"),
+        ];
     }
 
     public function broadcastWith(): array

@@ -6,6 +6,7 @@ use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\LiveMonitoringPage;
 use App\Filament\Resources\AuditLogResource;
 use App\Filament\Resources\DriverResource;
+use App\Filament\Resources\KycResource;
 use App\Filament\Resources\RiderResource;
 use App\Filament\Resources\RideResource;
 use App\Filament\Widgets\DailyRidesChartWidget;
@@ -44,6 +45,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->resources([
                 DriverResource::class,
+                KycResource::class,
                 RiderResource::class,
                 RideResource::class,
                 AuditLogResource::class,

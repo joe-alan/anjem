@@ -19,7 +19,7 @@ class KycPendingWidget extends BaseWidget
                 ->description('Drivers awaiting admin approval')
                 ->icon('heroicon-o-identification')
                 ->color($count > 0 ? 'danger' : 'success')
-                ->url(route('filament.admin.resources.drivers.index', ['tableFilters[kyc_status][value]' => 'pending'])),
+                ->url(route('filament.admin.resources.kyc.index')),
         ];
     }
 }
