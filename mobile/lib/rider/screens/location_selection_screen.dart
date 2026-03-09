@@ -379,7 +379,7 @@ class _LocationSelectionScreenState
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text(
-                                  'Please select locations from the campus list (marked as Beacon)',
+                                  'Could not resolve one of the selected locations. Please try searching again.',
                                 ),
                                 backgroundColor: Colors.orange,
                               ),
