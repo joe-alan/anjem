@@ -19,15 +19,15 @@
 | [A-5 KYC Reject](#a-5-kyc-reject)                                                    | ✅ Pass       |
 | [A-6 Grant Credits (Filament Action)](#a-6-grant-credits-filament-action)            | ✅ Pass       |
 | [A-7 Deduct Credits (Filament Action)](#a-7-deduct-credits-filament-action)          | ✅ Pass       |
-| [A-8 View KTM Document](#a-8-view-ktm-document)                                      | ⬜ Not tested |
-| [A-9 Suspend / Unsuspend Driver](#a-9-suspend--unsuspend-driver)                     | ⬜ Not tested |
-| [A-10 Rider List — Suspend / Unsuspend](#a-10-rider-list--suspend--unsuspend)        | ⬜ Not tested |
-| [A-11 Ride List — Force Complete](#a-11-ride-list--force-complete)                   | ⬜ Not tested |
-| [A-12 Ride List — Force Cancel](#a-12-ride-list--force-cancel)                       | ⬜ Not tested |
-| [A-13 Stuck Rides Filter](#a-13-stuck-rides-filter)                                  | ⬜ Not tested |
-| [A-14 Audit Log — List & Filter](#a-14-audit-log--list--filter)                      | ⬜ Not tested |
-| [A-15 Live Monitoring Page](#a-15-live-monitoring-page)                              | ⬜ Not tested |
-| [A-16 Non-Admin Access Blocked](#a-16-non-admin-access-blocked)                      | ⬜ Not tested |
+| [A-8 View KTM Document](#a-8-view-ktm-document)                                      | ✅ Pass       |
+| [A-9 Suspend / Unsuspend Driver](#a-9-suspend--unsuspend-driver)                     | ✅ Pass       |
+| [A-10 Rider List — Suspend / Unsuspend](#a-10-rider-list--suspend--unsuspend)        | ✅ Pass       |
+| [A-11 Ride List — Force Complete](#a-11-ride-list--force-complete)                   | ✅ Pass       |
+| [A-12 Ride List — Force Cancel](#a-12-ride-list--force-cancel)                       | ✅ Pass       |
+| [A-13 Stuck Rides Filter](#a-13-stuck-rides-filter)                                  | ✅ Pass       |
+| [A-14 Audit Log — List & Filter](#a-14-audit-log--list--filter)                      | ✅ Pass       |
+| [A-15 Live Monitoring Page](#a-15-live-monitoring-page)                              | ✅ Pass       |
+| [A-16 Non-Admin Access Blocked](#a-16-non-admin-access-blocked)                      | ⚠️ Partial    |
 | [A-17 Phase 1 API — KYC & Credits (direct)](#a-17-phase-1-api--kyc--credits-direct)  | ⬜ Not tested |
 | [A-18 KYC Pending Screen — Session Resume](#a-18-kyc-pending-screen--session-resume) | ⬜ Not tested |
 
@@ -303,19 +303,19 @@ php artisan tinker --execute="App\Models\DriverProfile::where('user_id',{id})->u
 
 | #   | Step                                                  | Expected Output                                       | Result |
 | --- | ----------------------------------------------------- | ----------------------------------------------------- | ------ |
-| 1   | Find driver with a KTM document (`ktm_url` not null)  | **View Document** action is **visible** on that row   |        |
-| 2   | Find driver without a KTM document (`ktm_url = null`) | **View Document** action is **hidden**                |        |
-| 3   | Click **View Document**                               | Modal opens — image rendered from `storage/{ktm_url}` |        |
-| 4   | Confirm URL in image src is properly escaped (no XSS) | URL is HTML-escaped via `e()` helper                  |        |
-| 5   | Click **Close**                                       | Modal closes; driver list is still visible            |        |
+| 1   | Find driver with a KTM document (`ktm_url` not null)  | **View Document** action is **visible** on that row   | ✅ |
+| 2   | Find driver without a KTM document (`ktm_url = null`) | **View Document** action is **hidden**                | ✅ |
+| 3   | Click **View Document**                               | Modal opens — image rendered from `storage/{ktm_url}` | ✅ |
+| 4   | Confirm URL in image src is properly escaped (no XSS) | URL is HTML-escaped via `e()` helper                  | ✅ |
+| 5   | Click **Close**                                       | Modal closes; driver list is still visible            | ✅ |
 
 **Notes / Observations:**
 
 ```
-(fill in)
+All steps passed as expected.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
@@ -325,30 +325,30 @@ php artisan tinker --execute="App\Models\DriverProfile::where('user_id',{id})->u
 
 | #   | Step                                                    | Expected Output                                             | Result |
 | --- | ------------------------------------------------------- | ----------------------------------------------------------- | ------ |
-| 1   | Find an **active** driver (Status: Active)              | **Suspend** action visible; **Unsuspend** action hidden     |        |
-| 2   | Click **Suspend**; confirm without reason               | Success notification; Status badge changes to **Suspended** |        |
-| 3   | Confirm via tinker: `User::find({id})->is_active`       | Returns `false`                                             |        |
-| 4   | Confirm audit log: `action_type = driver_suspend`       |                                                             |        |
-| 5   | Now **Suspend** action is hidden; **Unsuspend** visible |                                                             |        |
-| 6   | Click **Unsuspend**; confirm                            | Status badge returns to **Active**                          |        |
-| 7   | Confirm audit log: `action_type = driver_unsuspend`     |                                                             |        |
-| 8   | Confirm via tinker: `is_active = true`                  |                                                             |        |
+| 1   | Find an **active** driver (Status: Active)              | **Suspend** action visible; **Unsuspend** action hidden     | ✅ |
+| 2   | Click **Suspend**; confirm without reason               | Success notification; Status badge changes to **Suspended** | ✅ |
+| 3   | Confirm via tinker: `User::find({id})->is_active`       | Returns `false`                                             | ✅ |
+| 4   | Confirm audit log: `action_type = driver_suspend`       |                                                             | ✅ |
+| 5   | Now **Suspend** action is hidden; **Unsuspend** visible |                                                             | ✅ |
+| 6   | Click **Unsuspend**; confirm                            | Status badge returns to **Active**                          | ✅ |
+| 7   | Confirm audit log: `action_type = driver_unsuspend`     |                                                             | ✅ |
+| 8   | Confirm via tinker: `is_active = true`                  |                                                             | ✅ |
 
 **Edge case — suspended driver tries to go online:**
 
 | #   | Step                                                         | Expected Output                                                                                                                                                     | Result |
 | --- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| E1  | Suspend a driver via admin panel                             |                                                                                                                                                                     |        |
-| E2  | **[Driver app]** Tap Go Online                               | 403 or error returned — driver cannot go online; app shows an error toast                                                                                           |        |
-| E3  | **[Driver app]** If driver was already online when suspended | `account.status.changed` WebSocket event received immediately; driver is signed out in real-time regardless of current state (online, waiting for request, or idle) |        |
+| E1  | Suspend a driver via admin panel                             |                                                                                                                                                                     | ✅ |
+| E2  | **[Driver app]** Tap Go Online                               | 403 or error returned — driver cannot go online; app shows an error toast                                                                                           | ✅ |
+| E3  | **[Driver app]** If driver was already online when suspended | `account.status.changed` WebSocket event received immediately; driver is signed out in real-time regardless of current state (online, waiting for request, or idle) | ✅ |
 
 **Notes / Observations:**
 
 ```
-(fill in)
+All steps and edge cases passed as expected.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
@@ -358,27 +358,34 @@ php artisan tinker --execute="App\Models\DriverProfile::where('user_id',{id})->u
 
 | #   | Step                                          | Expected Output                                        | Result |
 | --- | --------------------------------------------- | ------------------------------------------------------ | ------ |
-| 1   | Navigate to **Riders** in sidebar             | Table shows riders only (no pure drivers)              |        |
-| 2   | Click **Suspend** on an active rider          | Status changes to Suspended; audit log `rider_suspend` |        |
-| 3   | Confirm via tinker: rider `is_active = false` |                                                        |        |
-| 4   | Click **Unsuspend**; confirm                  | Status Active; audit log `rider_unsuspend`             |        |
-| 5   | Confirm the rider has a **View** page         | Click row → infolist shows name, email, role, status   |        |
+| 1   | Navigate to **Riders** in sidebar             | Table shows riders only (no pure drivers)              | ✅ |
+| 2   | Click **Suspend** on an active rider          | Status changes to Suspended; audit log `rider_suspend` | ✅ |
+| 3   | Confirm via tinker: rider `is_active = false` |                                                        | ✅ |
+| 4   | Click **Unsuspend**; confirm                  | Status Active; audit log `rider_unsuspend`             | ✅ |
+| 5   | Confirm the rider has a **View** page         | Click row → infolist shows name, email, role, status   | ✅ |
 
 **Edge case — suspended rider tries to book a ride:**
 
 | #   | Step                                                           | Expected Output                                                                                                       | Result |
 | --- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------ |
-| E1  | Suspend a rider via admin panel                                |                                                                                                                       |        |
-| E2  | **[Rider app]** Attempt to request a ride                      | 403 or error returned — rider cannot book; app shows an error                                                         |        |
-| E3  | **[Rider app]** If rider was actively searching when suspended | `account.status.changed` WebSocket event received; waiting screen clears and ride request state is reset in real-time |        |
+| E1  | Suspend a rider via admin panel                                |                                                                                                                       | ✅ |
+| E2  | **[Rider app]** Attempt to request a ride                      | 403 or error returned — rider cannot book; app shows an error                                                         | ✅ |
+| E3  | **[Rider app]** If rider was actively searching when suspended | `account.status.changed` WebSocket event received; waiting screen clears and ride request state is reset in real-time | ✅ |
 
 **Notes / Observations:**
 
 ```
-(fill in)
+All steps and edge cases passed as expected.
+
+FUTURE REDESIGN NOTE: When a rider is suspended, the app should fully sever all
+real-time connections (WebSocket, location streams, map tile fetches) — not just
+block the booking button. The desired behaviour mirrors "no internet connection":
+routes, live driver locations, and map previews should all become unavailable.
+This ensures a suspended rider cannot passively monitor driver positions or routes.
+Deferred to a future frontend redesign pass.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
@@ -395,24 +402,24 @@ php artisan tinker --execute="App\Models\Ride::whereIn('status',['matched','acce
 
 | #   | Step                                                    | Expected Output                                                                                                                                    | Result |
 | --- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| 1   | Navigate to **Rides** in sidebar                        | Table loads with all rides                                                                                                                         |        |
-| 2   | Find a ride with active status                          | **Force Complete** and **Force Cancel** actions visible                                                                                            |        |
-| 3   | Find a ride with `status = completed` or `cancelled`    | Neither action is visible (read-only for terminal states)                                                                                          |        |
-| 4   | Click **Force Complete**; submit with reason < 10 chars | Validation error                                                                                                                                   |        |
-| 5   | Submit reason "Admin completing stuck ride."            | Success; status badge changes to **Completed** (green)                                                                                             |        |
-| 6   | Confirm via tinker: `Ride::find({id})->status`          | Returns `completed`                                                                                                                                |        |
-| 7   | Confirm `dropoff_time` is set                           | Not null                                                                                                                                           |        |
-| 8   | Confirm audit log: `action_type = ride_force_complete`  |                                                                                                                                                    |        |
-| 9   | **[Driver app]** Observe active ride screen             | `ride.status.updated` WebSocket event received; completion flow triggers: credits deducted, "Ride completed! 🎉" snackbar shown, navigates to home |        |
-| 10  | **[Rider app]** Observe active ride screen              | `ride.status.updated` WebSocket event received; navigates directly to `CompletedScreen` (no admin-specific dialog for completion)                  |        |
+| 1   | Navigate to **Rides** in sidebar                        | Table loads with all rides                                                                                                                         | ✅     |
+| 2   | Find a ride with active status                          | **Force Complete** and **Force Cancel** actions visible                                                                                            | ✅     |
+| 3   | Find a ride with `status = completed` or `cancelled`    | Neither action is visible (read-only for terminal states)                                                                                          | ✅     |
+| 4   | Click **Force Complete**; submit with reason < 10 chars | Validation error                                                                                                                                   | ✅     |
+| 5   | Submit reason "Admin completing stuck ride."            | Success; status badge changes to **Completed** (green)                                                                                             | ✅     |
+| 6   | Confirm via tinker: `Ride::find({id})->status`          | Returns `completed`                                                                                                                                | ✅     |
+| 7   | Confirm `dropoff_time` is set                           | Not null                                                                                                                                           | ✅     |
+| 8   | Confirm audit log: `action_type = ride_force_complete`  |                                                                                                                                                    | ✅     |
+| 9   | **[Driver app]** Observe active ride screen             | `ride.status.updated` WebSocket event received; completion flow triggers: credits deducted, "Ride completed! 🎉" snackbar shown, navigates to home | ✅     |
+| 10  | **[Rider app]** Observe active ride screen              | `ride.status.updated` WebSocket event received; navigates directly to `CompletedScreen` (no admin-specific dialog for completion)                  | ✅     |
 
 **Notes / Observations:**
 
 ```
-(fill in)
+All steps passed as expected.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
@@ -422,21 +429,21 @@ php artisan tinker --execute="App\Models\Ride::whereIn('status',['matched','acce
 
 | #   | Step                                                | Expected Output                                                                                                                                                    | Result |
 | --- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
-| 1   | Click **Force Cancel** on an active ride            | Modal opens — reason required (min 10 chars)                                                                                                                       |        |
-| 2   | Submit with valid reason                            | Status badge changes to **Cancelled** (red/danger)                                                                                                                 |        |
-| 3   | Confirm via tinker: `Ride::find({id})->status`      | Returns `cancelled`                                                                                                                                                |        |
-| 4   | Confirm audit log: `action_type = ride_cancel`      |                                                                                                                                                                    |        |
-| 5   | Confirm neither action appears on the cancelled row | Force Complete and Force Cancel both hidden                                                                                                                        |        |
-| 6   | **[Driver app]** Observe active ride screen         | `ride.status.updated` event received with `admin_override=true`; alert dialog shown: "Ride Cancelled — Admin reason: {reason}"; after OK, driver navigates to home |        |
-| 7   | **[Rider app]** Observe active ride screen          | Same `ride.status.updated` event; alert dialog shown: "Ride Cancelled — Admin reason: {reason}"; after OK, rider navigates to `RiderHomeScreen`                    |        |
+| 1   | Click **Force Cancel** on an active ride            | Modal opens — reason required (min 10 chars)                                                                                                                       | ✅     |
+| 2   | Submit with valid reason                            | Status badge changes to **Cancelled** (red/danger)                                                                                                                 | ✅     |
+| 3   | Confirm via tinker: `Ride::find({id})->status`      | Returns `cancelled`                                                                                                                                                | ✅     |
+| 4   | Confirm audit log: `action_type = ride_cancel`      |                                                                                                                                                                    | ✅     |
+| 5   | Confirm neither action appears on the cancelled row | Force Complete and Force Cancel both hidden                                                                                                                        | ✅     |
+| 6   | **[Driver app]** Observe active ride screen         | `ride.status.updated` event received with `admin_override=true`; alert dialog shown: "Ride Cancelled — Admin reason: {reason}"; after OK, driver navigates to home | ✅     |
+| 7   | **[Rider app]** Observe active ride screen          | Same `ride.status.updated` event; alert dialog shown: "Ride Cancelled — Admin reason: {reason}"; after OK, rider navigates to `RiderHomeScreen`                    | ✅     |
 
 **Notes / Observations:**
 
 ```
-(fill in)
+All steps passed as expected.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
@@ -453,18 +460,18 @@ php artisan tinker --execute="App\Models\Ride::whereIn('status',['matched','acce
 
 | #   | Step                                                     | Expected Output                                                     | Result |
 | --- | -------------------------------------------------------- | ------------------------------------------------------------------- | ------ |
-| 1   | Navigate to **Rides**                                    |                                                                     |        |
-| 2   | Apply **Stuck Rides (> 2h)** filter                      | Table shows only rides with `updated_at < 2h ago` and active status |        |
-| 3   | The back-dated ride from setup is in the results         | Ride appears in filtered view                                       |        |
-| 4   | A fresh active ride (just created) is NOT in the results |                                                                     |        |
+| 1   | Navigate to **Rides**                                    |                                                                     | ✅     |
+| 2   | Apply **Stuck Rides (> 2h)** filter                      | Table shows only rides with `updated_at < 2h ago` and active status | ✅     |
+| 3   | The back-dated ride from setup is in the results         | Ride appears in filtered view                                       | ✅     |
+| 4   | A fresh active ride (just created) is NOT in the results |                                                                     | ✅     |
 
 **Notes / Observations:**
 
 ```
-(fill in)
+All steps passed as expected.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
@@ -474,21 +481,21 @@ php artisan tinker --execute="App\Models\Ride::whereIn('status',['matched','acce
 
 | #   | Step                                                            | Expected Output                                                                    | Result |
 | --- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------ |
-| 1   | Navigate to **Audit Logs** in sidebar                           | Table loads — rows from previous tests visible                                     |        |
-| 2   | Observe columns                                                 | Admin name, action_type badge (color-coded), target type/id, reason, ip, timestamp |        |
-| 3   | Apply **Action Type** filter → select "kyc_approve"             | Only KYC approve entries shown                                                     |        |
-| 4   | Apply **Date Range** filter → today only                        | Only today's entries shown                                                         |        |
-| 5   | Click a log entry row                                           | View page opens — "Changes" section shows JSON diff in monospace                   |        |
-| 6   | Confirm no **Create** or **Edit** buttons exist                 | AuditLogResource is strictly read-only                                             |        |
-| 7   | Confirm entries exist for each action taken in A-4 through A-12 | All mutations audited                                                              |        |
+| 1   | Navigate to **Audit Logs** in sidebar                           | Table loads — rows from previous tests visible                                     | ✅ |
+| 2   | Observe columns                                                 | Admin name, action_type badge (color-coded), target type/id, reason, ip, timestamp | ✅ |
+| 3   | Apply **Action Type** filter → select "kyc_approve"             | Only KYC approve entries shown                                                     | ✅ |
+| 4   | Apply **Date Range** filter → today only                        | Only today's entries shown                                                         | ✅ |
+| 5   | Click a log entry row                                           | View page opens — "Changes" section shows JSON diff in monospace                   | ✅ |
+| 6   | Confirm no **Create** or **Edit** buttons exist                 | AuditLogResource is strictly read-only                                             | ✅ |
+| 7   | Confirm entries exist for each action taken in A-4 through A-12 | All mutations audited                                                              | ✅ |
 
 **Notes / Observations:**
 
 ```
-(fill in)
+All steps passed as expected.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
@@ -498,21 +505,21 @@ php artisan tinker --execute="App\Models\Ride::whereIn('status',['matched','acce
 
 | #   | Step                                                        | Expected Output                                                                      | Result |
 | --- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------ |
-| 1   | Navigate to **Live Monitor** in sidebar                     | Page loads with two tables: Active Rides, Online Drivers                             |        |
-| 2   | Observe **Active Rides** table                              | Columns: ID, Rider, Driver, Route (pickup → destination), status badge, elapsed time |        |
-| 3   | Observe **Online Drivers** table                            | Columns: Name, Online Since, Minutes Online, Credits Balance, Rating                 |        |
-| 4   | Wait 10–15 seconds without any interaction                  | Tables refresh automatically (wire:poll); new data appears if state changed          |        |
-| 5   | Accept a ride (via rider app) while monitoring page is open | New active ride appears in Active Rides table on next poll                           |        |
-| 6   | Complete/cancel the ride                                    | Ride disappears from Active Rides on next poll                                       |        |
-| 7   | Driver goes offline                                         | Driver disappears from Online Drivers on next poll                                   |        |
+| 1   | Navigate to **Live Monitor** in sidebar                     | Page loads with two tables: Active Rides, Online Drivers                             | ✅ |
+| 2   | Observe **Active Rides** table                              | Columns: ID, Rider, Driver, Route (pickup → destination), status badge, elapsed time | ✅ |
+| 3   | Observe **Online Drivers** table                            | Columns: Name, Online Since, Minutes Online, Credits Balance, Rating                 | ✅ |
+| 4   | Wait 10–15 seconds without any interaction                  | Tables refresh automatically (wire:poll); new data appears if state changed          | ✅ |
+| 5   | Accept a ride (via rider app) while monitoring page is open | New active ride appears in Active Rides table on next poll                           | ✅ |
+| 6   | Complete/cancel the ride                                    | Ride disappears from Active Rides on next poll                                       | ✅ |
+| 7   | Driver goes offline                                         | Driver disappears from Online Drivers on next poll                                   | ✅ |
 
 **Notes / Observations:**
 
 ```
-(fill in)
+All steps passed as expected.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
@@ -522,10 +529,10 @@ php artisan tinker --execute="App\Models\Ride::whereIn('status',['matched','acce
 
 | #   | Step                                                     | Expected Output                     | Result |
 | --- | -------------------------------------------------------- | ----------------------------------- | ------ |
-| 1   | Try logging in as a driver account                       | Filament login rejects access       |        |
-| 2   | Try logging in as a rider account                        | Filament login rejects access       |        |
-| 3   | Suspend the admin account via tinker, then try to log in | Access denied (`is_active = false`) |        |
-| 4   | Restore admin `is_active = true`                         | Login succeeds again                |        |
+| 1   | Try logging in as a driver account                       | Filament login rejects access       | ⬜ |
+| 2   | Try logging in as a rider account                        | Filament login rejects access       | ⬜ |
+| 3   | Suspend the admin account via tinker, then try to log in | Access denied (`is_active = false`) | ⬜ |
+| 4   | Restore admin `is_active = true`                         | Login succeeds again                | ⬜ |
 
 ```bash
 # Suspend admin for test
@@ -537,10 +544,10 @@ php artisan tinker --execute="App\Models\User::where('role','admin')->update(['i
 **Notes / Observations:**
 
 ```
-(fill in)
+Skipped — test accounts (driver and rider) use Google OAuth and do not have a password stored in the database. Cannot test Filament login rejection with OAuth-only accounts. Steps 1–4 deferred until a password-based test account is set up.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ⚠️ Partial
 
 ---
 
