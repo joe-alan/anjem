@@ -64,7 +64,9 @@ class RideService
                 $pickupLocation->coordinates->longitude,
                 $destinationLocation->coordinates->latitude,
                 $destinationLocation->coordinates->longitude,
-                $requestData['passenger_count'] ?? 1
+                $requestData['passenger_count'] ?? 1,
+                $pickupLocation->id,
+                $destinationLocation->id
             );
 
             // Create ride request
@@ -75,6 +77,7 @@ class RideService
                 'estimated_distance_km' => $estimates['distance_km'],
                 'estimated_duration_minutes' => $estimates['duration_minutes'],
                 'estimated_fare_rp' => $estimates['fare_rp'],
+                'route_geometry' => $estimates['routeGeometry'] ?? null,
                 'passenger_count' => $requestData['passenger_count'] ?? 1,
                 'special_requests' => $requestData['special_requests'] ?? null,
                 'status' => 'pending',

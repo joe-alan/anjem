@@ -229,12 +229,17 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
           ride.destinationLocation.coordinates.longitude,
         );
 
-        routePoints = await _directionsService.getRoute(
-          origin: pickupLatLng,
-          destination: destLatLng,
-        );
+        // Use backend geometry first (pickup→destination is fixed, already cached)
+        routePoints = ride.routeCoordinates ?? [];
 
-        // Handle empty route (network error, DNS failure, etc.)
+        if (routePoints.isEmpty) {
+          print('🗺️  [Driver] No backend geometry, fetching from Mapbox directly');
+          routePoints = await _directionsService.getRoute(
+            origin: pickupLatLng,
+            destination: destLatLng,
+          );
+        }
+
         if (routePoints.isEmpty) {
           print('⚠️ [Driver] Route to destination is empty - continuing without route line');
           return;

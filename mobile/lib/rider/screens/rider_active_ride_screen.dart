@@ -139,13 +139,17 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         ride.destinationLocation.coordinates.longitude,
       );
 
-      // Always show route from pickup to destination
-      final routePoints = await _directionsService.getRoute(
-        origin: pickupLatLng,
-        destination: destLatLng,
-      );
+      // Use backend geometry first (already cached), fallback to direct Mapbox call
+      List<LatLng> routePoints = ride.routeCoordinates ?? [];
 
-      // Handle empty route (network error, DNS failure, etc.)
+      if (routePoints.isEmpty) {
+        print('🗺️  [Rider] No backend geometry, fetching from Mapbox directly');
+        routePoints = await _directionsService.getRoute(
+          origin: pickupLatLng,
+          destination: destLatLng,
+        );
+      }
+
       if (routePoints.isEmpty) {
         print('⚠️ [Rider] Route is empty - continuing without route line');
         return; // Just continue without showing route polyline

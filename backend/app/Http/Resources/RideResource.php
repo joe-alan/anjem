@@ -26,6 +26,10 @@ class RideResource extends JsonResource
             'actual_duration_minutes' => $this->actual_duration_minutes,
             'special_requests' => $this->special_requests,
             'driver_notes' => $this->driver_notes,
+            'route_geometry' => $this->when(
+                $this->relationLoaded('rideRequest'),
+                fn() => $this->rideRequest?->route_geometry
+            ),
 
             // Timestamps
             'driver_accepted_at' => $this->driver_accepted_at?->toISOString(),
