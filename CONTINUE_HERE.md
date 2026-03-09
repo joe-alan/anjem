@@ -26,6 +26,7 @@ Full plan: `mapbox_optimisation.md`
 ## Phase 2 Changes (this session)
 
 ### What changed
+
 | File | Change |
 |---|---|
 | `backend/app/Services/PlaceSearchService.php` | `MIN_RESULTS_THRESHOLD` 0→3; session token; campus bbox |
