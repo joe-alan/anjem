@@ -91,20 +91,20 @@ All 6 phases landed in branch `feat/mapbox-optimisation`. Summary below.
 **Changes:**
 - `mapbox_config.dart`: `accessToken` now uses `String.fromEnvironment('MAPBOX_ACCESS_TOKEN', defaultValue: '')`
 - Pass at build time:
-  ```
+  ```shell
   flutter run --flavor rider -t lib/main_rider.dart \
     --dart-define=MAPBOX_ACCESS_TOKEN=pk.eyJ1...
 
   flutter run --flavor driver -t lib/main_driver.dart \
     --dart-define=MAPBOX_ACCESS_TOKEN=pk.eyJ1...
   ```
-- `gradle.properties` `SDK_REGISTRY_TOKEN` (Maven registry auth, build-time only) — acceptable to keep locally; use a CI secret for production builds
+- `SDK_REGISTRY_TOKEN` (Maven registry auth, build-time only) — do **not** store in tracked files; use the `ORG_GRADLE_PROJECT_SDK_REGISTRY_TOKEN` environment variable or a git-ignored `local.properties`; use a CI secret for production builds
 
 ---
 
 ## Architecture (After)
 
-```
+```text
 POST /api/v1/requests
   └─ RideService::createRideRequest()
        └─ calculateRideEstimates(... pickupId, destId)   ← cache-enabled
