@@ -7,9 +7,14 @@ class MapboxConfig {
   MapboxConfig._();
 
   /// Mapbox public access token
-  /// Used for map tiles, geocoding, search, and directions API
-  static const String accessToken =
-      'pk.eyJ1Ijoiam9lLWFsYW4iLCJhIjoiY21nbTQ4NXdjMTU5NzJpb2t5MTd2eWM4eSJ9.Hx95EL3r7f9xqfEiX2yYeQ';
+  /// Injected at build time via --dart-define=MAPBOX_ACCESS_TOKEN=pk.eyJ1...
+  /// Example:
+  ///   flutter run --flavor rider -t lib/main_rider.dart \
+  ///     --dart-define=MAPBOX_ACCESS_TOKEN=pk.eyJ1...
+  static const String accessToken = String.fromEnvironment(
+    'MAPBOX_ACCESS_TOKEN',
+    defaultValue: '',
+  );
 
   /// Default map style URL (Mapbox Streets)
   static const String defaultStyleUrl = 'mapbox://styles/mapbox/streets-v12';
