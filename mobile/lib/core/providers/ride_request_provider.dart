@@ -398,6 +398,14 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
         }
         onAccountSuspended?.call();
       },
+      onRideStatusUpdated: (eventData) {
+        final status = eventData['status'] as String?;
+        if (status == 'completed' || status == 'cancelled') {
+          print('RideRequestProvider: Ride $status via admin on user channel — clearing request state');
+          _stopMatchPolling();
+          state = const RideRequestState();
+        }
+      },
     );
 
     print(

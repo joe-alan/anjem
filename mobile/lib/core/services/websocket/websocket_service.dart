@@ -222,6 +222,7 @@ class WebSocketService {
     Function(Map<String, dynamic>)? onRequestExpired,
     Function(Map<String, dynamic>)? onSearchResumed,
     Function(Map<String, dynamic>)? onAccountStatusChanged,
+    Function(Map<String, dynamic>)? onRideStatusUpdated,
   }) async {
     final channelName =
         'user.$userId'; // Don't add 'private-' prefix, .private() method does it automatically
@@ -295,6 +296,17 @@ class WebSocketService {
           print('Received account.status.changed (rider): $data');
           if (data != null) {
             onAccountStatusChanged(data as Map<String, dynamic>);
+          }
+        });
+      }
+
+      // Listen for admin force-complete / force-cancel while rider is on
+      // the "Finding Driver" screen (not yet subscribed to the ride channel).
+      if (onRideStatusUpdated != null) {
+        channel.bind('ride.status.updated', (data) {
+          print('Received ride.status.updated on user channel: $data');
+          if (data != null) {
+            onRideStatusUpdated(data as Map<String, dynamic>);
           }
         });
       }

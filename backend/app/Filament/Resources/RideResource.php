@@ -100,8 +100,12 @@ class RideResource extends Resource
                     ->requiresConfirmation()
                     ->action(function (Ride $record, array $data): void {
                         $previousStatus = $record->status;
+                        $driverId = $record->driver_id;
                         DB::transaction(function () use ($record, $data): void {
                             $record->update(['status' => 'completed', 'dropoff_time' => now()]);
+                            if ($record->rideRequest) {
+                                $record->rideRequest->markAsCompleted();
+                            }
                             AdminAuditLog::create([
                                 'admin_id'    => auth()->id(),
                                 'action_type' => 'ride_force_complete',
@@ -120,6 +124,9 @@ class RideResource extends Resource
                             true,
                             $data['reason']
                         ));
+                        if ($driverId) {
+                            app(MatchingQueueService::class)->rejoinAfterRide($driverId);
+                        }
                     })
                     ->successNotificationTitle('Ride marked as completed'),
 
@@ -135,6 +142,9 @@ class RideResource extends Resource
                         $driverId = $record->driver_id;
                         DB::transaction(function () use ($record, $data): void {
                             $record->update(['status' => 'cancelled', 'dropoff_time' => now()]);
+                            if ($record->rideRequest) {
+                                $record->rideRequest->markAsCancelled();
+                            }
                             AdminAuditLog::create([
                                 'admin_id'    => auth()->id(),
                                 'action_type' => 'ride_cancel',

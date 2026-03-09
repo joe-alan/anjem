@@ -65,6 +65,11 @@ class RideRequest extends Model
         return $this->belongsTo(User::class, 'rider_id');
     }
 
+    public function currentDriver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'current_driver_id');
+    }
+
     /**
      * Get the pickup location.
      */
