@@ -120,7 +120,7 @@ class RouteCacheServiceTest extends TestCase
         $cachedRoute = RouteCache::create([
             'origin_location_id' => $origin->id,
             'destination_location_id' => $destination->id,
-            'profile' => 'driving',
+            'profile' => 'driving-traffic',
             'distance_meters' => 270,
             'duration_minutes' => 2,
             'route_geometry' => '{"type":"LineString","coordinates":[[106.8271,-6.3605],[106.8295,-6.3595]]}',
@@ -179,7 +179,7 @@ class RouteCacheServiceTest extends TestCase
         RouteCache::create([
             'origin_location_id' => $origin->id,
             'destination_location_id' => $destination->id,
-            'profile' => 'driving',
+            'profile' => 'driving-traffic',
             'distance_meters' => 270,
             'duration_minutes' => 2,
             'route_geometry' => '{"type":"LineString","coordinates":[[106.8271,-6.3605],[106.8295,-6.3595]]}',
@@ -256,7 +256,7 @@ class RouteCacheServiceTest extends TestCase
         RouteCache::create([
             'origin_location_id' => $origin1->id,
             'destination_location_id' => $destination1->id,
-            'profile' => 'driving',
+            'profile' => 'driving-traffic',
             'distance_meters' => 270,
             'duration_minutes' => 2,
             'route_geometry' => '{}',
@@ -267,7 +267,7 @@ class RouteCacheServiceTest extends TestCase
         RouteCache::create([
             'origin_location_id' => $origin2->id,
             'destination_location_id' => $destination1->id,
-            'profile' => 'driving',
+            'profile' => 'driving-traffic',
             'distance_meters' => 350,
             'duration_minutes' => 3,
             'route_geometry' => '{}',
@@ -318,7 +318,7 @@ class RouteCacheServiceTest extends TestCase
         RouteCache::create([
             'origin_location_id' => $origin->id,
             'destination_location_id' => $destination1->id,
-            'profile' => 'driving',
+            'profile' => 'driving-traffic',
             'distance_meters' => 270,
             'duration_minutes' => 2,
             'route_geometry' => '{}',
@@ -329,7 +329,7 @@ class RouteCacheServiceTest extends TestCase
         RouteCache::create([
             'origin_location_id' => $origin->id,
             'destination_location_id' => $destination2->id,
-            'profile' => 'driving',
+            'profile' => 'driving-traffic',
             'distance_meters' => 550,
             'duration_minutes' => 5,
             'route_geometry' => '{}',
@@ -374,7 +374,7 @@ class RouteCacheServiceTest extends TestCase
         RouteCache::create([
             'origin_location_id' => $origin->id,
             'destination_location_id' => $destination->id,
-            'profile' => 'driving',
+            'profile' => 'driving-traffic',
             'distance_meters' => 270,
             'duration_minutes' => 2,
             'route_geometry' => '{}',
@@ -386,7 +386,7 @@ class RouteCacheServiceTest extends TestCase
         $staleRoute = RouteCache::create([
             'origin_location_id' => $destination->id,
             'destination_location_id' => $origin->id,
-            'profile' => 'driving',
+            'profile' => 'driving-traffic',
             'distance_meters' => 270,
             'duration_minutes' => 2,
             'route_geometry' => '{}',
@@ -427,7 +427,7 @@ class RouteCacheServiceTest extends TestCase
         RouteCache::create([
             'origin_location_id' => $origin->id,
             'destination_location_id' => $destination->id,
-            'profile' => 'driving',
+            'profile' => 'driving-traffic',
             'distance_meters' => 270,
             'duration_minutes' => 2,
             'route_geometry' => '{}',
@@ -438,7 +438,7 @@ class RouteCacheServiceTest extends TestCase
         RouteCache::create([
             'origin_location_id' => $destination->id,
             'destination_location_id' => $origin->id,
-            'profile' => 'driving',
+            'profile' => 'driving-traffic',
             'distance_meters' => 270,
             'duration_minutes' => 2,
             'route_geometry' => '{}',
@@ -480,7 +480,7 @@ class RouteCacheServiceTest extends TestCase
         $cachedRoute = RouteCache::create([
             'origin_location_id' => $origin->id,
             'destination_location_id' => $destination->id,
-            'profile' => 'driving',
+            'profile' => 'driving-traffic',
             'distance_meters' => 270,
             'duration_minutes' => 2,
             'route_geometry' => '{}',

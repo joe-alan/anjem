@@ -91,13 +91,15 @@ class RouteCacheService
 
         $routeData = $this->mapboxService->getDirections($originLat, $originLng, $destLat, $destLng);
 
-        // Store in cache for future requests
-        $this->cacheRoute(
-            $originLocationId,
-            $destinationLocationId,
-            $routeData,
-            $profile
-        );
+        // Only cache real Mapbox routes — skip straight-line fallback estimates (no geometry)
+        if (! ($routeData['estimated'] ?? false)) {
+            $this->cacheRoute(
+                $originLocationId,
+                $destinationLocationId,
+                $routeData,
+                $profile
+            );
+        }
 
         // Add cache metadata to response
         $routeData['cached'] = false;
