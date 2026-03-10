@@ -120,16 +120,11 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
   /// Fetch and display route based on ride status
   Future<void> _fetchAndDisplayRoute() async {
     final rideState = ref.read(activeRideProvider);
-    final ride = rideState.ride ?? widget.initialRide;  // ✅ Fallback to widget ride
+    final ride = rideState.ride ?? widget.initialRide;
 
-    print('🗺️  [Rider] _fetchAndDisplayRoute called');
-    print('    Provider ride: ${rideState.ride?.id}');
-    print('    Widget ride: ${widget.initialRide.id}');
-    print('    Using ride: ${ride.id}');
+    print('🗺️  [Rider] _fetchAndDisplayRoute — status: ${ride.status}');
 
     try {
-      print('🗺️  [Rider] Fetching route for ride ${ride.id}');
-
       final pickupLatLng = LatLng(
         ride.pickupLocation.coordinates.latitude,
         ride.pickupLocation.coordinates.longitude,
@@ -139,30 +134,48 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         ride.destinationLocation.coordinates.longitude,
       );
 
-      // Use backend geometry first (already cached), fallback to direct Mapbox call
-      List<LatLng> routePoints = ride.routeCoordinates ?? [];
+      List<LatLng> routePoints = [];
 
-      if (routePoints.isEmpty) {
-        print('🗺️  [Rider] No backend geometry, fetching from Mapbox directly');
+      if (ride.status == RideStatus.accepted) {
+        // Driver heading to pickup — show driver → pickup so rider sees driver approaching
+        final driverLoc = rideState.driverLocation;
+        if (driverLoc == null) {
+          print('⚠️ [Rider] No driver location yet, clearing polyline');
+          if (mounted) setState(() { _polylines = {}; });
+          return;
+        }
         routePoints = await _directionsService.getRoute(
-          origin: pickupLatLng,
-          destination: destLatLng,
+          origin: driverLoc,
+          destination: pickupLatLng,
         );
+      } else if (ride.status == RideStatus.inProgress) {
+        // Ride started — show pickup → destination (backend geometry preferred)
+        routePoints = ride.routeCoordinates ?? [];
+        if (routePoints.isEmpty) {
+          print('🗺️  [Rider] No backend geometry, fetching from Mapbox directly');
+          routePoints = await _directionsService.getRoute(
+            origin: pickupLatLng,
+            destination: destLatLng,
+          );
+        }
+      } else {
+        // driverArrived or other — no polyline needed
+        if (mounted) setState(() { _polylines = {}; });
+        return;
       }
 
       if (routePoints.isEmpty) {
         print('⚠️ [Rider] Route is empty - continuing without route line');
-        return; // Just continue without showing route polyline
+        return;
       }
 
       print('✅ [Rider] Route fetched: ${routePoints.length} points');
 
-      // Create NEW set with the polyline (important for Flutter to detect changes)
       if (mounted) {
         setState(() {
           _polylines = {
             MapPolyline(
-              id: 'ride_route_${ride.id}',  // ✅ Unique ID per ride
+              id: 'ride_route_${ride.id}',
               points: routePoints,
               color: Colors.blue,
               width: 4.0,
@@ -171,7 +184,6 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         });
       }
     } catch (e) {
-      // This should rarely happen now since getRoute() returns empty instead of throwing
       print('❌ [Rider] Unexpected error fetching route: $e');
     }
   }
@@ -221,6 +233,12 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         setState(() {
           _buildMarkers(next.ride ?? widget.initialRide, next.driverLocation);
         });
+        // Re-fetch route when driver location changes so polyline tracks driver movement
+        if (previous?.driverLocation != next.driverLocation) {
+          _fetchAndDisplayRoute().catchError((e) {
+            print('⚠️ [Rider] Route fetch on driver location update error: $e');
+          });
+        }
       }
     });
 

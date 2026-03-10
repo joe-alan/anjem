@@ -30,11 +30,6 @@ class _LocationSelectionScreenState
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
-
-    // Load nearby beacons initially
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadNearbyBeacons();
-    });
   }
 
   @override
@@ -49,8 +44,7 @@ class _LocationSelectionScreenState
     _debounceTimer?.cancel();
 
     if (_searchController.text.trim().isEmpty) {
-      // If search is cleared, reload nearby beacons
-      _loadNearbyBeacons();
+      ref.read(placeSearchProvider.notifier).clear();
       return;
     }
 
@@ -61,19 +55,6 @@ class _LocationSelectionScreenState
     _debounceTimer = Timer(const Duration(milliseconds: 500), () {
       _performSearch();
     });
-  }
-
-  Future<void> _loadNearbyBeacons() async {
-    final userLocation = ref.read(userLocationProvider).location;
-
-    // Use "gate" as default search to show beacons
-    // This works better than empty query which causes backend errors
-    await ref.read(placeSearchProvider.notifier).search(
-      query: 'gate', // Search for campus gates/beacons by default
-      userLocation: userLocation, // null if GPS not yet resolved — backend omits distance rather than computing a wrong one
-      radius: 5.0,
-      limit: 20,
-    );
   }
 
   Future<void> _performSearch() async {
