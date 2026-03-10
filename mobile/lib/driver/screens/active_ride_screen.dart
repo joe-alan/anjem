@@ -114,6 +114,13 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
           setState(() {
             _currentDriverLocation = LatLng(position.latitude, position.longitude);
           });
+          // Redraw route from new driver position (only for accepted — dynamic route)
+          final currentStatus = ref.read(activeRideProvider).ride?.status;
+          if (currentStatus == RideStatus.accepted) {
+            _fetchAndDisplayRoute().catchError((e) {
+              print('⚠️ [Driver] Route update on location change error: $e');
+            });
+          }
         }
 
         // Determine adaptive interval from speed (m/s → km/h)
@@ -841,22 +848,21 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
   void _buildMarkers(Ride ride) {
     print('🎯 [Driver] Building markers for ride ${ride.id}');
 
-    // Create NEW set of markers (important for Flutter to detect changes)
     _markers = {
-      // Pickup marker (green)
+      // Rider waiting at pickup
       MapMarker(
-        id: 'pickup',
+        id: 'rider',
         latitude: ride.pickupLocation.coordinates.latitude,
         longitude: ride.pickupLocation.coordinates.longitude,
-        icon: 'circle',  // ✅ Guaranteed Mapbox icon
+        icon: 'marker',
         size: 1.5,
       ),
-      // Destination marker (red)
+      // Destination
       MapMarker(
         id: 'destination',
         latitude: ride.destinationLocation.coordinates.latitude,
         longitude: ride.destinationLocation.coordinates.longitude,
-        icon: 'marker',  // ✅ Guaranteed Mapbox icon
+        icon: 'marker',
         size: 1.5,
       ),
     };
