@@ -169,12 +169,13 @@ class Location extends Model
 
     /**
      * Get the distance to a specific point in meters using PostGIS
+     * Uses ::geography cast so ST_Distance returns metres, not degrees
      */
     public function getDistanceTo(Point $point): float
     {
         $result = \Illuminate\Support\Facades\DB::selectOne(
-            'SELECT ST_Distance(?, ?) as distance',
-            [$this->coordinates, $point]
+            'SELECT ST_Distance(coordinates::geography, ST_MakePoint(?, ?)::geography) as distance FROM locations WHERE id = ?',
+            [$point->longitude, $point->latitude, $this->id]
         );
 
         return $result->distance ?? 0;

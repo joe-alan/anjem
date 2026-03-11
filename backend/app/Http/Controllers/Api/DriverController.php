@@ -4,22 +4,23 @@ namespace App\Http\Controllers\Api;
 
 use App\Events\DriverLocationUpdated;
 use App\Events\DriverOnlineStatusChanged;
+use App\Events\SessionReplaced;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateLocationRequest;
 use App\Models\Location;
 use App\Models\Ride;
+use App\Services\CreditService;
 use App\Services\LocationService;
 use App\Services\MatchingQueueService;
-use App\Services\QueueService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class DriverController extends Controller
 {
     public function __construct(
-        private QueueService $queueService,
         private LocationService $locationService,
         private MatchingQueueService $matchingQueueService,
+        private CreditService $creditService,
     ) {}
 
     /**
@@ -36,11 +37,24 @@ class DriverController extends Controller
             ], 403);
         }
 
-        $driverProfile = $driver->driverProfile;
-        if (! $driverProfile || ! $driverProfile->is_verified) {
+        if (! $driver->is_active) {
             return response()->json([
                 'success' => false,
-                'message' => 'Please complete driver verification (KYC) before going online',
+                'message' => 'Your account has been suspended. Please contact admin.',
+            ], 403);
+        }
+
+        $driverProfile = $driver->driverProfile;
+        if (! $driverProfile || ! $driverProfile->email_verified_at) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please verify your student email before going online',
+            ], 403);
+        }
+        if (! $driverProfile->is_verified) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Your KYC is pending admin approval. Please wait for review.',
             ], 403);
         }
 
@@ -76,6 +90,34 @@ class DriverController extends Controller
                 'success' => false,
                 'message' => 'You cannot go online as a driver while you have an active ride as a rider. Please complete or cancel it first.',
             ], 400);
+        }
+
+        // Enforce single active session: broadcast a displacement event on the
+        // driver channel BEFORE revoking tokens so any old device still connected
+        // can receive and react to the event, then revoke the stale tokens.
+        $currentTokenId = $driver->currentAccessToken()->id;
+        $hasOtherSessions = $driver->tokens()
+            ->where('id', '!=', $currentTokenId)
+            ->exists();
+
+        if ($hasOtherSessions) {
+            broadcast(new SessionReplaced($driver->id));
+
+            // Give the broadcast a moment to flush, then revoke the old tokens.
+            $driver->tokens()
+                ->where('id', '!=', $currentTokenId)
+                ->delete();
+
+            \Log::info('Driver session replaced: revoked old tokens', [
+                'driver_id' => $driver->id,
+            ]);
+        }
+
+        if (! $this->creditService->canGoOnline($driver->id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You need at least 1 credit to go online. Contact admin to top up.',
+            ], 402);
         }
 
         if ($request->has('current_latitude') && $request->has('current_longitude')) {
@@ -154,28 +196,6 @@ class DriverController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Successfully went offline',
-        ]);
-    }
-
-    /**
-     * Get current queue status for driver (beacon-level queue)
-     */
-    public function getQueue(Request $request): JsonResponse
-    {
-        $driver = $request->user();
-
-        if (! $driver->tokenCan('driver:go-online')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: Driver permissions required',
-            ], 403);
-        }
-
-        $queueStatus = $this->queueService->getDriverQueueStatus($driver->id);
-
-        return response()->json([
-            'success' => true,
-            'data' => $queueStatus,
         ]);
     }
 
@@ -300,28 +320,6 @@ class DriverController extends Controller
     }
 
     /**
-     * Get available beacons for joining queue
-     */
-    public function getAvailableBeacons(Request $request): JsonResponse
-    {
-        $driver = $request->user();
-
-        if (! $driver->tokenCan('driver:go-online')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: Driver permissions required',
-            ], 403);
-        }
-
-        $beacons = $this->queueService->getAllBeaconStatistics();
-
-        return response()->json([
-            'success' => true,
-            'data' => $beacons,
-        ]);
-    }
-
-    /**
      * Get driver statistics and performance
      */
     public function getStatistics(Request $request): JsonResponse
@@ -355,7 +353,7 @@ class DriverController extends Controller
 
         $stats = [
             'total_rides' => $driverProfile->total_rides_given ?? 0,
-            'rating' => (float) ($driverProfile->driver_rating_avg ?? 0.0),
+            'rating' => (float) ($driverProfile->rating_average ?? 0.0),
             'today_rides' => $todayRides,
             'today_earnings' => (float) ($todayEarnings ?? 0.0),
             'is_verified' => $driverProfile->is_verified,
@@ -374,12 +372,6 @@ class DriverController extends Controller
                 'max_pickup_radius_km' => (float) ($driverProfile->max_pickup_radius_km ?? 5.0),
             ],
         ];
-
-        // Add beacon queue status if currently in beacon queue
-        $queueStatus = $this->queueService->getDriverQueueStatus($driver->id);
-        if ($queueStatus['in_queue']) {
-            $stats['current_beacon_queue'] = $queueStatus;
-        }
 
         return response()->json([
             'success' => true,

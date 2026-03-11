@@ -54,7 +54,7 @@ class RouteCacheService
         float $originLng,
         float $destLat,
         float $destLng,
-        string $profile = 'driving'
+        string $profile = 'driving-traffic'
     ): array {
         // Try to find cached route
         $cachedRoute = RouteCache::forRoute($originLocationId, $destinationLocationId, $profile)
@@ -91,13 +91,15 @@ class RouteCacheService
 
         $routeData = $this->mapboxService->getDirections($originLat, $originLng, $destLat, $destLng);
 
-        // Store in cache for future requests
-        $this->cacheRoute(
-            $originLocationId,
-            $destinationLocationId,
-            $routeData,
-            $profile
-        );
+        // Only cache real Mapbox routes — skip straight-line fallback estimates (no geometry)
+        if (! ($routeData['estimated'] ?? false)) {
+            $this->cacheRoute(
+                $originLocationId,
+                $destinationLocationId,
+                $routeData,
+                $profile
+            );
+        }
 
         // Add cache metadata to response
         $routeData['cached'] = false;
@@ -165,7 +167,7 @@ class RouteCacheService
         float $originLng,
         float $destLat,
         float $destLng,
-        string $profile = 'driving'
+        string $profile = 'driving-traffic'
     ): array {
         Log::info('Manually refreshing route cache', [
             'origin_id' => $originLocationId,

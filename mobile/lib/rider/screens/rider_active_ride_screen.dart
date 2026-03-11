@@ -31,6 +31,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
   Set<MapPolyline> _polylines = {};
   final MapboxDirectionsService _directionsService = MapboxDirectionsService();
   bool _showDriverMatchedPopup = true;
+  bool _isCancelling = false;
   Timer? _statusPollingTimer;
   static const _pollInterval = Duration(seconds: 5);
 
@@ -90,10 +91,14 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
           );
         } else if (updatedRide.status == RideStatus.cancelled) {
           _statusPollingTimer?.cancel();
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const RiderHomeScreen()),
-            (route) => false,
-          );
+          if (_isCancelling) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => const RiderHomeScreen()),
+              (route) => false,
+            );
+          } else {
+            _showCancellationInfo(updatedRide);
+          }
         }
       }
     } catch (e) {
@@ -115,16 +120,11 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
   /// Fetch and display route based on ride status
   Future<void> _fetchAndDisplayRoute() async {
     final rideState = ref.read(activeRideProvider);
-    final ride = rideState.ride ?? widget.initialRide;  // ✅ Fallback to widget ride
+    final ride = rideState.ride ?? widget.initialRide;
 
-    print('🗺️  [Rider] _fetchAndDisplayRoute called');
-    print('    Provider ride: ${rideState.ride?.id}');
-    print('    Widget ride: ${widget.initialRide.id}');
-    print('    Using ride: ${ride.id}');
+    print('🗺️  [Rider] _fetchAndDisplayRoute — status: ${ride.status}');
 
     try {
-      print('🗺️  [Rider] Fetching route for ride ${ride.id}');
-
       final pickupLatLng = LatLng(
         ride.pickupLocation.coordinates.latitude,
         ride.pickupLocation.coordinates.longitude,
@@ -134,26 +134,48 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         ride.destinationLocation.coordinates.longitude,
       );
 
-      // Always show route from pickup to destination
-      final routePoints = await _directionsService.getRoute(
-        origin: pickupLatLng,
-        destination: destLatLng,
-      );
+      List<LatLng> routePoints = [];
 
-      // Handle empty route (network error, DNS failure, etc.)
+      if (ride.status == RideStatus.accepted) {
+        // Driver heading to pickup — show driver → pickup so rider sees driver approaching
+        final driverLoc = rideState.driverLocation;
+        if (driverLoc == null) {
+          print('⚠️ [Rider] No driver location yet, clearing polyline');
+          if (mounted) setState(() { _polylines = {}; });
+          return;
+        }
+        routePoints = await _directionsService.getRoute(
+          origin: driverLoc,
+          destination: pickupLatLng,
+        );
+      } else if (ride.status == RideStatus.inProgress) {
+        // Ride started — show pickup → destination (backend geometry preferred)
+        routePoints = ride.routeCoordinates ?? [];
+        if (routePoints.isEmpty) {
+          print('🗺️  [Rider] No backend geometry, fetching from Mapbox directly');
+          routePoints = await _directionsService.getRoute(
+            origin: pickupLatLng,
+            destination: destLatLng,
+          );
+        }
+      } else {
+        // driverArrived or other — no polyline needed
+        if (mounted) setState(() { _polylines = {}; });
+        return;
+      }
+
       if (routePoints.isEmpty) {
         print('⚠️ [Rider] Route is empty - continuing without route line');
-        return; // Just continue without showing route polyline
+        return;
       }
 
       print('✅ [Rider] Route fetched: ${routePoints.length} points');
 
-      // Create NEW set with the polyline (important for Flutter to detect changes)
       if (mounted) {
         setState(() {
           _polylines = {
             MapPolyline(
-              id: 'ride_route_${ride.id}',  // ✅ Unique ID per ride
+              id: 'ride_route_${ride.id}',
               points: routePoints,
               color: Colors.blue,
               width: 4.0,
@@ -162,7 +184,6 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         });
       }
     } catch (e) {
-      // This should rarely happen now since getRoute() returns empty instead of throwing
       print('❌ [Rider] Unexpected error fetching route: $e');
     }
   }
@@ -183,12 +204,17 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
           ),
         );
       } else if (next.ride?.status == RideStatus.cancelled) {
-        // Stop polling and navigate to home
         _statusPollingTimer?.cancel();
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const RiderHomeScreen()),
-          (route) => false,
-        );
+        if (_isCancelling) {
+          // Rider initiated cancel — skip popup and go home
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const RiderHomeScreen()),
+            (route) => false,
+          );
+        } else {
+          // External cancel (driver or admin) — show info first
+          _showCancellationInfo(next.ride);
+        }
       }
 
       // Update route when status changes (but only if it's for the current ride)
@@ -207,6 +233,12 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         setState(() {
           _buildMarkers(next.ride ?? widget.initialRide, next.driverLocation);
         });
+        // Re-fetch route when driver location changes so polyline tracks driver movement
+        if (previous?.driverLocation != next.driverLocation) {
+          _fetchAndDisplayRoute().catchError((e) {
+            print('⚠️ [Rider] Route fetch on driver location update error: $e');
+          });
+        }
       }
     });
 
@@ -403,59 +435,183 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
       child: Card(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundImage: ride.driver?.avatarUrl != null
-                    ? NetworkImage(ride.driver!.avatarUrl!)
-                    : null,
-                child: ride.driver?.avatarUrl == null
-                    ? Text(
-                        ride.driver?.name[0].toUpperCase() ?? 'D',
-                        style: const TextStyle(fontSize: 18),
-                      )
-                    : null,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      ride.driver?.name ?? 'Driver',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (ride.driver?.driverProfile != null)
-                      Text(
-                        '${ride.driver!.driverProfile!.vehiclePlate} • ${ride.driver!.driverProfile!.vehicleColor}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundImage: ride.driver?.avatarUrl != null
+                        ? NetworkImage(ride.driver!.avatarUrl!)
+                        : null,
+                    child: ride.driver?.avatarUrl == null
+                        ? Text(
+                            (ride.driver?.name.isNotEmpty == true)
+                                ? ride.driver!.name[0].toUpperCase()
+                                : 'D',
+                            style: const TextStyle(fontSize: 18),
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          ride.driver?.name ?? 'Driver',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: Icon(Icons.phone, color: config.primaryColor),
-                onPressed: () {
-                  // TODO: Call driver
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Calling driver...'),
+                        if (ride.driver?.driverProfile != null)
+                          Text(
+                            '${ride.driver!.driverProfile!.vehiclePlate} • ${ride.driver!.driverProfile!.vehicleColor}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                      ],
                     ),
-                  );
-                },
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.phone, color: config.primaryColor),
+                    onPressed: () {
+                      // TODO: Call driver
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Calling driver...'),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
+              // Cancel button — only before ride starts
+              if (ride.status == RideStatus.accepted) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _isCancelling ? null : () => _cancelRide(ride),
+                    icon: _isCancelling
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.close, size: 16),
+                    label: Text(_isCancelling ? 'Cancelling...' : 'Cancel Ride'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _showCancellationInfo(Ride? ride) async {
+    if (!mounted) return;
+
+    final adminReason = ride?.adminReason;
+    final isAdmin = ride?.adminOverride == true;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Ride Cancelled'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cancel_outlined, color: Colors.red, size: 48),
+            const SizedBox(height: 16),
+            if (isAdmin && adminReason != null)
+              Text(
+                'Admin reason: $adminReason',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14),
+              )
+            else
+              const Text(
+                'Your driver cancelled this ride.',
+                textAlign: TextAlign.center,
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const RiderHomeScreen()),
+      (route) => false,
+    );
+  }
+
+  Future<void> _cancelRide(Ride ride) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancel Ride?'),
+        content: const Text(
+          'Are you sure you want to cancel? This may result in a brief cooldown before you can request again.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Yes, Cancel', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isCancelling = true);
+
+    try {
+      final rideService = ref.read(rideServiceProvider);
+      await rideService.updateRideStatus(rideId: ride.id, status: 'cancelled');
+      // ref.listen above will handle navigation once the status update arrives.
+      // Fallback: if no navigation within 10 seconds, go home anyway.
+      Future.delayed(const Duration(seconds: 10), () {
+        if (mounted && _isCancelling) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const RiderHomeScreen()),
+            (route) => false,
+          );
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isCancelling = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to cancel: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _buildMarkers(Ride ride, LatLng? driverLocation) {

@@ -34,6 +34,9 @@ class RideRequest extends Model
         'status',
         'expires_at',
         'matched_at',
+        'current_driver_id',
+        'rider_cooldown_until',
+        'route_geometry',
     ];
 
     /**
@@ -49,6 +52,9 @@ class RideRequest extends Model
         'special_requests' => 'json',
         'expires_at' => 'datetime',
         'matched_at' => 'datetime',
+        'rider_cooldown_until' => 'datetime',
+        'current_driver_id' => 'integer',
+        'route_geometry' => 'json',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -59,6 +65,11 @@ class RideRequest extends Model
     public function rider(): BelongsTo
     {
         return $this->belongsTo(User::class, 'rider_id');
+    }
+
+    public function currentDriver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'current_driver_id');
     }
 
     /**
@@ -155,8 +166,9 @@ class RideRequest extends Model
     public function markAsMatched(): void
     {
         $this->update([
-            'status' => 'matched',
-            'matched_at' => now(),
+            'status'            => 'matched',
+            'matched_at'        => now(),
+            'current_driver_id' => null,  // Prevent stale timeout job from re-dispatching
         ]);
     }
 

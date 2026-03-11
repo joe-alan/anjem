@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\RideRequestCancelled;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateRideRequestRequest;
 use App\Http\Resources\RideRequestResource;
@@ -140,6 +141,9 @@ class RequestController extends Controller
                 'driver_id' => $driver->user_id,
             ]);
         } else {
+            // No drivers online/available — notify rider with a countdown immediately.
+            $this->matchingQueueService->handleNoDriversFound($rideRequest);
+
             Log::info('No eligible drivers in queue for new ride request', [
                 'ride_request_id' => $rideRequest->id,
             ]);
@@ -203,6 +207,10 @@ class RequestController extends Controller
             ], 400);
         }
 
+        // Capture before the service clears it
+        $previousStatus = $ride_request->status;
+        $assignedDriverId = $ride_request->current_driver_id;
+
         $success = $this->rideService->cancelRideRequest($ride_request->id, $user->id);
 
         if (! $success) {
@@ -215,8 +223,13 @@ class RequestController extends Controller
         // Apply rider cooldown after cancellation
         $this->matchingQueueService->applyRiderCooldown($ride_request);
 
-        // If matched, notify the driver
-        if ($ride_request->status === 'matched') {
+        // Notify the assigned driver (pending dispatch) via WebSocket so their screen dismisses
+        if ($assignedDriverId) {
+            broadcast(new RideRequestCancelled($ride_request, 'rider'));
+        }
+
+        // If matched, also notify driver via push notification
+        if ($previousStatus === 'matched') {
             $ride = $ride_request->ride;
             if ($ride && $ride->driver) {
                 $this->notificationService->sendRideCancelledNotification(

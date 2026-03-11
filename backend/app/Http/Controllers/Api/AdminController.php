@@ -3,7 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Events\DriverCreditsUpdated;
+use App\Events\DriverKycStatusChanged;
+use App\Events\MatchingQueuePositionChanged;
+use App\Events\RideRequestCancelled;
 use App\Events\RideStatusUpdated;
+use App\Events\UserAccountStatusChanged;
 use App\Http\Resources\RideResource;
 use App\Models\AdminAuditLog;
 use App\Models\DriverProfile;
@@ -11,6 +16,8 @@ use App\Models\Ride;
 use App\Models\RideRequest;
 use App\Models\RouteCache;
 use App\Models\User;
+use App\Services\CreditService;
+use App\Services\MatchingQueueService;
 use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -113,7 +120,7 @@ class AdminController extends Controller
         $stats = [
             'total_rides' => $driver->driverRides()->where('status', 'completed')->count(),
             'total_earnings' => $driver->driverRides()->where('status', 'completed')->sum('actual_fare_rp'),
-            'average_rating' => $driver->driverProfile->rating_average ?? 5.0,
+            'average_rating' => $driver->driverProfile->rating_average ?? 0.0,
             'rating_count' => $driver->driverProfile->rating_count ?? 0,
             'acceptance_rate' => $this->calculateAcceptanceRate($driver),
             'cancellation_rate' => $this->calculateCancellationRate($driver),
@@ -154,21 +161,29 @@ class AdminController extends Controller
 
         $driver = User::whereHas('driverProfile')->findOrFail($id);
 
-        $driver->update([
-            'is_active' => ! $request->suspended,
-        ]);
+        DB::transaction(function () use ($request, $driver) {
+            $driver->update([
+                'is_active' => ! $request->suspended,
+            ]);
 
-        // If suspending, force driver offline
-        if ($request->suspended && $driver->driverProfile) {
-            $driver->driverProfile->update(['went_online_at' => null]);
-        }
+            // If suspending, force driver offline
+            if ($request->suspended && $driver->driverProfile) {
+                $driver->driverProfile->update(['went_online_at' => null]);
+            }
 
-        Log::info('Driver suspension status updated', [
-            'driver_id' => $id,
-            'suspended' => $request->suspended,
-            'reason' => $request->reason,
-            'admin_id' => $request->user()->id,
-        ]);
+            AdminAuditLog::create([
+                'admin_id'    => $request->user()->id,
+                'action_type' => $request->suspended ? 'driver_suspend' : 'driver_unsuspend',
+                'target_type' => User::class,
+                'target_id'   => $driver->id,
+                'changes'     => ['is_active' => ! $request->suspended],
+                'reason'      => $request->reason,
+                'ip_address'  => $request->ip(),
+                'user_agent'  => $request->userAgent(),
+            ]);
+        });
+
+        broadcast(new UserAccountStatusChanged($driver->fresh(['driverProfile']), $request->suspended, $request->reason));
 
         return response()->json([
             'success' => true,
@@ -269,16 +284,24 @@ class AdminController extends Controller
 
         $rider = User::findOrFail($id);
 
-        $rider->update([
-            'is_active' => ! $request->suspended,
-        ]);
+        DB::transaction(function () use ($request, $rider) {
+            $rider->update([
+                'is_active' => ! $request->suspended,
+            ]);
 
-        Log::info('Rider suspension status updated', [
-            'rider_id' => $id,
-            'suspended' => $request->suspended,
-            'reason' => $request->reason,
-            'admin_id' => $request->user()->id,
-        ]);
+            AdminAuditLog::create([
+                'admin_id'    => $request->user()->id,
+                'action_type' => $request->suspended ? 'rider_suspend' : 'rider_unsuspend',
+                'target_type' => User::class,
+                'target_id'   => $rider->id,
+                'changes'     => ['is_active' => ! $request->suspended],
+                'reason'      => $request->reason,
+                'ip_address'  => $request->ip(),
+                'user_agent'  => $request->userAgent(),
+            ]);
+        });
+
+        broadcast(new UserAccountStatusChanged($rider->fresh(['driverProfile']), $request->suspended, $request->reason));
 
         return response()->json([
             'success' => true,
@@ -454,7 +477,7 @@ class AdminController extends Controller
                 'name' => $driver->name,
                 'total_rides' => $driver->total_rides ?? 0,
                 'total_earnings' => $driver->total_earnings ?? 0,
-                'rating' => $driver->driverProfile->rating_average ?? 5.0,
+                'rating' => $driver->driverProfile->rating_average ?? 0.0,
                 'rating_count' => $driver->driverProfile->rating_count ?? 0,
             ];
         });
@@ -577,25 +600,57 @@ class AdminController extends Controller
      * DELETE /api/admin/monitoring/requests/{id}
      * Force cancel a pending ride request
      */
-    public function cancelRequest(int $requestId): JsonResponse
+    public function cancelRequest(Request $request, int $requestId): JsonResponse
     {
-        $request = RideRequest::find($requestId);
+        $rideRequest = RideRequest::with('rider')->find($requestId);
 
-        if (! $request) {
+        if (! $rideRequest) {
             return response()->json([
                 'success' => false,
                 'message' => 'Ride request not found.',
             ], 404);
         }
 
-        if ($request->status !== 'pending') {
+        if ($rideRequest->status !== 'pending') {
             return response()->json([
                 'success' => false,
                 'message' => 'Can only cancel pending requests.',
             ], 400);
         }
 
-        $request->update(['status' => 'cancelled']);
+        DB::transaction(function () use ($request, $rideRequest) {
+            $rideRequest->update([
+                'status' => 'cancelled',
+                'current_driver_id' => null,
+            ]);
+
+            AdminAuditLog::create([
+                'admin_id'    => $request->user()->id,
+                'action_type' => 'request_cancel',
+                'target_type' => RideRequest::class,
+                'target_id'   => $rideRequest->id,
+                'changes'     => ['status' => 'cancelled'],
+                'ip_address'  => $request->ip(),
+                'user_agent'  => $request->userAgent(),
+            ]);
+        });
+
+        broadcast(new RideRequestCancelled($rideRequest, 'admin'));
+
+        try {
+            if ($rideRequest->rider) {
+                app(NotificationService::class)->sendToUser(
+                    $rideRequest->rider,
+                    'Ride Request Cancelled',
+                    'Your ride request has been cancelled by an administrator.'
+                );
+            }
+        } catch (\Exception $e) {
+            Log::warning('Failed to send admin request cancellation notification', [
+                'error' => $e->getMessage(),
+                'request_id' => $requestId,
+            ]);
+        }
 
         return response()->json([
             'success' => true,
@@ -607,7 +662,7 @@ class AdminController extends Controller
      * POST /api/admin/monitoring/rides/{id}/cancel
      * Force cancel an active ride
      */
-    public function cancelRide(int $rideId): JsonResponse
+    public function cancelRide(Request $request, int $rideId): JsonResponse
     {
         $ride = Ride::find($rideId);
 
@@ -625,10 +680,29 @@ class AdminController extends Controller
             ], 400);
         }
 
+        $previousStatus = $ride->status;
+
         $ride->update([
             'status' => 'cancelled',
             'dropoff_time' => now(),
         ]);
+
+        AdminAuditLog::create([
+            'admin_id'    => $request->user()->id,
+            'action_type' => 'ride_cancel',
+            'target_type' => Ride::class,
+            'target_id'   => $ride->id,
+            'changes'     => ['status' => ['from' => $previousStatus, 'to' => 'cancelled']],
+            'ip_address'  => $request->ip(),
+            'user_agent'  => $request->userAgent(),
+        ]);
+
+        $ride->load(['pickupLocation', 'destinationLocation']);
+        broadcast(new RideStatusUpdated($ride, $previousStatus, 'admin', true));
+
+        if ($ride->driver_id) {
+            app(MatchingQueueService::class)->rejoinAfterRide($ride->driver_id);
+        }
 
         return response()->json([
             'success' => true,
@@ -640,7 +714,7 @@ class AdminController extends Controller
      * POST /api/admin/monitoring/rides/{id}/complete
      * Force complete an active ride
      */
-    public function completeRide(int $rideId): JsonResponse
+    public function completeRide(Request $request, int $rideId): JsonResponse
     {
         $ride = Ride::find($rideId);
 
@@ -658,14 +732,299 @@ class AdminController extends Controller
             ], 400);
         }
 
+        $previousStatus = $ride->status;
+
         $ride->update([
             'status' => 'completed',
             'dropoff_time' => now(),
         ]);
 
+        AdminAuditLog::create([
+            'admin_id'    => $request->user()->id,
+            'action_type' => 'ride_force_complete',
+            'target_type' => Ride::class,
+            'target_id'   => $ride->id,
+            'changes'     => ['status' => ['from' => $previousStatus, 'to' => 'completed']],
+            'ip_address'  => $request->ip(),
+            'user_agent'  => $request->userAgent(),
+        ]);
+
+        $ride->load(['pickupLocation', 'destinationLocation']);
+        broadcast(new RideStatusUpdated($ride, $previousStatus, 'admin', true));
+
+        if ($ride->driver_id) {
+            app(MatchingQueueService::class)->rejoinAfterRide($ride->driver_id);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Ride marked as completed by admin.',
+        ]);
+    }
+
+    // ==========================================================================
+    // KYC MANAGEMENT
+    // ==========================================================================
+
+    /**
+     * POST /api/admin/drivers/{id}/kyc/approve
+     * Approve a driver's KYC verification
+     */
+    public function approveKyc(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        $driver = User::whereHas('driverProfile')->findOrFail($id);
+
+        DB::transaction(function () use ($request, $driver) {
+            $driver->driverProfile->update(['is_verified' => true]);
+
+            AdminAuditLog::create([
+                'admin_id'    => $request->user()->id,
+                'action_type' => 'kyc_approve',
+                'target_type' => DriverProfile::class,
+                'target_id'   => $driver->driverProfile->id,
+                'changes'     => ['is_verified' => true],
+                'reason'      => $request->reason,
+                'ip_address'  => $request->ip(),
+                'user_agent'  => $request->userAgent(),
+            ]);
+        });
+
+        try {
+            app(NotificationService::class)->sendKycApprovedToDriver($driver);
+        } catch (\Exception $e) {
+            Log::warning('Failed to send KYC approved notification', [
+                'error' => $e->getMessage(),
+                'driver_id' => $id,
+            ]);
+        }
+
+        broadcast(new DriverKycStatusChanged($driver->fresh(['driverProfile']), true));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'KYC approved successfully',
+            'data' => $this->formatDriverResponse($driver->fresh(['driverProfile'])),
+        ]);
+    }
+
+    /**
+     * POST /api/admin/drivers/{id}/kyc/reject
+     * Reject a driver's KYC verification
+     */
+    public function rejectKyc(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'reason' => 'required|string|min:10|max:500',
+        ]);
+
+        $driver = User::whereHas('driverProfile')->findOrFail($id);
+
+        DB::transaction(function () use ($request, $driver) {
+            $driver->driverProfile->update([
+                'is_verified'       => false,
+                'email_verified_at' => null,
+            ]);
+
+            AdminAuditLog::create([
+                'admin_id'    => $request->user()->id,
+                'action_type' => 'kyc_reject',
+                'target_type' => DriverProfile::class,
+                'target_id'   => $driver->driverProfile->id,
+                'changes'     => ['is_verified' => false, 'email_verified_at' => null],
+                'reason'      => $request->reason,
+                'ip_address'  => $request->ip(),
+                'user_agent'  => $request->userAgent(),
+            ]);
+        });
+
+        try {
+            app(NotificationService::class)->sendKycRejectedToDriver($driver, $request->reason);
+        } catch (\Exception $e) {
+            Log::warning('Failed to send KYC rejected notification', [
+                'error' => $e->getMessage(),
+                'driver_id' => $id,
+            ]);
+        }
+
+        broadcast(new DriverKycStatusChanged($driver->fresh(['driverProfile']), false, $request->reason));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'KYC rejected successfully',
+            'data' => $this->formatDriverResponse($driver->fresh(['driverProfile'])),
+        ]);
+    }
+
+    // ==========================================================================
+    // CREDIT MANAGEMENT
+    // ==========================================================================
+
+    /**
+     * POST /api/admin/drivers/{id}/credits/grant
+     * Grant credits to a driver
+     */
+    public function grantCredits(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'amount' => 'required|integer|min:1|max:100',
+            'reason' => 'required|string|min:1|max:500',
+        ]);
+
+        $driver = User::whereHas('driverProfile')->findOrFail($id);
+
+        app(CreditService::class)->addCredits($id, $request->amount, $request->reason);
+
+        $driver->driverProfile->refresh();
+
+        AdminAuditLog::create([
+            'admin_id'    => $request->user()->id,
+            'action_type' => 'credit_grant',
+            'target_type' => DriverProfile::class,
+            'target_id'   => $driver->driverProfile->id,
+            'changes'     => [
+                'amount'      => $request->amount,
+                'new_balance' => $driver->driverProfile->credits_balance,
+            ],
+            'reason'      => $request->reason,
+            'ip_address'  => $request->ip(),
+            'user_agent'  => $request->userAgent(),
+        ]);
+
+        broadcast(new DriverCreditsUpdated($driver, $driver->driverProfile->credits_balance, $request->amount, 'grant'));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Credits granted successfully',
+            'data'    => [
+                'credits_balance' => $driver->driverProfile->credits_balance,
+                'amount_granted'  => $request->amount,
+            ],
+        ]);
+    }
+
+    /**
+     * POST /api/admin/drivers/{id}/credits/deduct
+     * Deduct credits from a driver
+     */
+    public function deductCredits(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'amount' => 'required|integer|min:1',
+            'reason' => 'required|string|min:1|max:500',
+        ]);
+
+        $driver = User::whereHas('driverProfile')->findOrFail($id);
+        $driverProfile = $driver->driverProfile;
+
+        try {
+            $result = app(CreditService::class)->adminDeductCredits($driverProfile, $request->amount, $request->reason);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot deduct: insufficient credits balance.',
+            ], 422);
+        }
+
+        AdminAuditLog::create([
+            'admin_id'    => $request->user()->id,
+            'action_type' => 'credit_deduct',
+            'target_type' => DriverProfile::class,
+            'target_id'   => $driverProfile->id,
+            'changes'     => [
+                'amount'         => $request->amount,
+                'balance_before' => $result['balance_before'],
+                'balance_after'  => $result['balance_after'],
+            ],
+            'reason'      => $request->reason,
+            'ip_address'  => $request->ip(),
+            'user_agent'  => $request->userAgent(),
+        ]);
+
+        broadcast(new DriverCreditsUpdated($driver, $result['balance_after'], $request->amount, 'deduct'));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Credits deducted successfully',
+            'data'    => [
+                'credits_balance' => $result['balance_after'],
+                'amount_deducted' => $request->amount,
+            ],
+        ]);
+    }
+
+    // ==========================================================================
+    // DOCUMENT & AUDIT
+    // ==========================================================================
+
+    /**
+     * GET /api/admin/drivers/{id}/document
+     * Get the driver's KTM document URL
+     */
+    public function getDriverDocument(int $id): JsonResponse
+    {
+        $driver = User::whereHas('driverProfile')->findOrFail($id);
+        $ktmUrl = $driver->driverProfile->ktm_url;
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'driver_id' => $driver->id,
+                'ktm_url'   => $ktmUrl,
+            ],
+        ]);
+    }
+
+    /**
+     * GET /api/admin/audit-logs
+     * List admin audit logs with filters
+     */
+    public function getAuditLogs(Request $request): JsonResponse
+    {
+        $query = AdminAuditLog::with('admin')->orderBy('created_at', 'desc');
+
+        if ($request->has('action_type')) {
+            $query->where('action_type', $request->action_type);
+        }
+
+        if ($request->has('admin_id')) {
+            $query->where('admin_id', $request->admin_id);
+        }
+
+        if ($request->has('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->has('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $logs = $query->paginate($request->get('per_page', 20));
+
+        return response()->json([
+            'success' => true,
+            'data'    => $logs->map(function ($log) {
+                return [
+                    'id'          => $log->id,
+                    'admin'       => $log->admin ? ['id' => $log->admin->id, 'name' => $log->admin->name] : null,
+                    'action_type' => $log->action_type,
+                    'target_type' => $log->target_type,
+                    'target_id'   => $log->target_id,
+                    'changes'     => $log->changes,
+                    'reason'      => $log->reason,
+                    'ip_address'  => $log->ip_address,
+                    'created_at'  => $log->created_at->toISOString(),
+                ];
+            }),
+            'meta' => [
+                'current_page' => $logs->currentPage(),
+                'last_page'    => $logs->lastPage(),
+                'per_page'     => $logs->perPage(),
+                'total'        => $logs->total(),
+            ],
         ]);
     }
 
@@ -689,7 +1048,7 @@ class AdminController extends Controller
             'ktm_url' => $driver->driverProfile->ktm_url ?? null,
             'student_email' => $driver->driverProfile->student_email ?? null,
             'email_verified_at' => $driver->driverProfile->email_verified_at?->toISOString(),
-            'rating' => $driver->driverProfile->rating_average ?? 5.0,
+            'rating' => $driver->driverProfile->rating_average ?? 0.0,
             'rating_count' => $driver->driverProfile->rating_count ?? 0,
             'is_online' => $driver->driverProfile->went_online_at !== null,
             'went_online_at' => $driver->driverProfile->went_online_at?->toISOString(),
@@ -761,7 +1120,7 @@ class AdminController extends Controller
      */
     public function getRide(Ride $ride): JsonResponse
     {
-        $ride->load(['rider', 'driver', 'pickupLocation', 'destinationLocation', 'ratings']);
+        $ride->load(['rider', 'driver', 'pickupLocation', 'destinationLocation', 'ratings', 'rideRequest']);
 
         return response()->json([
             'success' => true,
@@ -850,7 +1209,7 @@ class AdminController extends Controller
 
             DB::commit();
 
-            $ride->load(['rider', 'driver', 'pickupLocation', 'destinationLocation']);
+            $ride->load(['rider', 'driver', 'pickupLocation', 'destinationLocation', 'rideRequest']);
 
             return response()->json([
                 'success' => true,

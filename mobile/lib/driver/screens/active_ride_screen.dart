@@ -8,6 +8,9 @@ import '../../core/models/lat_lng.dart';
 import '../../core/providers/active_ride_provider.dart';
 import '../../core/providers/api_provider.dart';
 import '../../core/providers/driver_status_provider.dart';
+import '../../core/providers/credits_provider.dart';
+import '../../core/providers/session_provider.dart';
+import '../../core/models/session_state.dart';
 import '../../core/widgets/mapbox_map_widget.dart';
 import '../../core/services/mapbox/mapbox_directions_service.dart';
 
@@ -86,31 +89,49 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
       print('Failed to get initial location: $e');
     }
 
-    // Update driver location every 10 seconds
-    _locationUpdateTimer =
-        Timer.periodic(const Duration(seconds: 10), (timer) async {
+    // Start adaptive location update loop
+    _scheduleNextLocationUpdate();
+  }
+
+  // Adaptive location update interval based on speed:
+  //   > 15 km/h  →  5 s  (fast-moving, high precision)
+  //   2–15 km/h  → 10 s  (normal driving)
+  //   < 2 km/h   → 30 s  (stationary/slow, save battery)
+  void _scheduleNextLocationUpdate() {
+    if (!mounted) return;
+    Future.delayed(const Duration(seconds: 5), () async {
+      if (!mounted) return;
       try {
-        // ✅ FIX: Use new LocationSettings API instead of deprecated desiredAccuracy
         final position = await Geolocator.getCurrentPosition(
           locationSettings: const LocationSettings(
             accuracy: LocationAccuracy.high,
-            distanceFilter: 10, // Only update if moved 10 meters
+            distanceFilter: 10,
           ),
         );
 
         // Update current driver location
-        setState(() {
-          _currentDriverLocation = LatLng(position.latitude, position.longitude);
-        });
+        if (mounted) {
+          setState(() {
+            _currentDriverLocation = LatLng(position.latitude, position.longitude);
+          });
+          // Redraw route from new driver position (only for accepted — dynamic route)
+          final currentStatus = ref.read(activeRideProvider).ride?.status;
+          if (currentStatus == RideStatus.accepted) {
+            _fetchAndDisplayRoute().catchError((e) {
+              print('⚠️ [Driver] Route update on location change error: $e');
+            });
+          }
+        }
 
-        // ✅ OPTIMIZATION: Do NOT fetch route on every location update
-        // Route is only fetched when:
-        // 1. Initial load (line 49)
-        // 2. Status changes (lines 278, 342)
-        // This saves 10-30 Mapbox API calls per ride (90% cost reduction)
+        // Determine adaptive interval from speed (m/s → km/h)
+        final speedKmh = (position.speed < 0 ? 0 : position.speed) * 3.6;
+        final interval = speedKmh > 15
+            ? const Duration(seconds: 5)
+            : speedKmh >= 2
+                ? const Duration(seconds: 10)
+                : const Duration(seconds: 30);
 
         final apiService = ref.read(apiServiceProvider);
-
         await apiService.post('/driver/location', data: {
           'latitude': position.latitude,
           'longitude': position.longitude,
@@ -118,11 +139,18 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
           'speed': position.speed,
         });
 
-        print(
-            'Driver location updated: ${position.latitude}, ${position.longitude}');
+        print('Driver location updated (${interval.inSeconds}s interval, ${speedKmh.toStringAsFixed(1)} km/h)');
+
+        // Schedule next update after the adaptive interval
+        if (mounted) {
+          _locationUpdateTimer = Timer(interval, _scheduleNextLocationUpdate);
+        }
       } catch (e) {
         print('Failed to update location: $e');
-        // Don't stop timer, just skip this update
+        // Retry after default interval on error
+        if (mounted) {
+          _locationUpdateTimer = Timer(const Duration(seconds: 10), _scheduleNextLocationUpdate);
+        }
       }
     });
   }
@@ -226,12 +254,17 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
           ride.destinationLocation.coordinates.longitude,
         );
 
-        routePoints = await _directionsService.getRoute(
-          origin: pickupLatLng,
-          destination: destLatLng,
-        );
+        // Use backend geometry first (pickup→destination is fixed, already cached)
+        routePoints = ride.routeCoordinates ?? [];
 
-        // Handle empty route (network error, DNS failure, etc.)
+        if (routePoints.isEmpty) {
+          print('🗺️  [Driver] No backend geometry, fetching from Mapbox directly');
+          routePoints = await _directionsService.getRoute(
+            origin: pickupLatLng,
+            destination: destLatLng,
+          );
+        }
+
         if (routePoints.isEmpty) {
           print('⚠️ [Driver] Route to destination is empty - continuing without route line');
           return;
@@ -318,11 +351,99 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
     }
   }
 
-  void _handleRideCompletion() {
-    // Clear active ride from driver status
+  Future<void> _showCancellationInfo(Ride? ride) async {
+    if (!mounted) return;
+
+    final adminReason = ride?.adminReason;
+    final isAdmin = ride?.adminOverride == true;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Ride Cancelled'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cancel_outlined, color: Colors.red, size: 48),
+            const SizedBox(height: 16),
+            if (isAdmin && adminReason != null)
+              Text(
+                'Admin reason: $adminReason',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14),
+              )
+            else
+              const Text(
+                'This ride has been cancelled.',
+                textAlign: TextAlign.center,
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+    _handleRideCancelled();
+  }
+
+  void _handleRideCancelled() {
     ref.read(driverStatusProvider.notifier).setActiveRide(null);
 
-    // Navigate back to driver home
+    if (mounted) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ride was cancelled'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  bool _isHandlingCompletion = false;
+
+  Future<void> _handleRideCompletion() async {
+    if (_isHandlingCompletion) return;
+    _isHandlingCompletion = true;
+    try {
+      // Fetch fresh balance before clearing active ride state — the credit was
+      // deducted at accept time so balance is already 0 in the DB.
+      ref.invalidate(creditsProvider);
+      final balance = await ref.read(creditsProvider.future).catchError((_) => -1);
+
+      if (balance == 0) {
+        // Zero credits: go offline immediately without waiting for the WS event.
+        // Clear hasActiveRide first so goOffline() doesn't block on it.
+        ref.read(driverStatusProvider.notifier).setActiveRide(null);
+        await ref.read(driverStatusProvider.notifier).goOffline();
+      } else {
+        // Credits remain: return to online/queue state.
+        ref.read(driverStatusProvider.notifier).setActiveRide(null);
+      }
+
+      final shouldStayOnline = balance > 0;
+
+      // Clear session rideActive state so session_check_wrapper reactively
+      // navigates to home in both the normal push-flow and session-restore flow.
+      ref.read(sessionStateProvider.notifier).updateSessionState(
+        SessionState(
+          state: SessionStateType.idle,
+          driverContext: DriverContext(isDriver: true, isOnline: shouldStayOnline),
+        ),
+      );
+    } finally {
+      _isHandlingCompletion = false;
+    }
+
     if (mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);
 
@@ -354,9 +475,23 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
     final config = AppConfig.instance;
     final rideState = ref.watch(activeRideProvider);
 
-    // Listen for ride status changes to update markers and routes
+    // Listen for ride status changes to update markers/routes, or dismiss on terminal states
     ref.listen<ActiveRideState>(activeRideProvider, (previous, next) {
-      if (previous?.ride?.status != next.ride?.status && next.ride != null) {
+      if (previous?.ride?.status == next.ride?.status) return;
+
+      final newStatus = next.ride?.status;
+
+      if (newStatus == RideStatus.cancelled) {
+        _showCancellationInfo(next.ride);
+        return;
+      }
+
+      if (newStatus == RideStatus.completed) {
+        _handleRideCompletion();
+        return;
+      }
+
+      if (next.ride != null) {
         setState(() {
           _buildMarkers(next.ride!);
         });
@@ -713,22 +848,21 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
   void _buildMarkers(Ride ride) {
     print('🎯 [Driver] Building markers for ride ${ride.id}');
 
-    // Create NEW set of markers (important for Flutter to detect changes)
     _markers = {
-      // Pickup marker (green)
+      // Rider waiting at pickup
       MapMarker(
-        id: 'pickup',
+        id: 'rider',
         latitude: ride.pickupLocation.coordinates.latitude,
         longitude: ride.pickupLocation.coordinates.longitude,
-        icon: 'circle',  // ✅ Guaranteed Mapbox icon
+        icon: 'marker',
         size: 1.5,
       ),
-      // Destination marker (red)
+      // Destination
       MapMarker(
         id: 'destination',
         latitude: ride.destinationLocation.coordinates.latitude,
         longitude: ride.destinationLocation.coordinates.longitude,
-        icon: 'marker',  // ✅ Guaranteed Mapbox icon
+        icon: 'marker',
         size: 1.5,
       ),
     };

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -16,7 +18,7 @@ use Laravel\Sanctum\HasApiTokens;
  * A user can be both a rider and a driver. Driver-specific information
  * is stored in the optional DriverProfile relationship.
  */
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
@@ -170,6 +172,14 @@ class User extends Authenticatable
     public function canAccessAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    /**
+     * Filament panel access gate
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $this->canAccessAdmin() && $this->is_active;
     }
 
     /**

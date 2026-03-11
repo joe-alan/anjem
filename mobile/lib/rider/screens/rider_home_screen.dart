@@ -34,6 +34,9 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
     final beaconsState = ref.watch(beaconsProvider);
     final locationState = ref.watch(userLocationProvider);
     final rideRequestState = ref.watch(rideRequestProvider);
+    final authState = ref.watch(authStateProvider);
+
+    final isSuspended = !(authState.user?.isActive ?? true);
 
     // Check if there's an active request that should block new requests
     final hasActiveRequest = rideRequestState.request != null &&
@@ -42,9 +45,9 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
     // Build markers from beacons
     _buildBeaconMarkers(beaconsState.beacons);
 
-    // Default location (UI Campus, Jakarta)
+    // Default location — Undip Tembalang, Semarang (used only until GPS resolves)
     final initialPosition = locationState.location ??
-        const LatLng(-6.3615, 106.8242);
+        const LatLng(-7.0523, 110.4381);
 
     return Scaffold(
       appBar: AppBar(
@@ -62,6 +65,7 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
             onPressed: () {
               ref.read(beaconsProvider.notifier).refresh();
               ref.read(userLocationProvider.notifier).getCurrentLocation();
+              ref.read(authStateProvider.notifier).refreshUser();
             },
           ),
         ],
@@ -162,6 +166,32 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
             ),
           ),
 
+          // Suspended banner
+          if (isSuspended)
+            Positioned(
+              top: 16,
+              left: 16,
+              right: 16,
+              child: Card(
+                color: Colors.red[50],
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Row(
+                    children: [
+                      Icon(Icons.block, color: Colors.red[700]),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Your account has been suspended. You cannot request rides.',
+                          style: TextStyle(color: Colors.red[700], fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
           // Active request banner (if any)
           if (hasActiveRequest)
             Positioned(
@@ -206,7 +236,7 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: (beaconsState.beacons.isEmpty || hasActiveRequest)
+                onPressed: (isSuspended || beaconsState.beacons.isEmpty || hasActiveRequest)
                     ? null
                     : () {
                         Navigator.of(context).push(
@@ -218,11 +248,11 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
                       },
                 icon: const Icon(Icons.add_location),
                 label: Text(
-                  hasActiveRequest ? 'Request in Progress' : 'Request Ride',
+                  isSuspended ? 'Account Suspended' : hasActiveRequest ? 'Request in Progress' : 'Request Ride',
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: hasActiveRequest ? Colors.grey : config.primaryColor,
+                  backgroundColor: (isSuspended || hasActiveRequest) ? Colors.grey : config.primaryColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

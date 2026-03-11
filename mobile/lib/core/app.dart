@@ -5,12 +5,14 @@ import 'navigation/navigator_key.dart';
 import 'providers/auth_provider.dart';
 import 'providers/fcm_provider.dart';
 import 'providers/kyc_provider.dart';
+import 'models/kyc_submission.dart';
 import 'widgets/splash_screen.dart';
 import 'widgets/login_screen.dart';
 import 'widgets/session_check_wrapper.dart';
 import '../rider/screens/rider_home_screen.dart';
 import '../driver/screens/driver_home_screen.dart';
 import '../driver/screens/kyc_form_screen.dart';
+import '../driver/screens/email_verification_screen.dart';
 
 class AnjerApp extends ConsumerWidget {
   const AnjerApp({super.key});
@@ -80,18 +82,47 @@ class AuthenticationWrapper extends ConsumerWidget {
         return const SplashScreen();
       }
 
-      // Check if driver needs to complete KYC
-      final kycSubmission = kycState.kycSubmission;
-      if (kycSubmission == null || !kycSubmission.isVerified) {
-        print('AuthWrapper: Showing KYC form - kycSubmission=$kycSubmission, isVerified=${kycSubmission?.isVerified}');
-        return const KycFormScreen();
+      // KYC fetch failed (e.g. no server connection) — do NOT fall through to
+      // KycFormScreen, which would incorrectly send a verified driver to
+      // re-submit their KYC. Show a retry screen instead.
+      if (kycState.error != null && kycState.kycSubmission == null) {
+        print('AuthWrapper: KYC load failed - showing retry: ${kycState.error}');
+        return _KycLoadErrorScreen(error: kycState.error!);
       }
 
-      // Driver is verified, check for active session
-      print('AuthWrapper: Showing driver home - verified');
-      return const SessionCheckWrapper(
-        defaultHomeScreen: DriverHomeScreen(),
-      );
+      // Route based on the four KYC states so session resume always lands
+      // the driver at the right screen without losing their progress.
+      final kycSubmission = kycState.kycSubmission;
+      final kycStatus = kycSubmission?.status;
+      print('AuthWrapper: kycStatus=$kycStatus');
+
+      switch (kycStatus) {
+        // Not submitted yet — show the full KYC form.
+        case null:
+        case KycStatus.notSubmitted:
+          print('AuthWrapper: Showing KYC form');
+          return const KycFormScreen();
+
+        // KYC submitted but student email not yet verified — resume at the
+        // email verification screen using the stored student email.
+        case KycStatus.submitted:
+          final email = kycSubmission!.studentEmail;
+          if (email != null) {
+            print('AuthWrapper: Resuming email verification for $email');
+            return EmailVerificationScreen(studentEmail: email);
+          }
+          // Fallback: email missing in profile, restart the form.
+          return const KycFormScreen();
+
+        // Email verified (awaiting admin) or fully approved — go to home.
+        // The home screen handles displaying unverified status.
+        case KycStatus.emailVerified:
+        case KycStatus.verified:
+          print('AuthWrapper: Showing driver home - verified');
+          return const SessionCheckWrapper(
+            defaultHomeScreen: DriverHomeScreen(),
+          );
+      }
     }
 
     // For rider app, check for active session
