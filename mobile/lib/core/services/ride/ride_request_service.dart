@@ -104,6 +104,25 @@ class RideRequestService {
     }
   }
 
+  /// Decline a ride request (driver declines or timeout)
+  Future<void> declineRequest(int requestId) async {
+    try {
+      final response = await _apiService.post('/rides/$requestId/decline');
+
+      // 403 means we're no longer the current driver (request moved on), that's fine
+      if (response.data['success'] != true &&
+          response.statusCode != 403 &&
+          response.statusCode != 400) {
+        throw Exception(
+          response.data['message'] ?? 'Failed to decline ride request',
+        );
+      }
+    } catch (e) {
+      print('RideRequestService: Error declining request - $e');
+      // Don't rethrow — a failed decline shouldn't crash the driver app
+    }
+  }
+
   /// Get list of user's ride requests
   Future<List<RideRequest>> getUserRequests({String? status}) async {
     try {
