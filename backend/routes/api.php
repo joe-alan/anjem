@@ -82,6 +82,8 @@ Route::prefix('v1')->group(function () {
             Route::post('online', [DriverController::class, 'goOnline']);
             Route::post('offline', [DriverController::class, 'goOffline']);
             Route::get('queue', [DriverController::class, 'getQueue']);
+            Route::get('queue-position', [DriverController::class, 'getQueuePosition']);
+            Route::patch('settings', [DriverController::class, 'updateSettings']);
             // Higher rate limit for location updates (real-time)
             Route::post('location', [DriverController::class, 'updateLocation'])->middleware('throttle:200,1');
             Route::get('beacons', [DriverController::class, 'getAvailableBeacons']);
@@ -91,6 +93,7 @@ Route::prefix('v1')->group(function () {
         // Ride management
         Route::prefix('rides')->group(function () {
             Route::post('{rideRequest}/accept', [RideController::class, 'accept']);
+            Route::post('{rideRequest}/decline', [RideController::class, 'decline']);
             Route::patch('{ride}/status', [RideController::class, 'updateStatus']);
             Route::post('{ride}/rate', [RideController::class, 'rate']);
             Route::get('{ride}', [RideController::class, 'show']);

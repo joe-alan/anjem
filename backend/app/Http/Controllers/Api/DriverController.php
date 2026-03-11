@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateLocationRequest;
 use App\Models\Location;
 use App\Models\Ride;
 use App\Services\LocationService;
+use App\Services\MatchingQueueService;
 use App\Services\QueueService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,8 @@ class DriverController extends Controller
 {
     public function __construct(
         private QueueService $queueService,
-        private LocationService $locationService
+        private LocationService $locationService,
+        private MatchingQueueService $matchingQueueService,
     ) {}
 
     /**
@@ -27,7 +29,6 @@ class DriverController extends Controller
     {
         $driver = $request->user();
 
-        // Check driver permissions
         if (! $driver->tokenCan('driver:go-online')) {
             return response()->json([
                 'success' => false,
@@ -35,7 +36,6 @@ class DriverController extends Controller
             ], 403);
         }
 
-        // Check if driver is verified (has completed KYC)
         $driverProfile = $driver->driverProfile;
         if (! $driverProfile || ! $driverProfile->is_verified) {
             return response()->json([
@@ -44,7 +44,6 @@ class DriverController extends Controller
             ], 403);
         }
 
-        // Check if driver already has an active ride
         $activeRide = $driver->driverRides()
             ->whereIn('status', Ride::ACTIVE_STATUSES)
             ->exists();
@@ -56,7 +55,6 @@ class DriverController extends Controller
             ], 400);
         }
 
-        // Check if user has pending ride requests as rider
         $activeRiderRequest = $driver->rideRequests()
             ->whereIn('status', ['pending', 'matched'])
             ->where('expires_at', '>', now())
@@ -69,7 +67,6 @@ class DriverController extends Controller
             ], 400);
         }
 
-        // Check if user has active rides as rider
         $activeRiderRide = $driver->riderRides()
             ->whereIn('status', ['matched', 'accepted', 'driver_arrived', 'in_progress'])
             ->exists();
@@ -81,7 +78,6 @@ class DriverController extends Controller
             ], 400);
         }
 
-        // Update driver location if provided
         if ($request->has('current_latitude') && $request->has('current_longitude')) {
             $this->locationService->updateDriverLocation(
                 $driver->id,
@@ -90,15 +86,18 @@ class DriverController extends Controller
             );
         }
 
-        // Mark driver as online (set went_online_at timestamp)
         $driverProfile->update(['went_online_at' => now()]);
 
-        // Broadcast driver online status changed
+        // Add driver to the FIFO matching queue
+        $this->matchingQueueService->addToQueue($driver->id);
+        $queuePosition = $this->matchingQueueService->getQueuePosition($driver->id);
+
         broadcast(new DriverOnlineStatusChanged($driver, true, null));
 
         \Log::info('Driver went online', [
             'driver_id' => $driver->id,
             'email' => $driver->email,
+            'queue_position' => $queuePosition,
         ]);
 
         return response()->json([
@@ -108,6 +107,7 @@ class DriverController extends Controller
                 'status' => 'online',
                 'is_available' => true,
                 'driver_id' => $driver->id,
+                'queue_position' => $queuePosition,
             ],
         ]);
     }
@@ -119,7 +119,6 @@ class DriverController extends Controller
     {
         $driver = $request->user();
 
-        // Check driver permissions
         if (! $driver->tokenCan('driver:go-online')) {
             return response()->json([
                 'success' => false,
@@ -127,7 +126,6 @@ class DriverController extends Controller
             ], 403);
         }
 
-        // Check if driver has an active ride
         $activeRide = $driver->driverRides()
             ->whereIn('status', Ride::ACTIVE_STATUSES)
             ->exists();
@@ -139,13 +137,13 @@ class DriverController extends Controller
             ], 400);
         }
 
-        // Mark driver as offline (clear went_online_at timestamp)
         $driverProfile = $driver->driverProfile;
         if ($driverProfile) {
+            // Remove from FIFO matching queue before going offline
+            $this->matchingQueueService->removeFromQueue($driver->id);
             $driverProfile->update(['went_online_at' => null]);
         }
 
-        // Broadcast driver offline status changed
         broadcast(new DriverOnlineStatusChanged($driver, false, null));
 
         \Log::info('Driver went offline', [
@@ -160,13 +158,12 @@ class DriverController extends Controller
     }
 
     /**
-     * Get current queue status for driver
+     * Get current queue status for driver (beacon-level queue)
      */
     public function getQueue(Request $request): JsonResponse
     {
         $driver = $request->user();
 
-        // Check driver permissions
         if (! $driver->tokenCan('driver:go-online')) {
             return response()->json([
                 'success' => false,
@@ -179,6 +176,74 @@ class DriverController extends Controller
         return response()->json([
             'success' => true,
             'data' => $queueStatus,
+        ]);
+    }
+
+    /**
+     * Get driver's current position in the global FIFO matching queue
+     */
+    public function getQueuePosition(Request $request): JsonResponse
+    {
+        $driver = $request->user();
+
+        if (! $driver->tokenCan('driver:go-online')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized: Driver permissions required',
+            ], 403);
+        }
+
+        $profile = $driver->driverProfile;
+        $position = $this->matchingQueueService->getQueuePosition($driver->id);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'in_queue' => $position > 0,
+                'queue_position' => $position,
+                'is_in_cooldown' => $profile?->isInCooldown() ?? false,
+                'cooldown_until' => $profile?->queue_cooldown_until?->toISOString(),
+                'max_pickup_radius_km' => (float) ($profile?->max_pickup_radius_km ?? 5.0),
+            ],
+        ]);
+    }
+
+    /**
+     * Update driver settings (max pickup radius, etc.)
+     */
+    public function updateSettings(Request $request): JsonResponse
+    {
+        $driver = $request->user();
+
+        if (! $driver->tokenCan('driver:go-online')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized: Driver permissions required',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'max_pickup_radius_km' => 'required|numeric|min:0.5|max:20',
+        ]);
+
+        $driverProfile = $driver->driverProfile;
+        if (! $driverProfile) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Driver profile not found',
+            ], 404);
+        }
+
+        $driverProfile->update([
+            'max_pickup_radius_km' => $validated['max_pickup_radius_km'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Settings updated successfully',
+            'data' => [
+                'max_pickup_radius_km' => (float) $driverProfile->max_pickup_radius_km,
+            ],
         ]);
     }
 
@@ -204,13 +269,11 @@ class DriverController extends Controller
             ], 500);
         }
 
-        // Check if driver has an active ride for real-time tracking
         $activeRide = $driver->driverRides()
             ->whereIn('status', Ride::ACTIVE_STATUSES)
             ->latest()
             ->first();
 
-        // Broadcast location update if driver is online or has active ride
         if ($driver->isDriverOnline() || $activeRide) {
             broadcast(new DriverLocationUpdated(
                 $driver,
@@ -243,7 +306,6 @@ class DriverController extends Controller
     {
         $driver = $request->user();
 
-        // Check driver permissions
         if (! $driver->tokenCan('driver:go-online')) {
             return response()->json([
                 'success' => false,
@@ -266,7 +328,6 @@ class DriverController extends Controller
     {
         $driver = $request->user();
 
-        // Check driver permissions
         if (! $driver->tokenCan('driver:go-online')) {
             return response()->json([
                 'success' => false,
@@ -274,7 +335,6 @@ class DriverController extends Controller
             ], 403);
         }
 
-        // Get basic driver stats from driver profile
         $driverProfile = $driver->driverProfile;
         if (! $driverProfile) {
             return response()->json([
@@ -283,7 +343,6 @@ class DriverController extends Controller
             ], 404);
         }
 
-        // Calculate today's stats from completed rides
         $todayRides = $driver->driverRides()
             ->whereDate('dropoff_time', today())
             ->where('status', 'completed')
@@ -307,12 +366,19 @@ class DriverController extends Controller
                 'year' => $driverProfile->vehicle_year,
                 'plate_number' => $driverProfile->vehicle_plate,
             ],
+            'queue_info' => [
+                'in_queue' => $driverProfile->isInQueue(),
+                'queue_position' => $this->matchingQueueService->getQueuePosition($driver->id),
+                'is_in_cooldown' => $driverProfile->isInCooldown(),
+                'cooldown_until' => $driverProfile->queue_cooldown_until?->toISOString(),
+                'max_pickup_radius_km' => (float) ($driverProfile->max_pickup_radius_km ?? 5.0),
+            ],
         ];
 
-        // Add queue status if currently in queue
+        // Add beacon queue status if currently in beacon queue
         $queueStatus = $this->queueService->getDriverQueueStatus($driver->id);
         if ($queueStatus['in_queue']) {
-            $stats['current_queue'] = $queueStatus;
+            $stats['current_beacon_queue'] = $queueStatus;
         }
 
         return response()->json([

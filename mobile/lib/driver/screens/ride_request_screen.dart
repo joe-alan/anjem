@@ -6,6 +6,7 @@ import '../../core/models/ride_request.dart';
 import '../../core/providers/api_provider.dart';
 import '../../core/providers/driver_incoming_request_provider.dart';
 import '../../core/providers/driver_status_provider.dart';
+import '../../core/providers/ride_request_provider.dart';
 import 'active_ride_screen.dart';
 
 class RideRequestScreen extends ConsumerStatefulWidget {
@@ -57,11 +58,13 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
   Future<void> _autoDecline() async {
     if (!mounted) return;
 
-    _clearIncomingRequest();
-    // Just go back without calling API
-    Navigator.of(context).pop();
+    // Notify backend of timeout so the request passes to the next driver
+    final service = ref.read(rideRequestServiceProvider);
+    await service.declineRequest(widget.request.id);
 
+    _clearIncomingRequest();
     if (mounted) {
+      Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Request timed out'),
@@ -157,12 +160,20 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
   }
 
   Future<void> _declineRide() async {
+    if (_isProcessing) return;
     _timer?.cancel();
 
-    if (mounted) {
-      _clearIncomingRequest();
-      Navigator.of(context).pop();
+    setState(() => _isProcessing = true);
 
+    // Notify backend — triggers next driver dispatch
+    final service = ref.read(rideRequestServiceProvider);
+    await service.declineRequest(widget.request.id);
+
+    setState(() => _isProcessing = false);
+    _clearIncomingRequest();
+
+    if (mounted) {
+      Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Ride declined'),

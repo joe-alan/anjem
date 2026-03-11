@@ -227,6 +227,7 @@ class WebSocketService {
   Future<void> subscribeToDriverChannel({
     required int driverId,
     required Function(Map<String, dynamic>) onNewRideRequest,
+    Function(Map<String, dynamic>)? onQueuePositionChanged,
   }) async {
     final channelName = 'driver.$driverId';
 
@@ -250,6 +251,16 @@ class WebSocketService {
           onNewRideRequest(data as Map<String, dynamic>);
         }
       });
+
+      // Listen for FIFO queue position updates
+      if (onQueuePositionChanged != null) {
+        channel.bind('queue.position.changed', (data) {
+          print('Received queue position update: $data');
+          if (data != null) {
+            onQueuePositionChanged(data as Map<String, dynamic>);
+          }
+        });
+      }
 
       _channels[channelName] = channel;
       print('Subscribed to driver channel: private-$channelName');
