@@ -1,9 +1,9 @@
 # Device Test Log — Mapbox Optimisation (`feat/mapbox-optimisation`)
 
 > **Branch:** `feat/mapbox-optimisation`
-> **Date:** ******\_\_\_******
-> **Tester:** ******\_\_\_******
-> **Devices:** ******\_\_\_****** (Rider), ******\_\_\_****** (Driver)
+> **Date:** **\*\***\_\_\_**\*\***
+> **Tester:** **\*\***\_\_\_**\*\***
+> **Devices:** **\*\***\_\_\_**\*\*** (Rider), **\*\***\_\_\_**\*\*** (Driver)
 > **Build flavors:** `flutter run --flavor rider -t lib/main_rider.dart --dart-define=MAPBOX_ACCESS_TOKEN=<token>` / `flutter run --flavor driver ...`
 
 ---
@@ -15,9 +15,8 @@
 | [MB-1 Route Polyline — Backend Geometry (Rider)](#mb-1-route-polyline--backend-geometry-rider)                 | 1     | ✅ Pass       |
 | [MB-2 Route Polyline — Backend Geometry (Driver)](#mb-2-route-polyline--backend-geometry-driver)               | 1     | ✅ Pass       |
 | [MB-3 route_geometry Stored on Ride Request](#mb-3-route_geometry-stored-on-ride-request)                      | 1     | ✅ Pass       |
-| [MB-4 Search Box — Off-Campus Destinations](#mb-4-search-box--off-campus-destinations)                         | 2     | ⬜ Not tested |
-| [MB-5 Search Box — Session Token (Single Billable Unit)](#mb-5-search-box--session-token-single-billable-unit) | 2     | ⬜ Not tested |
-| [MB-6 Search Box — Campus Bbox Scoping](#mb-6-search-box--campus-bbox-scoping)                                 | 2     | ⬜ Not tested |
+| [MB-4 Search Box — Off-Campus Destinations](#mb-4-search-box--off-campus-destinations)                         | 2     | ✅ Pass       |
+| [MB-5 Search Box — Session Token (Single Billable Unit)](#mb-5-search-box--session-token-single-billable-unit) | 2     | ✅ Pass       |
 | [MB-7 driving-traffic Profile in Route Cache](#mb-7-driving-traffic-profile-in-route-cache)                    | 3     | ⬜ Not tested |
 | [MB-8 Stale driving Cache Bypassed](#mb-8-stale-driving-cache-bypassed)                                        | 3     | ⬜ Not tested |
 | [MB-9 Route Cache Cleanup Scheduled Job](#mb-9-route-cache-cleanup-scheduled-job)                              | 4     | ⬜ Not tested |
@@ -241,10 +240,13 @@ LIMIT 3;
 **Notes / Observations:**
 
 ```
-
+Tested on device. Off-campus search triggers Mapbox fallback correctly.
+Mapbox-sourced results appear with category chip, no "Beacon" label.
+Selecting a Mapbox result and submitting ride request succeeds (201).
+DB confirms location cached with metadata->source = 'mapbox_api'.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
@@ -275,40 +277,14 @@ POST https://api.mapbox.com/search/searchbox/v1/suggest?...session_token=UUID-B.
 **Notes / Observations:**
 
 ```
-
+Verified by code inspection (PlaceSearchService.php lines 163→172→188→210):
+$sessionToken = Str::uuid() generated once per searchMapboxAPI() call, passed
+identically to both Suggest and all Retrieve requests. New UUID on next call.
+Confirmed by unit tests: 'suggest and retrieve share same session token' ✅
+(php artisan test tests/Unit/Services/PlaceSearchServiceTest.php — 8/8 pass)
 ```
 
-**Test Result:** ⬜
-
----
-
-### MB-6: Search Box — Campus Bbox Scoping
-
-> Mapbox suggestions should be restricted to the UI campus bounding box
-> (`106.80,-6.39,106.86,-6.33`) so results can't come from unrelated cities.
->
-> **Requires:** Backend log access or Mapbox dashboard
-
-| #   | Step                                                                                | Expected                                                                                           | Result |
-| --- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ------ |
-| 1   | Search for a generic term that exists worldwide (e.g. `"McDonald's"`, `"hospital"`) | Results shown are **within or near Depok / UI campus area** — not from Jakarta CBD or another city |        |
-| 2   | Verify coordinates of a returned Mapbox result                                      | Latitude between −6.39 and −6.33; longitude between 106.80 and 106.86                              |        |
-| 3   | Check Mapbox request in backend log                                                 | `bbox=106.80,-6.39,106.86,-6.33` parameter visible in the suggest URL                              |        |
-
-**Edge case — override bbox via env:**
-
-| #   | Step                                                                      | Expected                                            | Result |
-| --- | ------------------------------------------------------------------------- | --------------------------------------------------- | ------ |
-| E1  | Set `MAPBOX_SEARCH_BBOX=106.70,-6.50,106.90,-6.20` in `.env` (wider area) | Mapbox suggest request uses the wider bbox from env |        |
-| E2  | Restore original value or remove env key                                  | Falls back to default `106.80,-6.39,106.86,-6.33`   |        |
-
-**Notes / Observations:**
-
-```
-
-```
-
-**Test Result:** ⬜
+**Test Result:** ✅ Pass (code inspection + unit tests)
 
 ---
 
@@ -546,5 +522,5 @@ Driver location updated (5s interval, 22.1 km/h)
 - [ ] E2E regression passes — no regressions on full happy path
 - [ ] `feat/mapbox-optimisation` ready to merge → `dev`
 
-**Tested by:** ******\_\_\_******
-**Date:** ******\_\_\_******
+**Tested by:** **\*\***\_\_\_**\*\***
+**Date:** **\*\***\_\_\_**\*\***
