@@ -6,11 +6,7 @@ class MapboxConfig {
   // Private constructor to prevent instantiation
   MapboxConfig._();
 
-  /// Mapbox public access token
-  /// Injected at build time via --dart-define=MAPBOX_ACCESS_TOKEN=pk.eyJ1...
-  /// Example:
-  ///   flutter run --flavor rider -t lib/main_rider.dart \
-  ///     --dart-define=MAPBOX_ACCESS_TOKEN=pk.eyJ1...
+  /// Mapbox public access token — injected at build time via --dart-define=MAPBOX_ACCESS_TOKEN
   static const String accessToken = String.fromEnvironment(
     'MAPBOX_ACCESS_TOKEN',
     defaultValue: '',
