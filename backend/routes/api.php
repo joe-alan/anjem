@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
 
     // Authentication routes (no auth required) - Strict rate limiting
-    Route::prefix('auth')->middleware('throttle:5,1')->group(function () {
+    Route::prefix('auth')->middleware('throttle:10,1')->group(function () {
         Route::post('firebase', [AuthController::class, 'authenticateWithFirebase']);
         Route::get('google', [AuthController::class, 'googleRedirect']);
         Route::get('google/callback', [AuthController::class, 'googleCallback']);
@@ -124,6 +124,11 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin', 'throttle:100,1'])-
     Route::get('drivers', [AdminController::class, 'listDrivers']);
     Route::get('drivers/{id}', [AdminController::class, 'getDriver']);
     Route::post('drivers/{id}/suspend', [AdminController::class, 'suspendDriver']);
+    Route::post('drivers/{id}/kyc/approve', [AdminController::class, 'approveKyc']);
+    Route::post('drivers/{id}/kyc/reject', [AdminController::class, 'rejectKyc']);
+    Route::post('drivers/{id}/credits/grant', [AdminController::class, 'grantCredits']);
+    Route::post('drivers/{id}/credits/deduct', [AdminController::class, 'deductCredits']);
+    Route::get('drivers/{id}/document', [AdminController::class, 'getDriverDocument']);
 
     // Rider Management
     Route::get('riders', [AdminController::class, 'listRiders']);
@@ -150,4 +155,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin', 'throttle:100,1'])-
     Route::delete('monitoring/requests/{id}', [AdminController::class, 'cancelRequest']);
     Route::post('monitoring/rides/{id}/cancel', [AdminController::class, 'cancelRide']);
     Route::post('monitoring/rides/{id}/complete', [AdminController::class, 'completeRide']);
+
+    // Audit Logs
+    Route::get('audit-logs', [AdminController::class, 'getAuditLogs']);
 });

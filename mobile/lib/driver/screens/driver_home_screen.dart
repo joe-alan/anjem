@@ -32,9 +32,13 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Safety net: re-fetch user and KYC state in case a suspend/unsuspend
+      // WebSocket event was missed while the app was backgrounded.
+      ref.read(authStateProvider.notifier).refreshUser();
+      ref.read(kycStateProvider.notifier).refreshKycStatus();
+    }
     // Best-effort offline call when the OS is about to destroy the app.
-    // Reliable on iOS (applicationWillTerminate); partial on Android.
-    // The heartbeat-based KickStaleDrivers job is the backstop for hard kills.
     if (state == AppLifecycleState.detached) {
       final driverStatus = ref.read(driverStatusProvider);
       if (driverStatus.isOnline && !driverStatus.hasActiveRide) {
@@ -283,6 +287,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     final statisticsAsync = ref.watch(driverStatisticsProvider);
     final isDriverVerified = ref.watch(isDriverVerifiedProvider);
     final creditsAsync = ref.watch(creditsProvider);
+    final kycSubmission = ref.watch(kycStatusProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -514,11 +519,17 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                               ),
                               _buildStatItem(
                                 context,
-                                stats.isVerified
-                                    ? Icons.verified
-                                    : Icons.pending,
-                                stats.isVerified ? 'Verified' : 'Pending',
-                                'KYC Status',
+                                !(user?.isActive ?? true)
+                                    ? Icons.block
+                                    : stats.isVerified
+                                        ? Icons.verified
+                                        : Icons.pending_outlined,
+                                !(user?.isActive ?? true)
+                                    ? 'Suspended'
+                                    : stats.isVerified
+                                        ? 'Verified'
+                                        : 'Unverified',
+                                'Status',
                               ),
                             ],
                           ),
@@ -613,37 +624,61 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
 
                 const SizedBox(height: 16),
 
-                // KYC Status Warning (if not verified)
-                if (!isDriverVerified && !driverStatus.isOnline)
+                // Suspended warning
+                if (!(user?.isActive ?? true))
                   Card(
-                    color: Colors.orange[50],
+                    color: Colors.red[50],
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(12.0),
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.warning,
-                              color: Colors.orange, size: 32),
+                          const Icon(Icons.block, color: Colors.red, size: 28),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
-                                  'KYC Verification Required',
+                                  'Your account has been suspended. Contact admin.',
                                   style: TextStyle(
+                                    color: Colors.red,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 16,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Complete driver verification to start accepting rides',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[700],
+                                if (kycSubmission?.suspendReason != null) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Reason: ${kycSubmission!.suspendReason}',
+                                    style: TextStyle(
+                                      color: Colors.red[700],
+                                      fontSize: 13,
+                                    ),
                                   ),
-                                ),
+                                ],
                               ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                // Unverified warning (email verified but admin not approved)
+                if ((user?.isActive ?? true) && !isDriverVerified)
+                  Card(
+                    color: Colors.orange[50],
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.hourglass_top_rounded,
+                              color: Colors.orange, size: 28),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text(
+                              'Your account is pending admin approval. You cannot go online until approved.',
+                              style: TextStyle(color: Colors.deepOrange),
                             ),
                           ),
                         ],
@@ -807,6 +842,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
   Widget _buildFloatingActionButton(BuildContext context) {
     final driverStatus = ref.watch(driverStatusProvider);
     final user = ref.watch(currentUserProvider);
+    final isDriverVerified = ref.watch(isDriverVerifiedProvider);
 
     // Show loading if user is not loaded yet
     if (user == null) {
@@ -856,19 +892,24 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
       );
     }
 
+    final isSuspended = !(user?.isActive ?? true);
+    final canGoOnline = !isSuspended && isDriverVerified;
+
     return FloatingActionButton.extended(
-      onPressed: () async {
-        await ref.read(driverStatusProvider.notifier).goOnline();
-        final error = ref.read(driverStatusProvider).error;
-        if (error != null && error.contains('credit') && mounted) {
-          ref.read(driverStatusProvider.notifier).clearError();
-          final balance = ref.read(creditsProvider).value ?? 0;
-          _showCreditsInfoSheet(this.context, balance);
-        }
-      },
+      onPressed: canGoOnline
+          ? () async {
+              await ref.read(driverStatusProvider.notifier).goOnline();
+              final error = ref.read(driverStatusProvider).error;
+              if (error != null && error.contains('credit') && mounted) {
+                ref.read(driverStatusProvider.notifier).clearError();
+                final balance = ref.read(creditsProvider).value ?? 0;
+                _showCreditsInfoSheet(this.context, balance);
+              }
+            }
+          : null,
       icon: const Icon(Icons.play_arrow),
       label: const Text('Go Online'),
-      backgroundColor: AppConfig.instance.primaryColor,
+      backgroundColor: canGoOnline ? AppConfig.instance.primaryColor : Colors.grey,
       foregroundColor: Colors.white,
     );
   }

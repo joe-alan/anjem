@@ -265,6 +265,7 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         final isOnline = eventData['is_online'] as bool? ?? true;
         if (!isOnline) {
           print('DriverStatusProvider: Auto-kicked offline by backend (zero credits)');
+          _ref.read(driverIncomingRequestProvider.notifier).clear();
           state = state.copyWith(
             status: DriverStatusEnum.offline,
             activeRideId: null,
@@ -273,6 +274,27 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
           // Invalidate credits so the chip and warning card reflect balance = 0
           _ref.invalidate(creditsProvider);
         }
+      },
+      onKycStatusChanged: (eventData) {
+        print('DriverStatusProvider: Admin changed KYC status — refreshing');
+        _ref.read(kycStateProvider.notifier).refreshKycStatus();
+      },
+      onCreditsUpdated: (eventData) {
+        print('DriverStatusProvider: Admin updated credits — refreshing balance');
+        _ref.invalidate(creditsProvider);
+      },
+      onAccountStatusChanged: (eventData) {
+        final isSuspended = eventData['is_suspended'] as bool? ?? false;
+        if (isSuspended) {
+          print('DriverStatusProvider: Account suspended — going offline');
+          _ref.read(driverIncomingRequestProvider.notifier).clear();
+          state = const DriverStatusState();
+        } else {
+          print('DriverStatusProvider: Account unsuspended');
+        }
+        // Refresh user (updates isActive) and KYC status (updates suspendReason).
+        _ref.read(authStateProvider.notifier).refreshUser();
+        _ref.read(kycStateProvider.notifier).refreshKycStatus();
       },
     );
 
