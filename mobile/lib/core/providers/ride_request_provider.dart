@@ -25,6 +25,8 @@ class RideRequestState {
   final String? successMessage;
   /// ISO8601 timestamp until which the rider cannot create a new request.
   final String? cooldownUntil;
+  /// Set when server broadcasts no-drivers-available; rider sees countdown until this time.
+  final DateTime? noDriversAvailableUntil;
 
   const RideRequestState({
     this.request,
@@ -34,6 +36,7 @@ class RideRequestState {
     this.error,
     this.successMessage,
     this.cooldownUntil,
+    this.noDriversAvailableUntil,
   });
 
   RideRequestState copyWith({
@@ -44,6 +47,7 @@ class RideRequestState {
     String? error,
     String? successMessage,
     String? cooldownUntil,
+    DateTime? noDriversAvailableUntil,
   }) {
     return RideRequestState(
       request: request ?? this.request,
@@ -53,6 +57,7 @@ class RideRequestState {
       error: error,
       successMessage: successMessage,
       cooldownUntil: cooldownUntil ?? this.cooldownUntil,
+      noDriversAvailableUntil: noDriversAvailableUntil ?? this.noDriversAvailableUntil,
     );
   }
 
@@ -359,6 +364,25 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
           );
         }
       },
+      onNoDriversAvailable: (eventData) {
+        final countdown = (eventData['countdown_seconds'] as num?)?.toInt() ?? 60;
+        state = state.copyWith(
+          noDriversAvailableUntil: DateTime.now().add(Duration(seconds: countdown)),
+        );
+      },
+      onRequestExpired: (eventData) {
+        // Server expired the request after no-drivers countdown — clear it
+        // and surface the cooldown so rider cannot immediately re-request.
+        _stopMatchPolling();
+        state = RideRequestState(
+          cooldownUntil: eventData['rider_cooldown_until'] as String?,
+        );
+      },
+      onSearchResumed: (_) {
+        // A new driver joined the queue and was dispatched — cancel the
+        // no-drivers countdown and go back to the "Finding Driver" view.
+        resumeSearch();
+      },
     );
 
     print(
@@ -376,6 +400,20 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
   void reset() {
     _stopMatchPolling();
     state = const RideRequestState();
+  }
+
+  /// Clear the no-drivers-available countdown so the rider transitions back
+  /// to the "Finding Driver" view.  Called when search resumes after a new
+  /// driver joins the queue during the countdown window.
+  void resumeSearch() {
+    state = RideRequestState(
+      request: state.request,
+      fareEstimate: state.fareEstimate,
+      matchedRide: state.matchedRide,
+      isLoading: state.isLoading,
+      cooldownUntil: state.cooldownUntil,
+      noDriversAvailableUntil: null,
+    );
   }
 
   /// Set request from session resume (called by SessionCheckWrapper)
@@ -513,12 +551,16 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
       // Update the local request reference
       state = state.copyWith(request: latestRequest);
 
-      if (latestRequest.status == 'completed' ||
-          latestRequest.status == 'cancelled') {
-        // Ride already over - clear local state so the rider can request again
-        state = const RideRequestState(
-          successMessage: 'Ride finished',
+      if (latestRequest.isCancelled ||
+          latestRequest.isExpired ||
+          latestRequest.isCompleted) {
+        // Request is terminal — clear state so the rider can request again
+        state = RideRequestState(
+          successMessage: latestRequest.isExpired
+              ? 'No drivers available. Try again in a moment.'
+              : 'Ride finished.',
         );
+        _stopMatchPolling();
         return true;
       }
 

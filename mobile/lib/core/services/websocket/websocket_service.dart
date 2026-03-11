@@ -178,6 +178,9 @@ class WebSocketService {
   Future<void> subscribeToUserChannel({
     required int userId,
     required Function(Map<String, dynamic>) onRideMatched,
+    Function(Map<String, dynamic>)? onNoDriversAvailable,
+    Function(Map<String, dynamic>)? onRequestExpired,
+    Function(Map<String, dynamic>)? onSearchResumed,
   }) async {
     final channelName =
         'user.$userId'; // Don't add 'private-' prefix, .private() method does it automatically
@@ -215,6 +218,36 @@ class WebSocketService {
       });
       print('Event binding completed for ride.request.matched');
 
+      // Listen for no-drivers-available notification (shows countdown on rider)
+      if (onNoDriversAvailable != null) {
+        channel.bind('ride.no_drivers_available', (data) {
+          print('Received ride.no_drivers_available: $data');
+          if (data != null) {
+            onNoDriversAvailable(data as Map<String, dynamic>);
+          }
+        });
+      }
+
+      // Listen for expiry broadcast from ExpireRideRequest job
+      if (onRequestExpired != null) {
+        channel.bind('ride.request.cancelled', (data) {
+          print('Received ride.request.cancelled on user channel: $data');
+          if (data != null) {
+            onRequestExpired(data as Map<String, dynamic>);
+          }
+        });
+      }
+
+      // Listen for search-resumed signal when a new driver joins during countdown
+      if (onSearchResumed != null) {
+        channel.bind('ride.search.resumed', (data) {
+          print('Received ride.search.resumed: $data');
+          if (data != null) {
+            onSearchResumed(data as Map<String, dynamic>);
+          }
+        });
+      }
+
       _channels[channelName] = channel;
       print('Subscribed to user channel: $channelName');
     } catch (e) {
@@ -228,6 +261,8 @@ class WebSocketService {
     required int driverId,
     required Function(Map<String, dynamic>) onNewRideRequest,
     Function(Map<String, dynamic>)? onQueuePositionChanged,
+    Function(Map<String, dynamic>)? onRequestCancelled,
+    Function(Map<String, dynamic>)? onSessionReplaced,
   }) async {
     final channelName = 'driver.$driverId';
 
@@ -259,6 +294,24 @@ class WebSocketService {
           if (data != null) {
             onQueuePositionChanged(data as Map<String, dynamic>);
           }
+        });
+      }
+
+      // Listen for ride request cancellations (rider cancelled or admin cancelled while dispatched)
+      if (onRequestCancelled != null) {
+        channel.bind('ride.request.cancelled', (data) {
+          print('Received ride request cancellation: $data');
+          if (data != null) {
+            onRequestCancelled(data as Map<String, dynamic>);
+          }
+        });
+      }
+
+      // Listen for session displacement (another device logged in as this driver)
+      if (onSessionReplaced != null) {
+        channel.bind('session.replaced', (data) {
+          print('Received session.replaced — signing out displaced device');
+          onSessionReplaced(data as Map<String, dynamic>? ?? {});
         });
       }
 

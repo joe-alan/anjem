@@ -4,8 +4,9 @@ namespace App\Jobs;
 
 use App\Models\RideRequest;
 use App\Services\MatchingQueueService;
+use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -18,7 +19,7 @@ use Illuminate\Support\Facades\Log;
  */
 class HandleRequestTimeout implements ShouldQueue
 {
-    use Queueable;
+    use Dispatchable, Queueable;
 
     public function __construct(
         public readonly int $rideRequestId,
@@ -33,8 +34,9 @@ class HandleRequestTimeout implements ShouldQueue
             return;
         }
 
-        // If request is no longer pending, the driver already responded — do nothing
-        if (! in_array($rideRequest->status, ['pending', 'matched'])) {
+        // 'matched' means a driver already accepted — do nothing.
+        // Only 'pending' requests are still awaiting a driver response.
+        if ($rideRequest->status !== 'pending') {
             return;
         }
 

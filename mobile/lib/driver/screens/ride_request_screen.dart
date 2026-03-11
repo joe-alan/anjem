@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/ride_request.dart';
 import '../../core/providers/api_provider.dart';
+import '../../core/services/api/api_exception.dart';
 import '../../core/providers/driver_incoming_request_provider.dart';
 import '../../core/providers/driver_status_provider.dart';
 import '../../core/providers/ride_request_provider.dart';
@@ -26,6 +27,7 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
   int _secondsRemaining = timeoutSeconds;
   Timer? _timer;
   bool _isProcessing = false;
+  bool _isDismissing = false;
   String? _errorMessage;
 
   @override
@@ -58,9 +60,14 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
   Future<void> _autoDecline() async {
     if (!mounted) return;
 
-    // Notify backend of timeout so the request passes to the next driver
-    final service = ref.read(rideRequestServiceProvider);
-    await service.declineRequest(widget.request.id);
+    _isDismissing = true;
+
+    // Notify backend of timeout so the request passes to the next driver.
+    // Ignore errors — the server-side HandleRequestTimeout job is the safety-net.
+    try {
+      final service = ref.read(rideRequestServiceProvider);
+      await service.declineRequest(widget.request.id);
+    } catch (_) {}
 
     _clearIncomingRequest();
     if (mounted) {
@@ -101,6 +108,8 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
         // Update driver status to indicate active ride
         ref.read(driverStatusProvider.notifier).setActiveRide(rideId);
 
+        // Set flag before clearing so the ref.listen below does not also pop
+        _isDismissing = true;
         _clearIncomingRequest();
 
         if (mounted) {
@@ -122,39 +131,39 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
         throw Exception('Invalid response from server');
       }
     } catch (e) {
-      print('RideRequestScreen: Error accepting ride - $e');
+      // Set _isDismissing synchronously before any async work so ref.listen
+      // cannot fire a competing pop while we handle the error.
+      _isDismissing = true;
+      _timer?.cancel();
 
-      setState(() {
-        _isProcessing = false;
-        _errorMessage = _parseError(e.toString());
-      });
-
-      // Show error and go back
       if (mounted) {
+        // Show snackbar first — it persists on the parent screen after pop.
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_errorMessage ?? 'Failed to accept ride'),
+            content: Text(_parseError(e)),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
-
-        // Go back after a delay
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            Navigator.of(context).pop();
-          }
-        });
+        // Pop immediately — no delayed pop, which could fire against the wrong
+        // route if the WS listener already removed this screen from the stack.
+        Navigator.of(context).pop();
       }
     }
   }
 
-  String _parseError(String error) {
-    if (error.contains('already accepted') || error.contains('409')) {
-      return 'This ride was already accepted by another driver';
-    } else if (error.contains('active ride') || error.contains('400')) {
-      return 'You already have an active ride';
-    } else if (error.contains('404')) {
-      return 'Ride request no longer available';
+  String _parseError(Object error) {
+    if (error is ApiException) {
+      if (error.statusCode == 410) {
+        return 'This ride request was cancelled by the rider';
+      } else if (error.statusCode == 409) {
+        return 'This ride was already accepted by another driver';
+      } else if (error.statusCode == 400) {
+        return 'You already have an active ride';
+      } else if (error.statusCode == 404) {
+        return 'Ride request no longer available';
+      }
+      return error.message;
     }
     return 'Failed to accept ride. Please try again.';
   }
@@ -165,11 +174,16 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
 
     setState(() => _isProcessing = true);
 
-    // Notify backend — triggers next driver dispatch
-    final service = ref.read(rideRequestServiceProvider);
-    await service.declineRequest(widget.request.id);
+    // Notify backend — triggers next driver dispatch.
+    // Errors are non-fatal: the 35s server-side timeout is the safety-net.
+    try {
+      final service = ref.read(rideRequestServiceProvider);
+      await service.declineRequest(widget.request.id);
+    } catch (e) {
+      print('RideRequestScreen: decline error (ignored) - $e');
+    }
 
-    setState(() => _isProcessing = false);
+    _isDismissing = true;
     _clearIncomingRequest();
 
     if (mounted) {
@@ -191,6 +205,23 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
     final progress = _secondsRemaining / timeoutSeconds;
+
+    // Dismiss if the rider/admin cancelled or the backend re-dispatched to another driver.
+    // _isDismissing guards against a double-pop when _acceptRide/_declineRide already
+    // cleared the provider and initiated their own navigation.
+    ref.listen<RideRequest?>(driverIncomingRequestProvider, (previous, next) {
+      if (previous != null && next == null && mounted && !_isDismissing) {
+        _isDismissing = true;
+        _timer?.cancel();
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Ride request was cancelled'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    });
 
     // ✅ FIX: Replace deprecated WillPopScope with PopScope (Flutter 3.12+)
     return PopScope(

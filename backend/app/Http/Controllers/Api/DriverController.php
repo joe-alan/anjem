@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Events\DriverLocationUpdated;
 use App\Events\DriverOnlineStatusChanged;
+use App\Events\SessionReplaced;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateLocationRequest;
 use App\Models\Location;
@@ -76,6 +77,27 @@ class DriverController extends Controller
                 'success' => false,
                 'message' => 'You cannot go online as a driver while you have an active ride as a rider. Please complete or cancel it first.',
             ], 400);
+        }
+
+        // Enforce single active session: broadcast a displacement event on the
+        // driver channel BEFORE revoking tokens so any old device still connected
+        // can receive and react to the event, then revoke the stale tokens.
+        $currentTokenId = $driver->currentAccessToken()->id;
+        $hasOtherSessions = $driver->tokens()
+            ->where('id', '!=', $currentTokenId)
+            ->exists();
+
+        if ($hasOtherSessions) {
+            broadcast(new SessionReplaced($driver->id));
+
+            // Give the broadcast a moment to flush, then revoke the old tokens.
+            $driver->tokens()
+                ->where('id', '!=', $currentTokenId)
+                ->delete();
+
+            \Log::info('Driver session replaced: revoked old tokens', [
+                'driver_id' => $driver->id,
+            ]);
         }
 
         if ($request->has('current_latitude') && $request->has('current_longitude')) {

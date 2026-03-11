@@ -108,6 +108,10 @@ class RideController extends Controller
 
             $ride->load(['rider', 'driver', 'pickupLocation', 'destinationLocation']);
 
+            // Remove accepting driver from the FIFO queue immediately so other
+            // drivers move up without waiting for this ride to finish.
+            $this->matchingQueueService->removeFromQueue($driver->id);
+
             // Broadcast ride request matched event
             broadcast(new RideRequestMatched($rideRequest, $ride));
 
@@ -126,6 +130,7 @@ class RideController extends Controller
         } catch (\Exception $e) {
             // ✅ FIX: Map exception codes to HTTP status codes
             $statusCode = match ($e->getCode()) {
+                410 => 410,  // Gone (cancelled by rider)
                 409 => 409,  // Conflict (already accepted by another driver)
                 404 => 404,  // Not found (expired/cancelled)
                 403 => 403,  // Forbidden (invalid driver credentials)
@@ -202,50 +207,83 @@ class RideController extends Controller
 
         switch ($status) {
             case 'driver_arrived':
-                if ($ride->driver_id === $user->id && $user->tokenCan('driver:accept-ride')) {
-                    $success = $this->rideService->markDriverArrived($ride->id, $user->id);
-                    $message = $success ? 'Marked as arrived at pickup' : 'Unable to update status';
-
-                    if ($success) {
-                        $ride->refresh();
-                        broadcast(new RideStatusUpdated($ride, $previousStatus, 'driver'));
-                        $this->notificationService->sendDriverArrivedToRider($ride);
-                    }
+                if ($ride->driver_id !== $user->id) {
+                    return response()->json(['success' => false, 'message' => 'Only the assigned driver can mark arrival'], 403);
+                }
+                if (! $user->tokenCan('driver:accept-ride')) {
+                    \Illuminate\Support\Facades\Log::warning('driver_arrived rejected: missing token ability', [
+                        'user_id' => $user->id, 'ride_id' => $ride->id, 'ride_status' => $ride->status,
+                    ]);
+                    return response()->json(['success' => false, 'message' => 'Driver token lacks required ability'], 403);
+                }
+                $success = $this->rideService->markDriverArrived($ride->id, $user->id);
+                $message = $success ? 'Marked as arrived at pickup' : 'Unable to mark arrival — unexpected ride state';
+                if (! $success) {
+                    \Illuminate\Support\Facades\Log::warning('markDriverArrived returned false', [
+                        'user_id' => $user->id, 'ride_id' => $ride->id, 'ride_status' => $previousStatus,
+                    ]);
+                }
+                if ($success) {
+                    $ride->refresh();
+                    broadcast(new RideStatusUpdated($ride, $previousStatus, 'driver'));
+                    $this->notificationService->sendDriverArrivedToRider($ride);
                 }
                 break;
 
             case 'in_progress':
-                if ($ride->driver_id === $user->id && $user->tokenCan('driver:accept-ride')) {
-                    $success = $this->rideService->startRide($ride->id, $user->id);
-                    $message = $success ? 'Ride started successfully' : 'Unable to start ride';
-
-                    if ($success) {
-                        $ride->refresh();
-                        broadcast(new RideStatusUpdated($ride, $previousStatus, 'driver'));
-                        $this->notificationService->sendRideStartedToRider($ride);
-                    }
+                if ($ride->driver_id !== $user->id) {
+                    return response()->json(['success' => false, 'message' => 'Only the assigned driver can start the ride'], 403);
+                }
+                if (! $user->tokenCan('driver:accept-ride')) {
+                    \Illuminate\Support\Facades\Log::warning('in_progress rejected: missing token ability', [
+                        'user_id' => $user->id, 'ride_id' => $ride->id, 'ride_status' => $ride->status,
+                    ]);
+                    return response()->json(['success' => false, 'message' => 'Driver token lacks required ability'], 403);
+                }
+                $success = $this->rideService->startRide($ride->id, $user->id);
+                $message = $success ? 'Ride started successfully' : 'Unable to start ride — unexpected ride state';
+                if (! $success) {
+                    \Illuminate\Support\Facades\Log::warning('startRide returned false', [
+                        'user_id' => $user->id, 'ride_id' => $ride->id, 'ride_status' => $previousStatus,
+                    ]);
+                }
+                if ($success) {
+                    $ride->refresh();
+                    broadcast(new RideStatusUpdated($ride, $previousStatus, 'driver'));
+                    $this->notificationService->sendRideStartedToRider($ride);
                 }
                 break;
 
             case 'completed':
-                if ($ride->driver_id === $user->id && $user->tokenCan('driver:complete-ride')) {
-                    $completionData = $request->only([
-                        'actual_distance_km',
-                        'actual_duration_minutes',
-                        'actual_fare_rp',
-                        'driver_notes',
+                if ($ride->driver_id !== $user->id) {
+                    return response()->json(['success' => false, 'message' => 'Only the assigned driver can complete the ride'], 403);
+                }
+                if (! $user->tokenCan('driver:complete-ride')) {
+                    \Illuminate\Support\Facades\Log::warning('completed rejected: missing token ability driver:complete-ride', [
+                        'user_id' => $user->id, 'ride_id' => $ride->id, 'ride_status' => $ride->status,
+                        'token_abilities' => $user->currentAccessToken()?->abilities ?? [],
                     ]);
-
-                    $success = $this->rideService->completeRide($ride->id, $user->id, $completionData);
-                    $message = $success ? 'Ride completed successfully' : 'Unable to complete ride';
-
-                    if ($success) {
-                        $ride->refresh();
-                        broadcast(new RideStatusUpdated($ride, $previousStatus, 'driver'));
-                        $this->notificationService->sendRideCompletedNotifications($ride);
-                        // Driver rejoins the FIFO queue at the back after completing a ride
-                        $this->matchingQueueService->rejoinAfterRide($user->id);
-                    }
+                    return response()->json(['success' => false, 'message' => 'Driver token lacks driver:complete-ride ability'], 403);
+                }
+                $completionData = $request->only([
+                    'actual_distance_km',
+                    'actual_duration_minutes',
+                    'actual_fare_rp',
+                    'driver_notes',
+                ]);
+                $success = $this->rideService->completeRide($ride->id, $user->id, $completionData);
+                $message = $success ? 'Ride completed successfully' : 'Unable to complete ride — unexpected ride state';
+                if (! $success) {
+                    \Illuminate\Support\Facades\Log::warning('completeRide returned false', [
+                        'user_id' => $user->id, 'ride_id' => $ride->id, 'ride_status' => $previousStatus,
+                    ]);
+                }
+                if ($success) {
+                    $ride->refresh();
+                    broadcast(new RideStatusUpdated($ride, $previousStatus, 'driver'));
+                    $this->notificationService->sendRideCompletedNotifications($ride);
+                    // Driver rejoins the FIFO queue at the back after completing a ride
+                    $this->matchingQueueService->rejoinAfterRide($user->id);
                 }
                 break;
 
@@ -253,7 +291,11 @@ class RideController extends Controller
                 $cancelReason = $request->cancel_reason;
                 $success = $this->rideService->cancelRide($ride->id, $user->id, $cancelReason);
                 $message = $success ? 'Ride cancelled successfully' : 'Unable to cancel ride';
-
+                if (! $success) {
+                    \Illuminate\Support\Facades\Log::warning('cancelRide returned false', [
+                        'user_id' => $user->id, 'ride_id' => $ride->id, 'ride_status' => $previousStatus,
+                    ]);
+                }
                 if ($success) {
                     $ride->refresh();
                     $updatedBy = $ride->rider_id === $user->id ? 'rider' : 'driver';
