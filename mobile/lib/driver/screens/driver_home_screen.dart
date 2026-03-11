@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/ride_request.dart';
+import '../../core/providers/api_provider.dart';
 import '../../core/providers/driver_incoming_request_provider.dart';
 import '../../core/providers/driver_status_provider.dart';
 import '../../core/providers/driver_statistics_provider.dart';
@@ -19,13 +22,30 @@ class DriverHomeScreen extends ConsumerStatefulWidget {
   ConsumerState<DriverHomeScreen> createState() => _DriverHomeScreenState();
 }
 
-class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
+class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
+    with WidgetsBindingObserver {
   ProviderSubscription<RideRequest?>? _incomingRequestSub;
+  ProviderSubscription<DriverStatusState>? _driverStatusSub;
   bool _isPresentingRideRequest = false;
+  Timer? _locationUpdateTimer;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Best-effort offline call when the OS is about to destroy the app.
+    // Reliable on iOS (applicationWillTerminate); partial on Android.
+    // The heartbeat-based KickStaleDrivers job is the backstop for hard kills.
+    if (state == AppLifecycleState.detached) {
+      final driverStatus = ref.read(driverStatusProvider);
+      if (driverStatus.isOnline && !driverStatus.hasActiveRide) {
+        ref.read(driverStatusProvider.notifier).goOffline();
+      }
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Refresh statistics when screen loads
     Future.microtask(() {
       ref.refresh(driverStatisticsProvider);
@@ -45,11 +65,82 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
         _showRideRequestSheet(next);
       },
     );
+
+    // Refresh stats when a ride completes (inActiveRide → online transition).
+    // Also start/stop the idle location timer as online status changes.
+    _driverStatusSub = ref.listenManual<DriverStatusState>(
+      driverStatusProvider,
+      (previous, next) {
+        if (previous != null &&
+            previous.hasActiveRide &&
+            !next.hasActiveRide) {
+          Future.microtask(() {
+            if (mounted) ref.invalidate(driverStatisticsProvider);
+          });
+        }
+
+        // Start location updates when online & idle; stop otherwise.
+        if (next.isOnline && !next.hasActiveRide) {
+          _startIdleLocationUpdates();
+        } else {
+          _stopIdleLocationUpdates();
+        }
+      },
+    );
+
+    // Kick off immediately if already online when screen mounts.
+    final status = ref.read(driverStatusProvider);
+    if (status.isOnline && !status.hasActiveRide) {
+      _startIdleLocationUpdates();
+    }
+  }
+
+  void _startIdleLocationUpdates() {
+    if (_locationUpdateTimer?.isActive ?? false) return;
+    _sendLocationUpdate(); // send once immediately
+    _locationUpdateTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _sendLocationUpdate(),
+    );
+  }
+
+  void _stopIdleLocationUpdates() {
+    _locationUpdateTimer?.cancel();
+    _locationUpdateTimer = null;
+  }
+
+  Future<void> _sendLocationUpdate() async {
+    try {
+      final permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+
+      if (!mounted) return;
+      await ref.read(apiServiceProvider).post('/driver/location', data: {
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+        'heading': position.heading,
+        'speed': position.speed,
+      });
+    } catch (_) {
+      // Non-fatal — matching still works with last known location.
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _incomingRequestSub?.close();
+    _driverStatusSub?.close();
+    _stopIdleLocationUpdates();
     super.dispose();
   }
 

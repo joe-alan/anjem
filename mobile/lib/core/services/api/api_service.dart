@@ -7,9 +7,18 @@ class ApiService {
   late final Dio _dio;
   final FlutterSecureStorage _storage;
 
+  /// Called when a 401 response cannot be recovered (token refresh failed).
+  /// Set by authStateProvider after creation to avoid a circular import.
+  /// Typically points to `authStateProvider.notifier.signOut()`.
+  void Function()? onUnauthorized;
+
+  /// Guard that prevents the 401 interceptor from recursively calling itself
+  /// when the token-refresh request itself returns 401.
+  bool _isRefreshing = false;
+
   static const String _tokenKey = 'sanctum_token';
 
-  ApiService({FlutterSecureStorage? storage})
+  ApiService({FlutterSecureStorage? storage, this.onUnauthorized})
       : _storage = storage ?? const FlutterSecureStorage() {
     _dio = Dio(BaseOptions(
       baseUrl: AppConfig.instance.apiBaseUrl,
@@ -39,20 +48,45 @@ class ApiService {
         return handler.next(response);
       },
       onError: (error, handler) async {
-        // Handle token expiration
-        if (error.response?.statusCode == 401) {
-          // Token expired, try to refresh
-          final refreshed = await _attemptTokenRefresh();
+        final path = error.requestOptions.path;
 
-          if (refreshed) {
-            // Retry the failed request with new token
-            try {
-              final retryResponse = await _dio.fetch(error.requestOptions);
-              return handler.resolve(retryResponse);
-            } catch (e) {
-              return handler.next(error);
+        // Never attempt a refresh or trigger sign-out for auth endpoints.
+        //
+        // • POST /auth/logout  — a 401 here just means the token was already
+        //   revoked server-side (e.g. session replaced).  It is expected and
+        //   _authService.signOut() already swallows it.  Without this guard
+        //   the interceptor calls onUnauthorized → signOut → POST /auth/logout
+        //   → 401 → onUnauthorized → ... (infinite loop / splash flash).
+        //
+        // • POST /auth/refresh — a 401 here is handled by
+        //   _attemptTokenRefresh()'s catch block; re-entering the interceptor
+        //   would cause the same infinite recursion described above.
+        final isAuthEndpoint =
+            path.contains('/auth/logout') || path.contains('/auth/refresh');
+
+        if (error.response?.statusCode == 401 &&
+            !_isRefreshing &&
+            !isAuthEndpoint) {
+          _isRefreshing = true;
+          try {
+            final refreshed = await _attemptTokenRefresh();
+
+            if (refreshed) {
+              // Retry the original request with the new token.
+              try {
+                final retryResponse = await _dio.fetch(error.requestOptions);
+                return handler.resolve(retryResponse);
+              } catch (e) {
+                return handler.next(error);
+              }
             }
+          } finally {
+            _isRefreshing = false;
           }
+
+          // Refresh failed — token is definitively invalid.
+          // Notify the app so it can sign the user out.
+          onUnauthorized?.call();
         }
 
         return handler.next(error);

@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'location.dart';
 
-enum RideRequestStatus { pending, matched, cancelled, expired }
+enum RideRequestStatus { pending, matched, cancelled, expired, completed }
 
 class RideRequest extends Equatable {
   final int id;
@@ -79,6 +79,8 @@ class RideRequest extends Equatable {
         return RideRequestStatus.cancelled;
       case 'expired':
         return RideRequestStatus.expired;
+      case 'completed':
+        return RideRequestStatus.completed;
       case 'pending':
       default:
         return RideRequestStatus.pending;
@@ -95,6 +97,8 @@ class RideRequest extends Equatable {
         return 'cancelled';
       case RideRequestStatus.expired:
         return 'expired';
+      case RideRequestStatus.completed:
+        return 'completed';
     }
   }
 
@@ -102,6 +106,7 @@ class RideRequest extends Equatable {
   bool get isMatched => status == RideRequestStatus.matched;
   bool get isCancelled => status == RideRequestStatus.cancelled;
   bool get isExpired => status == RideRequestStatus.expired;
+  bool get isCompleted => status == RideRequestStatus.completed;
 
   RideRequest copyWith({
     int? id,

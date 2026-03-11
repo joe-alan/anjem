@@ -2,10 +2,16 @@
 
 namespace App\Services;
 
+use App\Events\MatchingQueuePositionChanged;
 use App\Events\NewRideRequest;
+use App\Events\RideNoDriversAvailable;
+use App\Events\RideRequestCancelled;
+use App\Events\RideSearchResumed;
+use App\Jobs\ExpireRideRequest;
 use App\Jobs\HandleRequestTimeout;
 use App\Models\DriverProfile;
 use App\Models\RideRequest;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use MatanYadaev\EloquentSpatial\Objects\Point;
@@ -14,15 +20,26 @@ use MatanYadaev\EloquentSpatial\Objects\Point;
  * MatchingQueueService manages the global FIFO driver matching queue.
  *
  * Drivers join this queue when they go online (ordered by join time).
- * When a rider creates a request, the longest-waiting eligible driver
- * within the driver's max pickup radius is dispatched the request.
- * If they decline or timeout, the next driver is tried.
+ * When a rider creates a request, the system fetches the top CANDIDATE_POOL_SIZE
+ * longest-waiting eligible drivers and dispatches to the one closest to the pickup.
+ * Drivers within TIEBREAKER_DISTANCE_METERS are treated as equally close; among
+ * them the longer-waiting driver wins. If they decline or timeout, the next driver
+ * is tried using the same logic.
  *
  * NOTE: This is distinct from QueueService, which manages beacon-level
  * physical queue positions for drivers at pickup spots.
  */
 class MatchingQueueService
 {
+    // Nearest-first candidate pool: FIFO selects the eligible pool, distance picks the winner.
+    // Increase CANDIDATE_POOL_SIZE to consider more waiting drivers; decrease to bias toward FIFO.
+    private const CANDIDATE_POOL_SIZE = 5;
+
+    // Starvation guard: two drivers within this many meters are treated as "equally close".
+    // The one who has been waiting longer wins ties inside a distance bucket.
+    // 50 m: only very close drivers defer to FIFO; anything further and distance wins.
+    private const TIEBREAKER_DISTANCE_METERS = 50;
+
     // Decline penalty thresholds
     private const PENALTY_WINDOW_MINUTES = 15;
 
@@ -40,6 +57,9 @@ class MatchingQueueService
     // Safety-net timeout job delay (slightly longer than the mobile 30s UI timer)
     private const TIMEOUT_JOB_DELAY_SECONDS = 35;
 
+    // Countdown shown to rider when no drivers are available before expiry
+    private const NO_DRIVERS_COUNTDOWN_SECONDS = 60;
+
     /**
      * Add a driver to the FIFO matching queue.
      * Called when driver goes online.
@@ -49,6 +69,12 @@ class MatchingQueueService
         DriverProfile::where('user_id', $driverId)->update([
             'queue_joined_at' => now(),
         ]);
+
+        $this->broadcastAllQueuePositions();
+
+        // If a pending request has no driver currently assigned (i.e. it is sitting
+        // in the "no drivers available" countdown), try to dispatch to this new driver.
+        $this->tryDispatchPendingRequest($driverId);
 
         Log::info('Driver added to matching queue', ['driver_id' => $driverId]);
     }
@@ -63,6 +89,11 @@ class MatchingQueueService
             'queue_joined_at' => null,
         ]);
 
+        // Tell the leaving driver their position is now 0
+        $this->broadcastQueuePosition($driverId);
+        // Update positions for everyone remaining in the queue
+        $this->broadcastAllQueuePositions();
+
         Log::info('Driver removed from matching queue', ['driver_id' => $driverId]);
     }
 
@@ -76,20 +107,29 @@ class MatchingQueueService
             'queue_joined_at' => now(),
         ]);
 
+        $this->broadcastAllQueuePositions();
+
         Log::info('Driver rejoined matching queue after ride completion', ['driver_id' => $driverId]);
     }
 
     /**
      * Find the top eligible driver for a ride request.
      *
-     * Eligibility criteria:
+     * Eligibility criteria (unchanged):
      * - In the FIFO queue (queue_joined_at IS NOT NULL)
      * - Not in a decline penalty cooldown
      * - Verified and currently online
      * - No active ride
      * - Pickup location is within their max_pickup_radius_km
      *
-     * Returns the longest-waiting eligible driver (queue_joined_at ASC).
+     * Selection strategy (nearest-first within FIFO candidate pool):
+     * 1. Fetch the CANDIDATE_POOL_SIZE longest-waiting eligible drivers (FIFO order).
+     * 2. Among those candidates, pick the one closest to the rider's pickup point.
+     * 3. Starvation guard: drivers within TIEBREAKER_DISTANCE_METERS of each other
+     *    are treated as equally close — the longer-waiting one wins.
+     *
+     * This means a driver can only be skipped if up to (CANDIDATE_POOL_SIZE - 1) others
+     * have waited longer AND are meaningfully closer, bounding worst-case wait time.
      */
     public function findTopDriver(RideRequest $rideRequest): ?DriverProfile
     {
@@ -107,10 +147,12 @@ class MatchingQueueService
         $pickupLat = $pickup->coordinates->latitude;
         $pickupLng = $pickup->coordinates->longitude;
 
-        // Build excluded driver IDs (drivers who have already been tried for this request)
+        // Drivers already tried for this request (declined or timed out)
         $excludedDriverIds = $this->getTriedDriverIds($rideRequest);
 
-        $driver = DriverProfile::inQueue()
+        // Step 1: Fetch the top CANDIDATE_POOL_SIZE longest-waiting eligible drivers.
+        // All existing eligibility filters are preserved — only LIMIT + distance column added.
+        $candidates = DriverProfile::inQueue()
             ->notInCooldown()
             ->where('is_verified', true)
             ->whereNotNull('went_online_at')
@@ -127,10 +169,39 @@ class MatchingQueueService
                 ) <= max_pickup_radius_km * 1000',
                 [$pickupLng, $pickupLat]
             )
+            // Attach each candidate's distance to the pickup so we can sort in PHP.
+            ->selectRaw(
+                '*, ST_Distance(
+                    current_location::geography,
+                    ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography
+                ) AS distance_meters',
+                [$pickupLng, $pickupLat]
+            )
             ->orderBy('queue_joined_at', 'asc')
-            ->first();
+            ->limit(self::CANDIDATE_POOL_SIZE)
+            ->get();
 
-        return $driver;
+        // Step 2: No candidates — caller handles the no-drivers event.
+        if ($candidates->isEmpty()) {
+            return null;
+        }
+
+        // Step 3: Single candidate — pick them immediately, no sorting needed.
+        if ($candidates->count() === 1) {
+            return $candidates->first();
+        }
+
+        // Step 4: Among the candidates, pick the closest driver.
+        // Starvation guard: collapse distances into TIEBREAKER_DISTANCE_METERS buckets
+        // so that a driver who barely joined cannot steal the spot from a long-waiting
+        // driver who is within the same ~300 m band. Within a bucket, FIFO wins.
+        return $candidates->sortBy([
+            // Primary sort: 300 m distance bucket (lower = closer to rider)
+            fn ($a, $b) => (int) ($a->distance_meters / self::TIEBREAKER_DISTANCE_METERS)
+                       <=> (int) ($b->distance_meters / self::TIEBREAKER_DISTANCE_METERS),
+            // Secondary sort: FIFO tiebreaker within the same distance bucket
+            fn ($a, $b) => $a->queue_joined_at <=> $b->queue_joined_at,
+        ])->first();
     }
 
     /**
@@ -176,8 +247,9 @@ class MatchingQueueService
             return;
         }
 
-        // Only process pending requests
-        if (! in_array($rideRequest->status, ['pending', 'matched'])) {
+        // Only process pending requests.
+        // 'matched' means a driver accepted — treat as already resolved.
+        if ($rideRequest->status !== 'pending') {
             return;
         }
 
@@ -185,6 +257,9 @@ class MatchingQueueService
             $this->applyDeclinePenalty($driverId);
 
             $rideRequest->update(['current_driver_id' => null]);
+
+            // Exclude the declining/timed-out driver from the next dispatch attempt
+            $this->recordDispatchAttempt($rideRequest, $driverId);
 
             // Try next driver
             $nextDriver = $this->findTopDriver($rideRequest);
@@ -198,19 +273,40 @@ class MatchingQueueService
                     'next_driver_id' => $nextDriver->user_id,
                 ]);
             } else {
-                // No eligible drivers remain — expire the request
-                $rideRequest->update([
-                    'status' => 'expired',
-                    'rider_cooldown_until' => now()->addSeconds(self::RIDER_COOLDOWN_SECONDS),
-                ]);
-
-                $this->notifyRiderNoDrivers($rideRequest);
-
-                Log::info('No eligible drivers found, ride request expired', [
-                    'ride_request_id' => $rideRequest->id,
-                ]);
+                $this->handleNoDriversFound($rideRequest);
             }
         });
+
+        // Dismiss the previous driver's incoming-request screen.
+        // current_driver_id is already cleared on the model, so pass $driverId explicitly.
+        // notifyRider: false — the request is being re-dispatched, rider stays on waiting screen.
+        try {
+            broadcast(new RideRequestCancelled($rideRequest, 'system', null, $driverId, notifyRider: false));
+        } catch (\Exception $e) {
+            Log::warning('Failed to broadcast dismiss event to previous driver', [
+                'driver_id' => $driverId,
+                'ride_request_id' => $rideRequest->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Notify the rider that no drivers are available and schedule request expiry.
+     * Called both on initial dispatch (zero drivers online) and after all drivers
+     * in the pool have declined/timed out.
+     */
+    public function handleNoDriversFound(RideRequest $rideRequest): void
+    {
+        broadcast(new RideNoDriversAvailable($rideRequest, self::NO_DRIVERS_COUNTDOWN_SECONDS));
+
+        ExpireRideRequest::dispatch($rideRequest->id)
+            ->delay(now()->addSeconds(self::NO_DRIVERS_COUNTDOWN_SECONDS));
+
+        Log::info('No eligible drivers found, started expiry countdown', [
+            'ride_request_id'   => $rideRequest->id,
+            'countdown_seconds' => self::NO_DRIVERS_COUNTDOWN_SECONDS,
+        ]);
     }
 
     /**
@@ -256,6 +352,8 @@ class MatchingQueueService
         }
 
         $profile->update($updates);
+
+        $this->broadcastQueuePosition($driverId);
     }
 
     /**
@@ -270,9 +368,17 @@ class MatchingQueueService
             return 0;
         }
 
+        // Use user_id as a tiebreaker for drivers who joined at the exact same timestamp,
+        // ensuring a stable, deterministic position and preventing both from showing #1.
         $position = DriverProfile::inQueue()
             ->notInCooldown()
-            ->where('queue_joined_at', '<', $profile->queue_joined_at)
+            ->where(function ($q) use ($profile) {
+                $q->where('queue_joined_at', '<', $profile->queue_joined_at)
+                    ->orWhere(function ($q2) use ($profile) {
+                        $q2->where('queue_joined_at', $profile->queue_joined_at)
+                            ->where('user_id', '<', $profile->user_id);
+                    });
+            })
             ->count();
 
         return $position + 1;
@@ -299,7 +405,7 @@ class MatchingQueueService
             ->orderBy('rider_cooldown_until', 'desc')
             ->value('rider_cooldown_until');
 
-        return $cooldown ? $cooldown->toISOString() : null;
+        return $cooldown ? Carbon::parse($cooldown)->toISOString() : null;
     }
 
     /**
@@ -354,6 +460,88 @@ class MatchingQueueService
         } catch (\Exception $e) {
             Log::error('Failed to send no-drivers notification to rider', [
                 'ride_request_id' => $rideRequest->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * When a driver joins the queue, check if any pending ride request is sitting
+     * without an assigned driver (the "no drivers available" countdown state).
+     * If found, run the standard pool selection and dispatch — re-animating the
+     * request for the rider.  The rider is notified via RideSearchResumed so their
+     * countdown screen switches back to the "Finding Driver" view.
+     */
+    private function tryDispatchPendingRequest(int $driverId): void
+    {
+        // Pick the oldest pending request that has no driver currently dispatched.
+        $rideRequest = RideRequest::where('status', 'pending')
+            ->whereNull('current_driver_id')
+            ->oldest()
+            ->first();
+
+        if (! $rideRequest) {
+            return;
+        }
+
+        // Use standard pool logic — the newly joined driver will be a candidate
+        // (assuming they are within radius and haven't been tried before).
+        $topDriver = $this->findTopDriver($rideRequest);
+
+        if (! $topDriver) {
+            return;
+        }
+
+        $this->dispatchToDriver($rideRequest, $topDriver);
+
+        // Notify rider so their no-drivers-available countdown clears.
+        broadcast(new RideSearchResumed($rideRequest));
+
+        Log::info('Re-dispatched pending request after new driver joined queue', [
+            'ride_request_id' => $rideRequest->id,
+            'dispatched_to'   => $topDriver->user_id,
+            'triggered_by'    => $driverId,
+        ]);
+    }
+
+    /**
+     * Broadcast updated positions to every driver currently in the queue.
+     * Called whenever the queue composition changes so that all drivers see
+     * the correct rank without needing to reload the app.
+     */
+    private function broadcastAllQueuePositions(): void
+    {
+        $driverIds = DriverProfile::inQueue()->notInCooldown()->pluck('user_id');
+        foreach ($driverIds as $driverId) {
+            $this->broadcastQueuePosition($driverId);
+        }
+    }
+
+    /**
+     * Broadcast the driver's current FIFO queue position to their private channel.
+     * Called whenever the driver's position in the matching queue changes.
+     */
+    private function broadcastQueuePosition(int $driverId): void
+    {
+        $profile = DriverProfile::where('user_id', $driverId)->first();
+
+        if (! $profile) {
+            return;
+        }
+
+        $position = $this->getQueuePosition($driverId);
+
+        try {
+            broadcast(new MatchingQueuePositionChanged(
+                $driverId,
+                $position,
+                $profile->isInCooldown(),
+                $profile->queue_cooldown_until?->toISOString(),
+                (float) $profile->max_pickup_radius_km
+            ));
+        } catch (\Exception $e) {
+            Log::warning('Failed to broadcast queue position change', [
+                'driver_id' => $driverId,
                 'error' => $e->getMessage(),
             ]);
         }

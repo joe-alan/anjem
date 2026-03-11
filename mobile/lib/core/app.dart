@@ -77,6 +77,14 @@ class AuthenticationWrapper extends ConsumerWidget {
         return const SplashScreen();
       }
 
+      // KYC fetch failed (e.g. no server connection) — do NOT fall through to
+      // KycFormScreen, which would incorrectly send a verified driver to
+      // re-submit their KYC. Show a retry screen instead.
+      if (kycState.error != null && kycState.kycSubmission == null) {
+        print('AuthWrapper: KYC load failed - showing retry: ${kycState.error}');
+        return _KycLoadErrorScreen(error: kycState.error!);
+      }
+
       // Check if driver needs to complete KYC
       final kycSubmission = kycState.kycSubmission;
       if (kycSubmission == null || !kycSubmission.isVerified) {
@@ -95,6 +103,50 @@ class AuthenticationWrapper extends ConsumerWidget {
     print('AuthWrapper: Showing rider home');
     return const SessionCheckWrapper(
       defaultHomeScreen: RiderHomeScreen(),
+    );
+  }
+}
+
+/// Shown when the KYC status fetch fails (e.g. server unreachable).
+/// Prevents a verified driver from being mistakenly routed to KycFormScreen.
+class _KycLoadErrorScreen extends ConsumerWidget {
+  final String error;
+
+  const _KycLoadErrorScreen({required this.error});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off, size: 64, color: Colors.grey),
+              const SizedBox(height: 16),
+              const Text(
+                'Unable to connect',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Could not reach the server. Please check your connection and try again.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () {
+                  ref.read(kycStateProvider.notifier).refreshKycStatus();
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -72,7 +72,34 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
       if (!mounted) return;
 
       if (sessionState == null || sessionState.isIdle) {
-        // No active session, go to default home screen
+        // No active session, go to default home screen.
+        // Sync driver status with backend. On a cold launch the driver may
+        // have been left online by a force-quit / crash. Always go offline in
+        // that case so they must tap "Go Online" again — this also clears the
+        // stale went_online_at on the backend (the webhook may not have fired).
+        // Background → foreground resumes are handled by _handleAppResume, not
+        // here, so this logic is safe for the M-7 (background resume) flow.
+        Future.microtask(() {
+          if (mounted) {
+            final appConfig = AppConfig.instance;
+            if (appConfig.isDriverApp &&
+                sessionState != null &&
+                sessionState.driverContext.isDriver) {
+              final driverCtx = sessionState.driverContext;
+              if (driverCtx.isOnline && driverCtx.activeRideId == null) {
+                // Cold launch: backend still shows online but no active ride.
+                // Kick offline so the driver starts fresh each launch.
+                ref.read(driverStatusProvider.notifier).kickOfflineOnLaunch();
+              } else {
+                ref.read(driverStatusProvider.notifier).syncFromBackend(
+                  isOnline: driverCtx.isOnline,
+                  activeRideId: driverCtx.activeRideId,
+                );
+              }
+            }
+          }
+        });
+
         setState(() {
           _targetScreen = widget.defaultHomeScreen;
           _isChecking = false;
@@ -133,6 +160,17 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
       final sessionState = await sessionNotifier.refreshSession();
 
       if (!mounted) return;
+
+      // Always re-sync driver status so online/offline reflects backend truth
+      if (sessionState != null) {
+        final appConfig = AppConfig.instance;
+        if (appConfig.isDriverApp && sessionState.driverContext.isDriver) {
+          ref.read(driverStatusProvider.notifier).syncFromBackend(
+            isOnline: sessionState.driverContext.isOnline,
+            activeRideId: sessionState.driverContext.activeRideId,
+          );
+        }
+      }
 
       if (sessionState != null && !sessionState.isIdle) {
         // Show dialog asking if user wants to resume
