@@ -8,6 +8,9 @@ import '../../core/models/lat_lng.dart';
 import '../../core/providers/active_ride_provider.dart';
 import '../../core/providers/api_provider.dart';
 import '../../core/providers/driver_status_provider.dart';
+import '../../core/providers/credits_provider.dart';
+import '../../core/providers/session_provider.dart';
+import '../../core/models/session_state.dart';
 import '../../core/widgets/mapbox_map_widget.dart';
 import '../../core/services/mapbox/mapbox_directions_service.dart';
 
@@ -376,11 +379,31 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
     }
   }
 
-  void _handleRideCompletion() {
-    // Clear active ride from driver status
-    ref.read(driverStatusProvider.notifier).setActiveRide(null);
+  Future<void> _handleRideCompletion() async {
+    // Fetch fresh balance before clearing active ride state — the credit was
+    // deducted at accept time so balance is already 0 in the DB.
+    ref.invalidate(creditsProvider);
+    final balance = await ref.read(creditsProvider.future).catchError((_) => -1);
 
-    // Navigate back to driver home
+    if (balance == 0) {
+      // Zero credits: go offline immediately without waiting for the WS event.
+      // Clear hasActiveRide first so goOffline() doesn't block on it.
+      ref.read(driverStatusProvider.notifier).setActiveRide(null);
+      ref.read(driverStatusProvider.notifier).goOffline();
+    } else {
+      // Credits remain: return to online/queue state.
+      ref.read(driverStatusProvider.notifier).setActiveRide(null);
+    }
+
+    // Clear session rideActive state so session_check_wrapper reactively
+    // navigates to home in both the normal push-flow and session-restore flow.
+    ref.read(sessionStateProvider.notifier).updateSessionState(
+      const SessionState(
+        state: SessionStateType.idle,
+        driverContext: DriverContext(isDriver: true, isOnline: false),
+      ),
+    );
+
     if (mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);
 

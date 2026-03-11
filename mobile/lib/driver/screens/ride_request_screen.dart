@@ -158,6 +158,8 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
         return 'This ride request was cancelled by the rider';
       } else if (error.statusCode == 409) {
         return 'This ride was already accepted by another driver';
+      } else if (error.statusCode == 402) {
+        return 'Insufficient credits to accept this ride';
       } else if (error.statusCode == 400) {
         return 'You already have an active ride';
       } else if (error.statusCode == 404) {

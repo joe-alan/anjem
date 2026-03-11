@@ -50,6 +50,9 @@ class DriverProfile extends Model
         'decline_count',
         'decline_window_start',
         'queue_cooldown_until',
+        'credits_balance',
+        'credits_total_earned',
+        'credits_total_spent',
     ];
 
     /**
@@ -79,7 +82,10 @@ class DriverProfile extends Model
         'max_pickup_radius_km' => 'decimal:2',
         'decline_count' => 'integer',
         'decline_window_start' => 'datetime',
-        'queue_cooldown_until' => 'datetime',
+        'queue_cooldown_until'  => 'datetime',
+        'credits_balance'       => 'integer',
+        'credits_total_earned'  => 'integer',
+        'credits_total_spent'   => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -98,6 +104,11 @@ class DriverProfile extends Model
     public function queueEntries(): HasMany
     {
         return $this->hasMany(DriverQueue::class, 'driver_id');
+    }
+
+    public function creditTransactions(): HasMany
+    {
+        return $this->hasMany(CreditTransaction::class, 'driver_id', 'user_id');
     }
 
     /**
