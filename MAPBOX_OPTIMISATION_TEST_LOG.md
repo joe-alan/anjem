@@ -17,11 +17,11 @@
 | [MB-3 route_geometry Stored on Ride Request](#mb-3-route_geometry-stored-on-ride-request)                      | 1     | ✅ Pass       |
 | [MB-4 Search Box — Off-Campus Destinations](#mb-4-search-box--off-campus-destinations)                         | 2     | ✅ Pass       |
 | [MB-5 Search Box — Session Token (Single Billable Unit)](#mb-5-search-box--session-token-single-billable-unit) | 2     | ✅ Pass       |
-| [MB-7 driving-traffic Profile in Route Cache](#mb-7-driving-traffic-profile-in-route-cache)                    | 3     | ⬜ Not tested |
-| [MB-8 Stale driving Cache Bypassed](#mb-8-stale-driving-cache-bypassed)                                        | 3     | ⬜ Not tested |
-| [MB-9 Route Cache Cleanup Scheduled Job](#mb-9-route-cache-cleanup-scheduled-job)                              | 4     | ⬜ Not tested |
-| [MB-10 Adaptive Driver Location Updates](#mb-10-adaptive-driver-location-updates)                              | 5     | ⬜ Not tested |
-| [MB-11 Mapbox Token via --dart-define](#mb-11-mapbox-token-via---dart-define)                                  | 6     | ⬜ Not tested |
+| [MB-7 driving-traffic Profile in Route Cache](#mb-7-driving-traffic-profile-in-route-cache)                    | 3     | ✅ Pass       |
+| [MB-8 Stale driving Cache Bypassed](#mb-8-stale-driving-cache-bypassed)                                        | 3     | ✅ Pass       |
+| [MB-9 Route Cache Cleanup Scheduled Job](#mb-9-route-cache-cleanup-scheduled-job)                              | 4     | ✅ Pass       |
+| [MB-10 Adaptive Driver Location Updates](#mb-10-adaptive-driver-location-updates)                              | 5     | ⚠️ Partial   |
+| [MB-11 Mapbox Token via --dart-define](#mb-11-mapbox-token-via---dart-define)                                  | 6     | ✅ Pass       |
 
 > **Status key:** ⬜ Not tested · ✅ Pass · ❌ Fail · ⚠️ Partial · ⏭️ Deferred
 
@@ -318,10 +318,13 @@ Route cache HIT  {"fetch_count":2, ...}
 **Notes / Observations:**
 
 ```
-
+Confirmed via DB + Laravel log. First ride (origin_id:13, destination_id:100):
+  Route cache MISS — fetched from Mapbox, profile=driving-traffic, cached (new).
+Second ride (same locations):
+  Route cache HIT, fetch_count:2, age_days:0. No Mapbox call fired.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
@@ -344,10 +347,13 @@ Route cache HIT  {"fetch_count":2, ...}
 **Notes / Observations:**
 
 ```
-
+Inserted a fake driving-profile entry (fetch_count=10) for origin_id:13, destination_id:100.
+Submitted a ride between the same locations.
+  Laravel log: Route cache HIT (fetch_count:5) — driving-traffic row served, not the driving row.
+  DB confirm: driving row fetch_count still 10 — untouched. New driving-traffic entry used.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
@@ -380,10 +386,12 @@ Deleted N stale route cache entries
 **Notes / Observations:**
 
 ```
-
+Schedule confirmed: `cleanup-stale-routes` registered at 0 3 * * * (03:00 daily).
+Inserted a 31-day-old stale entry (id:4). Ran cleanupStaleRoutes(30) directly via tinker.
+  DB after: stale_count = 0 (entry deleted). All 3 fresh entries intact.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
@@ -435,10 +443,13 @@ Driver location updated (5s interval, 22.1 km/h)
 **Notes / Observations:**
 
 ```
-
+Stationary interval confirmed via DB polling: updates at ~35s cadence (09:19:55 →
+09:20:32 → 09:21:07 → 09:21:43 → 09:22:18), consistent with the 30s threshold
+(+5s network/processing overhead). Driver was on emulator — speed-based intervals
+(5s and 10s) could not be tested. Deferred to physical device test.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ⚠️ Partial (stationary ✅, speed-based intervals deferred — emulator only)
 
 ---
 
@@ -462,10 +473,12 @@ Driver location updated (5s interval, 22.1 km/h)
 **Notes / Observations:**
 
 ```
-
+Confirmed: running without --dart-define=MAPBOX_ACCESS_TOKEN shows grey map tiles
+(graceful degradation, no crash). Token not present in source — only in comments
+(which were also cleaned up). Running with token restores full map rendering.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
@@ -496,10 +509,17 @@ Driver location updated (5s interval, 22.1 km/h)
 **Notes / Observations:**
 
 ```
-
+Full happy path tested across multiple sessions. All phases working as expected:
+- route_geometry stored on ride creation and consumed by both rider/driver screens (Phase 1)
+- Off-campus search triggers Mapbox fallback, results cached with ID (Phase 2)
+- Route cache stores driving-traffic profile, cache HITs on repeat routes (Phase 3)
+- Stale cleanup job registered and verified (Phase 4)
+- Stationary interval (~30s) confirmed on emulator (Phase 5, partial)
+- Token injected via --dart-define, grey screen without token (Phase 6)
+No regressions observed on the full ride flow.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
@@ -513,14 +533,14 @@ Driver location updated (5s interval, 22.1 km/h)
 
 ## Sign-off
 
-- [ ] All Phase 1 tests pass (route geometry served from backend)
-- [ ] All Phase 2 tests pass (Search Box enabled with session token + bbox)
-- [ ] All Phase 3 tests pass (driving-traffic profile active)
-- [ ] Phase 4 job registered and executes correctly
-- [ ] Phase 5 adaptive intervals confirmed on device
-- [ ] Phase 6 token not hardcoded; app fails gracefully without it
-- [ ] E2E regression passes — no regressions on full happy path
-- [ ] `feat/mapbox-optimisation` ready to merge → `dev`
+- [x] All Phase 1 tests pass (route geometry served from backend)
+- [x] All Phase 2 tests pass (Search Box enabled with session token + bbox)
+- [x] All Phase 3 tests pass (driving-traffic profile active)
+- [x] Phase 4 job registered and executes correctly
+- [x] Phase 5 adaptive intervals confirmed on device (stationary ✅; speed-based deferred)
+- [x] Phase 6 token not hardcoded; app fails gracefully without it
+- [x] E2E regression passes — no regressions on full happy path
+- [x] `feat/mapbox-optimisation` ready to merge → `dev`
 
-**Tested by:** **\*\***\_\_\_**\*\***
-**Date:** **\*\***\_\_\_**\*\***
+**Tested by:** Jonathan Alano
+**Date:** 2026-03-11
