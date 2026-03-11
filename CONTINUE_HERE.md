@@ -2,123 +2,127 @@
 
 ## Current State
 
-**Branch:** `feat/mapbox-optimisation`
-**Next action:** Run physical device tests using `MAPBOX_OPTIMISATION_TEST_LOG.md`, then open PR → `dev`
+**Branch:** `feat/fcm-wiring`
+**Next action:** Device-test FCM using `FCM_TEST_LOG.md`, then open PR → `dev`
 
 ---
 
-## Mapbox Optimisation — All 7 Phases Complete ✅
+## This Session (2026-03-11)
 
-| Phase | Title | Status |
-|---|---|---|
-| 1 | Eliminate duplicate Directions calls | ✅ Done |
-| 2 | Enable Search Box API for production | ✅ Done |
-| 3 | Switch to `driving-traffic` profile | ✅ Done |
-| 4 | Schedule route cache cleanup | ✅ Done |
-| 5 | Adaptive driver location updates | ✅ Done |
-| 6 | Security — move hardcoded token | ✅ Done |
-| 7 | Update outdated docs | ✅ Done |
+### What was done
 
-Full plan: `mapbox_optimisation.md` · Implementation reference: `docs/optimization/ROUTE_API_CACHING_PLAN.md`
+#### 1. Completed Mapbox Optimisation (`feat/mapbox-optimisation`)
+- Finished device testing: MB-7 through MB-11 and MB-E2E all ✅ Pass
+- MB-10 (adaptive intervals) ⚠️ Partial — stationary confirmed, speed deferred (emulator only)
+- Updated `MAPBOX_OPTIMISATION_TEST_LOG.md` sign-off
+- Cleaned up `mapbox_config.dart` (removed hardcoded token example from comment)
+- PR #32 opened: `feat/mapbox-optimisation` → `main`
 
----
+#### 2. FCM Push Notifications (`feat/fcm-wiring`)
+Full implementation complete — Android only. Branch created from `main`.
 
-## This Session (2026-03-09) — Mapbox Optimisation
-
-### Commits this session
-
-| Commit | Description |
-|---|---|
-| `38350ad` | feat(mapbox): persist route geometry on ride_requests, serve to mobile (Phase 1) |
-| `7735bb4` | fix(mapbox): add type guards in _parseRouteGeometry; fix plan doc type |
-| `d3bd092` | feat(mapbox): enable Search Box API with session token + campus bbox (Phase 2) |
-| `f7f04a1` | docs: fix markdown table spacing in CONTINUE_HERE (CodeRabbit MD058) |
-| `036a5dd` | feat(mapbox): switch to driving-traffic profile for better ETAs (Phase 3) |
-| `b85062f` | feat(mapbox): route cache cleanup, adaptive location updates, secure token (Phases 4-6) |
-| `13ed395` | docs(mapbox): update ROUTE_API_CACHING_PLAN to reflect actual implementation (Phase 7) |
-| `cefdfd8` | docs(mapbox): fix CodeRabbit findings in ROUTE_API_CACHING_PLAN |
-| `6cf9457` | test(mapbox): add unit tests for Phases 1–3 + fix estimated route caching bug |
-| `fcf1a8b` | docs(test-log): add physical device test log for mapbox optimisation (Phases 1–6) |
-
-All on `feat/mapbox-optimisation`. Not yet pushed or PR'd.
-
----
-
-## Changed Files This Session
-
+**Backend (Phase A):**
 | File | Change |
-|---|---|
-| `backend/database/migrations/2026_03_09_084105_add_route_geometry_to_ride_requests_table.php` | New migration: `route_geometry JSON NULL` on `ride_requests` |
-| `backend/app/Models/RideRequest.php` | `route_geometry` added to `$fillable` + `$casts` |
-| `backend/app/Services/RideService.php` | `createRideRequest()` passes location IDs (enables cache); stores `route_geometry` |
-| `backend/app/Services/RouteCacheService.php` | Default profile `driving-traffic`; skip caching estimated (null geometry) results |
-| `backend/app/Services/MapboxService.php` | URL `mapbox/driving/` → `mapbox/driving-traffic/` |
-| `backend/app/Services/PlaceSearchService.php` | `MIN_RESULTS_THRESHOLD` 0→3; session token; campus bbox |
-| `backend/app/Console/Kernel.php` | Daily 03:00 cleanup job: `cleanupStaleRoutes(30)` |
-| `backend/app/Http/Resources/RideRequestResource.php` | Expose `route_geometry` |
-| `backend/app/Http/Resources/RideResource.php` | Expose `route_geometry` via `rideRequest` relation |
-| `backend/app/Http/Controllers/Api/RideController.php` | Add `rideRequest` to eager-load |
-| `backend/app/Http/Controllers/Api/AdminController.php` | Add `rideRequest` to eager-load |
-| `backend/config/services.php` | Add `search_bbox` to mapbox config |
-| `backend/tests/Unit/Services/MapboxServiceTest.php` | New: 5 tests for driving-traffic profile |
-| `backend/tests/Unit/Services/PlaceSearchServiceTest.php` | New: 8 tests for Search Box (threshold, bbox, session token, caching) |
-| `backend/tests/Unit/Services/RouteCacheDrivingTrafficTest.php` | New: 5 tests for driving-traffic default |
-| `backend/tests/Unit/Services/RideRequestRouteGeometryTest.php` | New: 5 tests for route_geometry storage |
-| `backend/tests/Unit/Services/RouteCacheServiceTest.php` | Updated: `'driving'` → `'driving-traffic'` in all cache fixtures |
-| `mobile/lib/core/models/ride.dart` | `routeCoordinates: List<LatLng>?`; `_parseRouteGeometry()` with type guards |
-| `mobile/lib/core/config/mapbox_config.dart` | `defaultDirectionsProfile` `driving` → `driving-traffic`; token → `String.fromEnvironment` |
-| `mobile/lib/rider/screens/rider_active_ride_screen.dart` | Use backend geometry first; fallback to Mapbox only if null |
-| `mobile/lib/driver/screens/active_ride_screen.dart` | Same for `inProgress`; adaptive location timer (5/10/30s by speed) |
-| `mobile/lib/rider/screens/location_selection_screen.dart` | Fixed misleading null-ID error message |
-| `mobile/test/core/models/ride_test.dart` | New: 13 Flutter tests for `_parseRouteGeometry` + `copyWith` + equality |
-| `docs/optimization/ROUTE_API_CACHING_PLAN.md` | Rewritten: Planned → Implemented; actual architecture documented |
-| `MAPBOX_OPTIMISATION_TEST_LOG.md` | New: physical device test log (MB-1 through MB-E2E) |
+|------|--------|
+| `backend/app/Services/NotificationService.php` | New `sendNewRideRequestToDriver(RideRequest, User)` with high-priority Android config; `sendNotification()` updated to support `$highPriority` param |
+| `backend/app/Services/MatchingQueueService.php` | FCM push call added in `dispatchToDriver()` after WS broadcast — wrapped in try/catch, failure never blocks dispatch |
+| `backend/app/Http/Controllers/Api/AuthController.php` | Clears `fcm_token` on logout |
+
+**Flutter (Phases B + C):**
+| File | Change |
+|------|--------|
+| `mobile/pubspec.yaml` | Added `flutter_local_notifications: ^18.0.1` |
+| `mobile/lib/core/services/fcm/local_notification_service.dart` | New — two Android channels: `anjem_rides` (max importance) + `anjem_general` (default) |
+| `mobile/lib/core/services/fcm/fcm_service.dart` | New — permission, token send/refresh, foreground/background/terminated handlers; suppresses local notif for `new_ride_request` (WS shows full sheet); `handleNotificationNavigation` routes per event type + flavor |
+| `mobile/lib/core/providers/fcm_provider.dart` | New — `fcmServiceProvider` Riverpod provider |
+| `mobile/lib/core/navigation/navigator_key.dart` | New — global `navigatorKey` for context-free notification tap navigation |
+| `mobile/lib/core/app.dart` | Added `navigatorKey` to `MaterialApp`; wrapped `AuthenticationWrapper` with `FcmInitializer` (initializes FCM on auth, deletes token on sign-out) |
+| `mobile/lib/main_rider.dart` | Background handler registered |
+| `mobile/lib/main_driver.dart` | Background handler registered |
+
+**Platform (Phase D1):**
+| File | Change |
+|------|--------|
+| `mobile/android/app/src/main/AndroidManifest.xml` | FCM default channel (`anjem_rides`) + icon meta-data |
+
+**Key design decisions:**
+- `FcmInitializer` widget (in `app.dart`) drives FCM lifecycle via `ref.listen` on `authStateProvider` — no changes to `AuthStateNotifier` needed
+- `new_ride_request` foreground notification intentionally suppressed — WebSocket shows the full-screen request sheet
+- Navigation on tap: `kyc_rejected` → KYC form; all others → `popUntil(isFirst)` (session wrapper handles routing)
+- iOS intentionally skipped — Android-only open beta
+
+**Test log:** `FCM_TEST_LOG.md` (root) — 20 tests: FCM-1 through FCM-E2E
+
+#### 3. Created `STAGING_LAUNCH_CHECKLIST.md` (root)
+Full checklist tracking all remaining work to Android open beta launch (9 sprints, ~60 tasks).
 
 ---
 
-## Bug Found & Fixed (by unit tests)
+## Commits This Session
 
-| Bug | Fix |
-|---|---|
-| `RouteCacheService::getOrFetchRoute` tried to INSERT straight-line fallback estimates (null geometry) into `route_caches.route_geometry NOT NULL` → exception propagated → `createRideRequest` returned null whenever Mapbox was unavailable | Added `if (! $routeData['estimated'])` guard — estimated routes not cached |
-
----
-
-## Test Results
-
-| Suite | Result |
-|---|---|
-| `php artisan test` (full backend) | 317 passed, 73 pre-existing failures (unchanged) |
-| New unit tests (31 tests, 97 assertions) | ✅ All pass |
-| `flutter test test/core/models/ride_test.dart` (13 tests) | ✅ All pass |
+| Commit | Branch | Description |
+|--------|--------|-------------|
+| `1ff049f` | feat/mapbox-optimisation | chore: remove google_place_id, mark MB-4/5 pass |
+| `dd2206c` | feat/mapbox-optimisation | docs: mark MB-7–11 and E2E pass, clean token comment |
+| `ec83d26` | feat/fcm-wiring | feat(fcm): wire FCM push notifications — Android, all ride events |
+| `7d44ad3` | feat/fcm-wiring | docs(fcm): add FCM device test log |
 
 ---
 
-## Known Bugs / Deferred Items
+## Open PRs
+
+| PR | Branch | Target | Status |
+|----|--------|--------|--------|
+| #32 | `feat/mapbox-optimisation` | `main` | Open — awaiting review/merge |
+
+---
+
+## What to Do Next
+
+### Immediate: Device-test FCM
+Run through `FCM_TEST_LOG.md`. Key tests to do first:
+1. **FCM-1** — permission dialog appears on first launch, token stored in DB
+2. **FCM-4** — foreground driver: WS sheet shows, NO duplicate local notif
+3. **FCM-5/6** — background/terminated driver: system tray push appears
+4. **FCM-3** — logout: token nulled in DB
+
+After tests pass, open PR `feat/fcm-wiring` → `dev`.
+
+### After FCM PR: Admin Panel Phase 3
+Branch: `feat/admin-dashboard-phase3` (to be created from `dev`)
+
+Three sub-features (see `STAGING_LAUNCH_CHECKLIST.md` §2):
+- **2a** Enhanced DB viewer — Filament Resources for `Location`, `RouteCache`, `RideRequest`, `DriverProfile`
+- **2b** Live map view — custom Filament page with Mapbox GL JS showing active rides + driver positions
+- **2c** Real-time WS monitor — Livewire/Alpine.js widget showing dispatch events, queue depth, active connections
+
+### Then: UI/UX Polish → Pre-launch bugs → Sentry → Staging deploy → Android release
+
+Full roadmap in `STAGING_LAUNCH_CHECKLIST.md`.
+
+---
+
+## Known Bugs (Deferred)
 
 | # | Description | Severity | File |
-|---|---|---|---|
-| 1 | Pull-to-refresh while backend is down shows Flutter error screen instead of silently hiding the credit chip. | Low | `mobile/lib/driver/screens/driver_home_screen.dart` |
-| 2 | After session-restore (app kill mid-ride + reopen), completing the ride leaves the driver stuck on `ActiveRideScreen`. | Medium | `mobile/lib/driver/screens/active_ride_screen.dart` |
-| 3 | A-16 (admin test) cannot be fully tested — test driver/rider accounts use Google OAuth only. Needs a password-based test account. | Low | — |
-| 4 | Rider suspend: future redesign should fully sever WS/location connections on suspend. Deferred. | Low | `mobile/lib/rider/` |
-| 5 | Admin test log A-17 / A-18 not yet tested. | Low | `docs/test-logs/ADMIN_DASHBOARD_TEST_LOG.md` |
+|---|-------------|----------|------|
+| 1 | Pull-to-refresh while backend down shows Flutter error instead of hiding credit chip | Low | `mobile/lib/driver/screens/driver_home_screen.dart` |
+| 2 | Session restore after mid-ride app kill leaves driver stuck on `ActiveRideScreen` | Medium | `mobile/lib/driver/screens/active_ride_screen.dart` |
+| 3 | MB-10 speed-based adaptive intervals not tested — emulator only | Low | `mobile/lib/driver/screens/active_ride_screen.dart` |
+| 4 | Admin tests A-17/A-18 not yet verified | Low | — |
 
 ---
 
-## Starting the Dev Server
+## Dev Server Commands
 
 ```bash
 # From backend/
 php artisan serve          # http://127.0.0.1:8000
 php artisan reverb:start   # WebSocket on :8080
-php artisan queue:work     # Jobs + FCM  ← MUST be running
-php artisan schedule:work  # Stale driver kick + cleanup + route cache GC
+php artisan queue:work     # Jobs + FCM sends ← MUST be running for FCM
+php artisan schedule:work  # Stale driver kick + route cache cleanup
 
-# Admin panel: http://localhost:8000/admin
-# Credentials: see database/seeders/AdminUserSeeder.php
-
-# Mobile — always pass token:
+# Mobile — always pass Mapbox token:
 flutter run --flavor rider -t lib/main_rider.dart \
   --dart-define=MAPBOX_ACCESS_TOKEN=pk.eyJ1...
 
@@ -126,5 +130,6 @@ flutter run --flavor driver -t lib/main_driver.dart \
   --dart-define=MAPBOX_ACCESS_TOKEN=pk.eyJ1...
 ```
 
-> **Note:** `queue:work` can die silently. If riders get stuck on "Finding Driver", check the queue worker first.
-> **Note (Phase 6):** App will not render maps without `--dart-define=MAPBOX_ACCESS_TOKEN=...`.
+> **Note:** `queue:work` MUST be running for FCM notifications to fire.
+> FCM sends happen via `NotificationService` called directly from `MatchingQueueService`
+> (synchronous, not queued) — but other queued jobs (ExpireRideRequest etc.) also trigger FCM.

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'config/app_config.dart';
+import 'navigation/navigator_key.dart';
 import 'providers/auth_provider.dart';
+import 'providers/fcm_provider.dart';
 import 'providers/kyc_provider.dart';
 import 'models/kyc_submission.dart';
 import 'widgets/splash_screen.dart';
@@ -41,7 +43,8 @@ class AnjerApp extends ConsumerWidget {
           ),
         ),
       ),
-      home: const AuthenticationWrapper(),
+      navigatorKey: navigatorKey,
+      home: const FcmInitializer(),
     );
   }
 }
@@ -127,6 +130,39 @@ class AuthenticationWrapper extends ConsumerWidget {
     return const SessionCheckWrapper(
       defaultHomeScreen: RiderHomeScreen(),
     );
+  }
+}
+
+/// Initializes FCM when the user authenticates, cleans up on sign-out,
+/// and handles terminated-state notification taps once auth completes.
+class FcmInitializer extends ConsumerStatefulWidget {
+  const FcmInitializer({super.key});
+
+  @override
+  ConsumerState<FcmInitializer> createState() => _FcmInitializerState();
+}
+
+class _FcmInitializerState extends ConsumerState<FcmInitializer> {
+  bool _fcmInitialized = false;
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen<AuthState>(authStateProvider, (previous, next) async {
+      final fcm = ref.read(fcmServiceProvider);
+
+      if (!_fcmInitialized && next.isAuthenticated) {
+        _fcmInitialized = true;
+        await fcm.initialize();
+        await fcm.checkInitialMessage();
+      }
+
+      if ((previous?.isAuthenticated ?? false) && !next.isAuthenticated) {
+        _fcmInitialized = false;
+        await fcm.deleteToken();
+      }
+    });
+
+    return const AuthenticationWrapper();
   }
 }
 

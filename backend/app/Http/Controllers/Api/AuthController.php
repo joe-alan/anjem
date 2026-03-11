@@ -179,6 +179,8 @@ class AuthController extends Controller
             $this->firebaseAuth->revokeRefreshTokens($user->firebase_uid);
         }
 
+        $user->update(['fcm_token' => null]);
+
         $user->currentAccessToken()->delete();
 
         return response()->json([
