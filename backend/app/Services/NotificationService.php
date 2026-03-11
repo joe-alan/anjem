@@ -7,6 +7,7 @@ use App\Models\RideRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Contract\Messaging;
+use Kreait\Firebase\Messaging\AndroidConfig;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification;
 
@@ -76,6 +77,48 @@ class NotificationService
         ];
 
         return $this->sendNotification($driver->fcm_token, $message);
+    }
+
+    public function sendNewRideRequestToDriver(RideRequest $rideRequest, User $driver): bool
+    {
+        $rideRequest->loadMissing(['pickupLocation', 'destinationLocation', 'rider']);
+
+        if (! $driver->fcm_token) {
+            return false;
+        }
+
+        $title = 'New Ride Request';
+        $body = "Pickup: {$rideRequest->pickupLocation->name} → {$rideRequest->destinationLocation->name}. Fare: Rp {$rideRequest->estimated_fare_rp}";
+
+        $message = [
+            'title' => $title,
+            'body' => $body,
+            'data' => [
+                'type' => 'new_ride_request',
+                'ride_request_id' => (string) $rideRequest->id,
+                'rider_name' => $rideRequest->rider->name,
+                'pickup_location' => $rideRequest->pickupLocation->name,
+                'destination_location' => $rideRequest->destinationLocation->name,
+                'estimated_fare_rp' => (string) $rideRequest->estimated_fare_rp,
+                'passenger_count' => (string) $rideRequest->passenger_count,
+            ],
+        ];
+
+        $result = $this->sendNotification($driver->fcm_token, $message, highPriority: true);
+
+        if ($result) {
+            Log::info('New ride request notification sent to driver', [
+                'ride_request_id' => $rideRequest->id,
+                'driver_id' => $driver->id,
+            ]);
+        } else {
+            Log::warning('Failed to send new ride request notification to driver', [
+                'ride_request_id' => $rideRequest->id,
+                'driver_id' => $driver->id,
+            ]);
+        }
+
+        return $result;
     }
 
     /**
@@ -372,7 +415,7 @@ class NotificationService
     /**
      * Send notification using Firebase Cloud Messaging
      */
-    private function sendNotification(string $fcmToken, array $messageData): bool
+    private function sendNotification(string $fcmToken, array $messageData, bool $highPriority = false): bool
     {
         try {
             $notification = Notification::create(
@@ -383,6 +426,11 @@ class NotificationService
             $message = CloudMessage::withTarget('token', $fcmToken)
                 ->withNotification($notification)
                 ->withData($messageData['data'] ?? []);
+
+            if ($highPriority) {
+                $androidConfig = AndroidConfig::fromArray(['priority' => 'high']);
+                $message = $message->withAndroidConfig($androidConfig);
+            }
 
             $this->messaging->send($message);
 

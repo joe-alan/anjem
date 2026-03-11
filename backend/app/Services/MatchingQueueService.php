@@ -147,6 +147,18 @@ class MatchingQueueService
 
         broadcast(new NewRideRequest($rideRequest, [$driver->user_id]));
 
+        // FCM push notification (supplements WebSocket for background/terminated app)
+        try {
+            $rideRequest->loadMissing(['rider', 'pickupLocation', 'destinationLocation']);
+            app(\App\Services\NotificationService::class)->sendNewRideRequestToDriver($rideRequest, $driver->user);
+        } catch (\Exception $e) {
+            Log::warning('Failed to send FCM for new ride request', [
+                'ride_request_id' => $rideRequest->id,
+                'driver_id' => $driver->user_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         // Safety-net: if driver doesn't respond within 35s, auto-handle timeout
         HandleRequestTimeout::dispatch($rideRequest->id, $driver->user_id)
             ->delay(now()->addSeconds(self::TIMEOUT_JOB_DELAY_SECONDS));
