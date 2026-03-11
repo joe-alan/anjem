@@ -6,6 +6,7 @@ use App\Models\Location;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 
 /**
@@ -22,7 +23,7 @@ class PlaceSearchService
      * NOTE: Set to 0 to disable Mapbox API fallback for MVP
      * Local database search is sufficient for campus locations
      */
-    private const MIN_RESULTS_THRESHOLD = 0;
+    private const MIN_RESULTS_THRESHOLD = 3;
 
     /**
      * Search for places using local database + Mapbox API fallback
@@ -158,12 +159,17 @@ class PlaceSearchService
             throw new \Exception('Mapbox public token not configured');
         }
 
+        // Generate session token — groups suggest + retrieve calls into one billable session
+        $sessionToken = (string) Str::uuid();
+
         // Use Mapbox Search Box API (Suggest endpoint)
         $response = Http::timeout(5)->get('https://api.mapbox.com/search/searchbox/v1/suggest', [
             'q' => $query,
             'language' => 'id', // Indonesian
             'proximity' => "$longitude,$latitude",
+            'bbox' => config('services.mapbox.search_bbox', '106.80,-6.39,106.86,-6.33'),
             'limit' => 5,
+            'session_token' => $sessionToken,
             'access_token' => $publicToken,
         ]);
 
@@ -179,7 +185,7 @@ class PlaceSearchService
         foreach ($suggestions as $suggestion) {
             if (isset($suggestion['mapbox_id'])) {
                 try {
-                    $details = $this->retrieveMapboxPlace($suggestion['mapbox_id'], $publicToken);
+                    $details = $this->retrieveMapboxPlace($suggestion['mapbox_id'], $publicToken, $sessionToken);
                     if ($details) {
                         $results[] = $details;
                     }
@@ -198,9 +204,10 @@ class PlaceSearchService
     /**
      * Retrieve full place details from Mapbox
      */
-    private function retrieveMapboxPlace(string $mapboxId, string $token): ?array
+    private function retrieveMapboxPlace(string $mapboxId, string $token, string $sessionToken): ?array
     {
         $response = Http::timeout(5)->get("https://api.mapbox.com/search/searchbox/v1/retrieve/{$mapboxId}", [
+            'session_token' => $sessionToken,
             'access_token' => $token,
         ]);
 
@@ -222,13 +229,18 @@ class PlaceSearchService
             return null;
         }
 
+        // poi_category is a list in the Mapbox API response (e.g. ["cafe","coffee_shop"])
+        // Normalise to a single string so it survives JSON round-trips and Flutter casts
+        $poiCategory = $properties['poi_category'] ?? null;
+        $categoryString = is_array($poiCategory) ? ($poiCategory[0] ?? null) : $poiCategory;
+
         return [
             'name' => $properties['name'] ?? 'Unknown',
             'address' => $properties['full_address'] ?? $properties['place_formatted'] ?? '',
             'longitude' => $coordinates[0],
             'latitude' => $coordinates[1],
             'mapbox_id' => $mapboxId,
-            'category' => $properties['poi_category'] ?? null,
+            'category' => $categoryString,
         ];
     }
 
@@ -309,7 +321,13 @@ class PlaceSearchService
                 ],
                 'is_beacon' => $location->is_beacon,
                 'usage_count' => $location->usage_count ?? 0,
-                'category' => $location->metadata['category'] ?? ($location->is_beacon ? 'beacon' : 'destination'),
+                'category' => (function ($cat, $isBeacon) {
+                    if (is_array($cat)) {
+                        return $cat[0] ?? ($isBeacon ? 'beacon' : 'destination');
+                    }
+
+                    return $cat ?? ($isBeacon ? 'beacon' : 'destination');
+                })($location->metadata['category'] ?? null, $location->is_beacon),
             ];
 
             // Add distance if user coordinates provided
