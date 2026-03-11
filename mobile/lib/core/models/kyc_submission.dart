@@ -18,6 +18,8 @@ class KycSubmission extends Equatable {
   final String? vehiclePlate;
   final String? vehicleColor;
   final String? ktmUrl;
+  final String? rejectionReason;
+  final String? suspendReason;
 
   const KycSubmission({
     required this.kycSubmitted,
@@ -30,6 +32,8 @@ class KycSubmission extends Equatable {
     this.vehiclePlate,
     this.vehicleColor,
     this.ktmUrl,
+    this.rejectionReason,
+    this.suspendReason,
   });
 
   factory KycSubmission.fromJson(Map<String, dynamic> json) {
@@ -44,6 +48,8 @@ class KycSubmission extends Equatable {
       vehiclePlate: json['vehicle_plate'] as String?,
       vehicleColor: json['vehicle_color'] as String?,
       ktmUrl: json['ktm_url'] as String?,
+      rejectionReason: json['rejection_reason'] as String?,
+      suspendReason: json['suspend_reason'] as String?,
     );
   }
 
@@ -59,6 +65,8 @@ class KycSubmission extends Equatable {
       'vehicle_plate': vehiclePlate,
       'vehicle_color': vehicleColor,
       'ktm_url': ktmUrl,
+      'rejection_reason': rejectionReason,
+      'suspend_reason': suspendReason,
     };
   }
 
@@ -81,5 +89,7 @@ class KycSubmission extends Equatable {
         vehiclePlate,
         vehicleColor,
         ktmUrl,
+        rejectionReason,
+        suspendReason,
       ];
 }

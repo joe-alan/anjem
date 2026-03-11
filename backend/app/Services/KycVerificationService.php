@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AdminAuditLog;
 use App\Models\DriverProfile;
 use App\Models\VerificationCode;
 use Illuminate\Support\Facades\Mail;
@@ -98,11 +99,11 @@ class KycVerificationService
         // Mark code as verified
         $verificationCode->markAsVerified();
 
-        // Update driver profile if exists
+        // Update driver profile if exists — email OTP only sets email_verified_at.
+        // is_verified remains false until an admin explicitly approves the KYC.
         $driverProfile = DriverProfile::where('student_email', $email)->first();
         if ($driverProfile) {
             $driverProfile->update([
-                'is_verified' => true,
                 'email_verified_at' => now(),
             ]);
         }
@@ -164,17 +165,37 @@ class KycVerificationService
             ];
         }
 
+        $kycSubmitted = ! empty($driverProfile->student_email);
+
+        // Fetch rejection reason from audit log — only relevant when not submitted
+        // (i.e., after admin clears the KYC data on rejection).
+        $rejectionReason = null;
+        if (! $kycSubmitted) {
+            $rejectionReason = AdminAuditLog::where('action_type', 'kyc_reject')
+                ->where('target_id', $driverProfile->id)
+                ->latest()
+                ->value('reason');
+        }
+
+        // Fetch latest suspend reason from audit log.
+        $suspendReason = AdminAuditLog::where('action_type', 'driver_suspend')
+            ->where('target_id', $userId)
+            ->latest()
+            ->value('reason');
+
         return [
-            'kyc_submitted' => ! empty($driverProfile->student_email),
-            'email_verified' => $driverProfile->email_verified_at !== null,
-            'is_verified' => $driverProfile->is_verified,
-            'student_email' => $driverProfile->student_email,
-            'student_id' => $driverProfile->student_id,
-            'student_name' => $driverProfile->student_name,
-            'vehicle_type' => $driverProfile->vehicle_type,
-            'vehicle_plate' => $driverProfile->vehicle_plate, // Fixed: matches database column name
-            'vehicle_color' => $driverProfile->vehicle_color,
-            'ktm_url' => $driverProfile->ktm_url,
+            'kyc_submitted'    => $kycSubmitted,
+            'email_verified'   => $driverProfile->email_verified_at !== null,
+            'is_verified'      => $driverProfile->is_verified,
+            'student_email'    => $driverProfile->student_email,
+            'student_id'       => $driverProfile->student_id,
+            'student_name'     => $driverProfile->student_name,
+            'vehicle_type'     => $driverProfile->vehicle_type,
+            'vehicle_plate'    => $driverProfile->vehicle_plate,
+            'vehicle_color'    => $driverProfile->vehicle_color,
+            'ktm_url'          => $driverProfile->ktm_url,
+            'rejection_reason' => $rejectionReason,
+            'suspend_reason'   => $suspendReason,
         ];
     }
 

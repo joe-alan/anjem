@@ -3,7 +3,8 @@ import '../models/ride_request.dart';
 import '../services/api/api_service.dart';
 import '../services/websocket/websocket_service.dart';
 import 'api_provider.dart';
-import 'auth_provider.dart';
+import 'auth_provider.dart'; // also used for authStateProvider (session.replaced)
+import 'credits_provider.dart';
 import 'driver_incoming_request_provider.dart';
 import 'kyc_provider.dart';
 
@@ -115,6 +116,21 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
       return;
     }
 
+    // Credit gate: driver must have at least 1 credit to go online
+    try {
+      final creditService = _ref.read(creditServiceProvider);
+      final balance = await creditService.getBalance();
+      if (balance < 1) {
+        state = state.copyWith(
+          error:
+              'You need at least 1 credit to go online. Contact admin to top up.',
+        );
+        return;
+      }
+    } catch (_) {
+      // If credit check fails, allow online — do not block on network errors
+    }
+
     state = state.copyWith(isLoading: true, error: null);
 
     try {
@@ -139,6 +155,9 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         isLoading: false,
         queuePosition: queuePosition,
       );
+
+      // Refresh balance so the chip and request screen show the current value.
+      _ref.invalidate(creditsProvider);
 
       // Subscribe to driver channel for incoming ride requests
       await _subscribeToRideRequests();
@@ -179,8 +198,9 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
       final response = await _apiService.post('/driver/offline');
       print('DriverStatusProvider: goOffline API response: ${response.data}');
 
-      // Unsubscribe from driver channel
-      await _wsService.unsubscribeFromChannel('driver.$_driverId');
+      // Keep the driver channel subscription alive so session.replaced
+      // is received immediately if another device logs in while offline.
+      // The channel is unsubscribed on sign-out via wsService.disconnect().
 
       state = state.copyWith(
         status: DriverStatusEnum.offline,
@@ -230,6 +250,51 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         print('DriverStatusProvider: Queue position changed - $eventData');
         final newPosition = (eventData['queue_position'] as int?) ?? 0;
         state = state.copyWith(queuePosition: newPosition);
+      },
+      onRequestCancelled: (eventData) {
+        print('DriverStatusProvider: Ride request cancelled - $eventData');
+        // Clear the incoming request so RideRequestScreen dismisses itself
+        _ref.read(driverIncomingRequestProvider.notifier).clear();
+      },
+      onSessionReplaced: (eventData) {
+        print('DriverStatusProvider: Session replaced — signing out this device');
+        // Another device logged in with this driver account; sign out locally.
+        _ref.read(authStateProvider.notifier).signOut();
+      },
+      onDriverStatusChanged: (eventData) {
+        final isOnline = eventData['is_online'] as bool? ?? true;
+        if (!isOnline) {
+          print('DriverStatusProvider: Auto-kicked offline by backend (zero credits)');
+          _ref.read(driverIncomingRequestProvider.notifier).clear();
+          state = state.copyWith(
+            status: DriverStatusEnum.offline,
+            activeRideId: null,
+            queuePosition: 0,
+          );
+          // Invalidate credits so the chip and warning card reflect balance = 0
+          _ref.invalidate(creditsProvider);
+        }
+      },
+      onKycStatusChanged: (eventData) {
+        print('DriverStatusProvider: Admin changed KYC status — refreshing');
+        _ref.read(kycStateProvider.notifier).refreshKycStatus();
+      },
+      onCreditsUpdated: (eventData) {
+        print('DriverStatusProvider: Admin updated credits — refreshing balance');
+        _ref.invalidate(creditsProvider);
+      },
+      onAccountStatusChanged: (eventData) {
+        final isSuspended = eventData['is_suspended'] as bool? ?? false;
+        if (isSuspended) {
+          print('DriverStatusProvider: Account suspended — going offline');
+          _ref.read(driverIncomingRequestProvider.notifier).clear();
+          state = const DriverStatusState();
+        } else {
+          print('DriverStatusProvider: Account unsuspended');
+        }
+        // Refresh user (updates isActive) and KYC status (updates suspendReason).
+        _ref.read(authStateProvider.notifier).refreshUser();
+        _ref.read(kycStateProvider.notifier).refreshKycStatus();
       },
     );
 
@@ -313,6 +378,35 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
     state = state.copyWith(maxPickupRadiusKm: km);
   }
 
+  /// Called on cold app launch when the backend still shows the driver online
+  /// but there is no active ride (force-quit / crash left went_online_at set).
+  ///
+  /// Sets local state to offline, subscribes the driver channel so that
+  /// session.replaced is received immediately, and notifies the backend
+  /// (fire-and-forget — the heartbeat job is the backstop on error).
+  Future<void> kickOfflineOnLaunch() async {
+    if (_driverId == null) return;
+
+    print('DriverStatusProvider: kickOfflineOnLaunch — clearing stale online state');
+
+    state = state.copyWith(
+      status: DriverStatusEnum.offline,
+      activeRideId: null,
+      queuePosition: 0,
+    );
+
+    // Stay subscribed so session.replaced works while offline.
+    await _subscribeToRideRequests();
+
+    try {
+      await _apiService.post('/driver/offline');
+      print('DriverStatusProvider: kickOfflineOnLaunch — backend notified offline');
+    } catch (e) {
+      // Non-fatal: KickStaleDrivers heartbeat will clear it within ~90s.
+      print('DriverStatusProvider: kickOfflineOnLaunch — backend notify failed (non-fatal): $e');
+    }
+  }
+
   /// Sync driver status from backend session state
   /// Called during session resumption to match backend state
   Future<void> syncFromBackend({
@@ -326,7 +420,6 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         status: DriverStatusEnum.inActiveRide,
         activeRideId: activeRideId,
       );
-      // Still subscribe to ride requests in case ride completes
       await _subscribeToRideRequests();
     } else if (isOnline) {
       print('DriverStatusProvider: Syncing status - online');
@@ -334,7 +427,6 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         status: DriverStatusEnum.online,
         activeRideId: null,
       );
-      // Re-subscribe to ride requests when restoring online status
       await _subscribeToRideRequests();
     } else {
       print('DriverStatusProvider: Syncing status - offline');
@@ -342,6 +434,9 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         status: DriverStatusEnum.offline,
         activeRideId: null,
       );
+      // Subscribe even when offline so session.replaced is received
+      // immediately if another device logs in while this one is idle.
+      await _subscribeToRideRequests();
     }
   }
 }

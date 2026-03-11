@@ -23,10 +23,13 @@ class RideService
 
     private QueueService $queueService;
 
-    public function __construct(LocationService $locationService, QueueService $queueService)
+    private CreditService $creditService;
+
+    public function __construct(LocationService $locationService, QueueService $queueService, CreditService $creditService)
     {
         $this->locationService = $locationService;
         $this->queueService = $queueService;
+        $this->creditService = $creditService;
     }
 
     /**
@@ -61,7 +64,9 @@ class RideService
                 $pickupLocation->coordinates->longitude,
                 $destinationLocation->coordinates->latitude,
                 $destinationLocation->coordinates->longitude,
-                $requestData['passenger_count'] ?? 1
+                $requestData['passenger_count'] ?? 1,
+                $pickupLocation->id,
+                $destinationLocation->id
             );
 
             // Create ride request
@@ -72,6 +77,7 @@ class RideService
                 'estimated_distance_km' => $estimates['distance_km'],
                 'estimated_duration_minutes' => $estimates['duration_minutes'],
                 'estimated_fare_rp' => $estimates['fare_rp'],
+                'route_geometry' => $estimates['routeGeometry'] ?? null,
                 'passenger_count' => $requestData['passenger_count'] ?? 1,
                 'special_requests' => $requestData['special_requests'] ?? null,
                 'status' => 'pending',
@@ -187,13 +193,25 @@ class RideService
 
             // ✅ FIX: Throw specific exceptions instead of returning null
             if (! $rideRequest) {
-                DB::rollBack();
+                // Secondary lookup (no lock) to give a meaningful error.
+                // Runs inside the transaction — READ COMMITTED lets us see other
+                // transactions' commits, so the status is accurate.
+                $actualStatus = RideRequest::where('id', $rideRequestId)->value('status');
+                if (in_array($actualStatus, ['cancelled', 'expired'])) {
+                    throw new \Exception('This ride request was cancelled by the rider', 410);
+                }
                 throw new \Exception('This ride request has already been accepted by another driver', 409);
             }
 
             if (! $rideRequest->isActive()) {
-                DB::rollBack();
                 throw new \Exception('This ride request is no longer available', 404);
+            }
+
+            // Only the currently-dispatched driver may accept.
+            // current_driver_id is null when no driver has been assigned yet (edge-case
+            // on very fast acceptance before the first dispatch completes).
+            if ($rideRequest->current_driver_id !== null && $rideRequest->current_driver_id !== $driverId) {
+                throw new \Exception('This ride request is assigned to another driver', 403);
             }
 
             // Verify driver is valid and online
@@ -203,14 +221,12 @@ class RideService
                 ! $driver->is_active ||
                 ! in_array($driver->role, ['driver', 'both', 'admin'])
             ) {
-                DB::rollBack();
                 throw new \Exception('Invalid driver credentials', 403);
             }
 
             // Check if driver already has an active ride
             $existingRide = $this->getActiveRide($driverId);
             if ($existingRide) {
-                DB::rollBack();
                 throw new \Exception('You already have an active ride. Complete it before accepting another.', 400);
             }
 
@@ -220,7 +236,6 @@ class RideService
                 ->exists();
 
             if ($activeRiderRide) {
-                DB::rollBack();
                 throw new \Exception('You cannot accept a ride while you have an active ride as a rider.', 400);
             }
 
@@ -236,6 +251,9 @@ class RideService
                 'estimated_fare_rp' => $rideRequest->estimated_fare_rp,
                 'special_requests' => $rideRequest->special_requests,
             ]);
+
+            // Deduct one credit after ride is created so ride_id FK is satisfied
+            $this->creditService->deductCredit($driverId, $ride->id);
 
             $ride->markAsAccepted();
 

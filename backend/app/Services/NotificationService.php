@@ -383,6 +383,42 @@ class NotificationService
     }
 
     /**
+     * Send KYC approved notification to driver
+     */
+    public function sendKycApprovedToDriver(User $driver): void
+    {
+        if (! $driver->fcm_token) {
+            return;
+        }
+
+        $message = [
+            'title' => 'KYC Approved!',
+            'body' => 'Your driver verification has been approved. You can now go online and start accepting rides.',
+            'data' => ['type' => 'kyc_approved'],
+        ];
+
+        $this->sendNotification($driver->fcm_token, $message);
+    }
+
+    /**
+     * Send KYC rejected notification to driver
+     */
+    public function sendKycRejectedToDriver(User $driver, string $reason): void
+    {
+        if (! $driver->fcm_token) {
+            return;
+        }
+
+        $message = [
+            'title' => 'KYC Verification Rejected',
+            'body' => 'Your verification was not approved. Please open the app for details and resubmit your documents.',
+            'data' => ['type' => 'kyc_rejected'],
+        ];
+
+        $this->sendNotification($driver->fcm_token, $message);
+    }
+
+    /**
      * Update user's FCM token
      */
     public function updateUserToken(int $userId, ?string $token): bool

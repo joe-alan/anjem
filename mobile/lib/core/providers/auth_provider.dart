@@ -22,7 +22,21 @@ final authStateProvider = StateNotifierProvider<AuthStateNotifier, AuthState>(
   (ref) {
     final authService = ref.watch(authServiceProvider);
     final wsService = ref.watch(websocketServiceProvider);
-    return AuthStateNotifier(authService, wsService);
+    final notifier = AuthStateNotifier(authService, wsService);
+
+    // Wire global 401 handler: when a token is invalidated mid-session the
+    // Dio interceptor calls this, which logs the user out automatically.
+    // Done here (not in api_provider) to avoid a circular import.
+    final apiService = ref.read(apiServiceProvider);
+    apiService.onUnauthorized = notifier.signOut;
+
+    // Clear the callback on disposal so a rebuilt provider doesn't call
+    // signOut on an already-disposed notifier.
+    ref.onDispose(() {
+      apiService.onUnauthorized = null;
+    });
+
+    return notifier;
   },
 );
 
@@ -74,18 +88,18 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
         // Token exists, try to get user data
         try {
           final user = await _authService.getCurrentUser();
-          print('AuthProvider: User fetched, about to initialize WebSocket');
+          // Initialize WebSocket before setting isAuthenticated — providers that
+          // watch auth state subscribe to WS channels on first build, so the
+          // connection must be ready before the home screen is rendered.
+          print('AuthProvider: Calling _initializeWebSocket()');
+          await _initializeWebSocket();
+          print('AuthProvider: _initializeWebSocket() completed');
           state = state.copyWith(
             isLoading: false,
             isAuthenticated: true,
             user: user,
             error: null,
           );
-
-          // Initialize WebSocket connection
-          print('AuthProvider: Calling _initializeWebSocket()');
-          await _initializeWebSocket();
-          print('AuthProvider: _initializeWebSocket() completed');
         } catch (e) {
           // If user fetch fails with 401, token is expired - log them out
           print('Failed to fetch user data: $e');
@@ -137,15 +151,16 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
     try {
       final user = await _authService.signInWithGoogle();
 
+      // Initialize WebSocket before setting isAuthenticated for the same
+      // reason as _checkAuthStatus — channels must exist before first build.
+      await _initializeWebSocket();
+
       state = state.copyWith(
         isLoading: false,
         isAuthenticated: true,
         user: user,
         error: null,
       );
-
-      // Initialize WebSocket connection
-      await _initializeWebSocket();
     } on ApiException catch (e) {
       state = state.copyWith(
         isLoading: false,

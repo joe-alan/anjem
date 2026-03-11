@@ -71,6 +71,8 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
 
   final _imagePicker = ImagePicker();
 
+  bool _isSubmitting = false;
+
   // Predefined vehicle colors
   final List<String> _vehicleColors = [
     'Black',
@@ -321,7 +323,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
   }
 
   Future<void> _submitKyc() async {
-    if (!_formKey.currentState!.validate()) {
+    if (_formKey.currentState?.validate() == false) {
       return;
     }
 
@@ -345,37 +347,42 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
       return;
     }
 
-    // Combine license plate parts: "B 1234 XYZ"
-    final licensePlate = '${_plateArea1Controller.text.trim().toUpperCase()} '
-        '${_plateNumberController.text.trim()} '
-        '${_plateArea2Controller.text.trim().toUpperCase()}';
+    setState(() => _isSubmitting = true);
 
-    final success = await ref.read(kycStateProvider.notifier).submitKyc(
-          studentEmail: _studentEmailController.text.trim(),
-          studentId: _studentIdController.text.trim(),
-          studentName: _studentNameController.text.trim(),
-          vehicleType: _vehicleType,
-          vehiclePlate: licensePlate,
-          vehicleColor: _vehicleColor,
-          ktmPhoto: _ktmPhoto!,
-        );
+    try {
+      // Combine license plate parts: "B 1234 XYZ"
+      final licensePlate =
+          '${_plateArea1Controller.text.trim().toUpperCase()} '
+          '${_plateNumberController.text.trim()} '
+          '${_plateArea2Controller.text.trim().toUpperCase()}';
 
-    if (success && mounted) {
-      // Navigate to email verification screen
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => EmailVerificationScreen(
+      final success = await ref.read(kycStateProvider.notifier).submitKyc(
             studentEmail: _studentEmailController.text.trim(),
+            studentId: _studentIdController.text.trim(),
+            studentName: _studentNameController.text.trim(),
+            vehicleType: _vehicleType,
+            vehiclePlate: licensePlate,
+            vehicleColor: _vehicleColor,
+            ktmPhoto: _ktmPhoto!,
+          );
+
+      if (success && mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => EmailVerificationScreen(
+              studentEmail: _studentEmailController.text.trim(),
+            ),
           ),
-        ),
-      );
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
-    final kycState = ref.watch(kycStateProvider);
 
     // Show error messages
     ref.listen<KycState>(kycStateProvider, (previous, next) {
@@ -396,16 +403,55 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
       }
     });
 
+    final rejectionReason =
+        ref.watch(kycStatusProvider)?.rejectionReason;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Driver Verification'),
         backgroundColor: config.primaryColor,
         foregroundColor: Colors.white,
       ),
-      body: Form(
-        key: _formKey,
-        child: Column(
+      body: Column(
           children: [
+            // Rejection reason banner
+            if (rejectionReason != null)
+              Container(
+                width: double.infinity,
+                color: Colors.red[50],
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.cancel_outlined,
+                        color: Colors.red, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'KYC Rejected',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            rejectionReason,
+                            style: TextStyle(
+                                color: Colors.red[700], fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             // Progress indicator
             LinearProgressIndicator(
               value: (_currentPage + 1) / 3,
@@ -439,14 +485,20 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
                   if (_currentPage > 0)
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: kycState.isLoading ? null : _previousPage,
+                        onPressed: _isSubmitting ? null : _previousPage,
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                         child: const Text('Back'),
                       ),
                     ),
                   if (_currentPage > 0) const SizedBox(width: 16),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: kycState.isLoading
+                      onPressed: _isSubmitting
                           ? null
                           : () {
                               if (_currentPage < 2) {
@@ -461,7 +513,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
                         backgroundColor: config.primaryColor,
                         foregroundColor: Colors.white,
                       ),
-                      child: kycState.isLoading
+                      child: _isSubmitting
                           ? const SizedBox(
                               height: 20,
                               width: 20,
@@ -480,7 +532,6 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
             ),
           ],
         ),
-      ),
     );
   }
 
@@ -526,7 +577,9 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
   }
 
   Widget _buildStudentInfoPage() {
-    return SingleChildScrollView(
+    return Form(
+      key: _formKey,
+      child: SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -642,7 +695,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildVehicleInfoPage() {

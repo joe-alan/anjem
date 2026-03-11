@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CreditController;
 use App\Http\Controllers\Api\DriverController;
 use App\Http\Controllers\Api\PlaceController;
 use App\Http\Controllers\Api\RequestController;
@@ -25,7 +26,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
 
     // Authentication routes (no auth required) - Strict rate limiting
-    Route::prefix('auth')->middleware('throttle:5,1')->group(function () {
+    Route::prefix('auth')->middleware('throttle:10,1')->group(function () {
         Route::post('firebase', [AuthController::class, 'authenticateWithFirebase']);
         Route::get('google', [AuthController::class, 'googleRedirect']);
         Route::get('google/callback', [AuthController::class, 'googleCallback']);
@@ -81,13 +82,16 @@ Route::prefix('v1')->group(function () {
 
             Route::post('online', [DriverController::class, 'goOnline']);
             Route::post('offline', [DriverController::class, 'goOffline']);
-            Route::get('queue', [DriverController::class, 'getQueue']);
             Route::get('queue-position', [DriverController::class, 'getQueuePosition']);
             Route::patch('settings', [DriverController::class, 'updateSettings']);
             // Higher rate limit for location updates (real-time)
             Route::post('location', [DriverController::class, 'updateLocation'])->middleware('throttle:200,1');
-            Route::get('beacons', [DriverController::class, 'getAvailableBeacons']);
             Route::get('statistics', [DriverController::class, 'getStatistics']);
+        });
+
+        Route::prefix('driver/credits')->group(function () {
+            Route::get('balance',      [CreditController::class, 'getBalance']);
+            Route::get('transactions', [CreditController::class, 'getTransactions']);
         });
 
         // Ride management
@@ -120,6 +124,11 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin', 'throttle:100,1'])-
     Route::get('drivers', [AdminController::class, 'listDrivers']);
     Route::get('drivers/{id}', [AdminController::class, 'getDriver']);
     Route::post('drivers/{id}/suspend', [AdminController::class, 'suspendDriver']);
+    Route::post('drivers/{id}/kyc/approve', [AdminController::class, 'approveKyc']);
+    Route::post('drivers/{id}/kyc/reject', [AdminController::class, 'rejectKyc']);
+    Route::post('drivers/{id}/credits/grant', [AdminController::class, 'grantCredits']);
+    Route::post('drivers/{id}/credits/deduct', [AdminController::class, 'deductCredits']);
+    Route::get('drivers/{id}/document', [AdminController::class, 'getDriverDocument']);
 
     // Rider Management
     Route::get('riders', [AdminController::class, 'listRiders']);
@@ -146,4 +155,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin', 'throttle:100,1'])-
     Route::delete('monitoring/requests/{id}', [AdminController::class, 'cancelRequest']);
     Route::post('monitoring/rides/{id}/cancel', [AdminController::class, 'cancelRide']);
     Route::post('monitoring/rides/{id}/complete', [AdminController::class, 'completeRide']);
+
+    // Audit Logs
+    Route::get('audit-logs', [AdminController::class, 'getAuditLogs']);
 });
