@@ -9,6 +9,12 @@ class WebSocketService {
 
   bool _isInitialized = false;
   bool _isConnected = false;
+  bool _intentionalDisconnect = false;
+
+  // Reconnect state
+  Timer? _reconnectTimer;
+  int _reconnectAttempts = 0;
+  static const int _maxReconnectDelaySecs = 30;
 
   final Map<String, dynamic> _channels = {};
   final StreamController<WsConnectionState> _connectionStateController =
@@ -20,6 +26,31 @@ class WebSocketService {
   bool get isConnected => _isConnected;
 
   WebSocketService({required ApiService apiService}) : _apiService = apiService;
+
+  void _scheduleReconnect() {
+    _reconnectTimer?.cancel();
+    // Exponential backoff: 2s, 4s, 8s, 16s, 30s (capped)
+    final delaySecs = (_reconnectAttempts < 4
+            ? (2 << _reconnectAttempts) // 2, 4, 8, 16
+            : _maxReconnectDelaySecs)
+        .clamp(2, _maxReconnectDelaySecs);
+    _reconnectAttempts++;
+    _reconnectTimer = Timer(Duration(seconds: delaySecs), () {
+      if (_intentionalDisconnect) return;
+      _pusher?.connect();
+    });
+  }
+
+  void _resubscribeChannels() {
+    if (_channels.isEmpty) return;
+    for (final entry in _channels.entries) {
+      try {
+        entry.value.subscribe();
+      } catch (e, st) {
+        print('Failed to resubscribe to ${entry.key}: $e\n$st');
+      }
+    }
+  }
 
   Future<void> initialize() async {
     if (_isInitialized) return;
@@ -55,7 +86,10 @@ class WebSocketService {
       _pusher!.onConnectionEstablished((data) {
         print('Connection established: $data');
         _isConnected = true;
+        _reconnectAttempts = 0;
+        _reconnectTimer?.cancel();
         _connectionStateController.add(WsConnectionState.connected);
+        _resubscribeChannels();
       });
 
       // Setup error listener
@@ -63,6 +97,7 @@ class WebSocketService {
         print('WebSocket connection error: $error');
         _isConnected = false;
         _connectionStateController.add(WsConnectionState.disconnected);
+        if (!_intentionalDisconnect) _scheduleReconnect();
       });
 
       // Setup disconnected listener
@@ -70,6 +105,7 @@ class WebSocketService {
         print('WebSocket disconnected: $data');
         _isConnected = false;
         _connectionStateController.add(WsConnectionState.disconnected);
+        if (!_intentionalDisconnect) _scheduleReconnect();
       });
 
       // Setup general error listener
@@ -91,6 +127,7 @@ class WebSocketService {
     }
 
     try {
+      _intentionalDisconnect = false;
       _connectionStateController.add(WsConnectionState.connecting);
       _pusher?.connect();
       print('Connecting to WebSocket...');
@@ -102,6 +139,9 @@ class WebSocketService {
 
   Future<void> disconnect() async {
     if (!_isInitialized || _pusher == null) return;
+
+    _intentionalDisconnect = true;
+    _reconnectTimer?.cancel();
 
     try {
       // Unsubscribe from all channels
@@ -181,6 +221,8 @@ class WebSocketService {
     Function(Map<String, dynamic>)? onNoDriversAvailable,
     Function(Map<String, dynamic>)? onRequestExpired,
     Function(Map<String, dynamic>)? onSearchResumed,
+    Function(Map<String, dynamic>)? onAccountStatusChanged,
+    Function(Map<String, dynamic>)? onRideStatusUpdated,
   }) async {
     final channelName =
         'user.$userId'; // Don't add 'private-' prefix, .private() method does it automatically
@@ -248,6 +290,27 @@ class WebSocketService {
         });
       }
 
+      // Listen for admin account suspension / unsuspension
+      if (onAccountStatusChanged != null) {
+        channel.bind('account.status.changed', (data) {
+          print('Received account.status.changed (rider): $data');
+          if (data != null) {
+            onAccountStatusChanged(data as Map<String, dynamic>);
+          }
+        });
+      }
+
+      // Listen for admin force-complete / force-cancel while rider is on
+      // the "Finding Driver" screen (not yet subscribed to the ride channel).
+      if (onRideStatusUpdated != null) {
+        channel.bind('ride.status.updated', (data) {
+          print('Received ride.status.updated on user channel: $data');
+          if (data != null) {
+            onRideStatusUpdated(data as Map<String, dynamic>);
+          }
+        });
+      }
+
       _channels[channelName] = channel;
       print('Subscribed to user channel: $channelName');
     } catch (e) {
@@ -264,6 +327,9 @@ class WebSocketService {
     Function(Map<String, dynamic>)? onRequestCancelled,
     Function(Map<String, dynamic>)? onSessionReplaced,
     Function(Map<String, dynamic>)? onDriverStatusChanged,
+    Function(Map<String, dynamic>)? onKycStatusChanged,
+    Function(Map<String, dynamic>)? onCreditsUpdated,
+    Function(Map<String, dynamic>)? onAccountStatusChanged,
   }) async {
     final channelName = 'driver.$driverId';
 
@@ -322,6 +388,36 @@ class WebSocketService {
           print('Received driver.status.changed: $data');
           if (data != null) {
             onDriverStatusChanged(data as Map<String, dynamic>);
+          }
+        });
+      }
+
+      // Listen for admin KYC approval / rejection
+      if (onKycStatusChanged != null) {
+        channel.bind('driver.kyc.updated', (data) {
+          print('Received driver.kyc.updated: $data');
+          if (data != null) {
+            onKycStatusChanged(data as Map<String, dynamic>);
+          }
+        });
+      }
+
+      // Listen for admin credit grant / deduct
+      if (onCreditsUpdated != null) {
+        channel.bind('driver.credits.updated', (data) {
+          print('Received driver.credits.updated: $data');
+          if (data != null) {
+            onCreditsUpdated(data as Map<String, dynamic>);
+          }
+        });
+      }
+
+      // Listen for admin account suspension / unsuspension
+      if (onAccountStatusChanged != null) {
+        channel.bind('account.status.changed', (data) {
+          print('Received account.status.changed (driver): $data');
+          if (data != null) {
+            onAccountStatusChanged(data as Map<String, dynamic>);
           }
         });
       }

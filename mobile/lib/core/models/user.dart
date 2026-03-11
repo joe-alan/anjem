@@ -11,6 +11,7 @@ class User extends Equatable {
   final String? phone;
   final String? profilePicture;
   final UserRole role;
+  final bool isActive;
   final DriverProfile? driverProfile;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -23,6 +24,7 @@ class User extends Equatable {
     this.phone,
     this.profilePicture,
     required this.role,
+    this.isActive = true,
     this.driverProfile,
     required this.createdAt,
     required this.updatedAt,
@@ -37,6 +39,7 @@ class User extends Equatable {
       phone: json['phone'] as String?,
       profilePicture: json['profile_picture'] as String?,
       role: _parseRole((json['user_type'] ?? json['role']) as String),
+      isActive: json['is_active'] as bool? ?? true,
       driverProfile: json['driver_profile'] != null
           ? DriverProfile.fromJson(json['driver_profile'] as Map<String, dynamic>)
           : null,
@@ -58,6 +61,7 @@ class User extends Equatable {
       'phone': phone,
       'profile_picture': profilePicture,
       'role': _roleToString(role),
+      'is_active': isActive,
       'driver_profile': driverProfile?.toJson(),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
@@ -103,6 +107,7 @@ class User extends Equatable {
     String? phone,
     String? profilePicture,
     UserRole? role,
+    bool? isActive,
     DriverProfile? driverProfile,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -115,6 +120,7 @@ class User extends Equatable {
       phone: phone ?? this.phone,
       profilePicture: profilePicture ?? this.profilePicture,
       role: role ?? this.role,
+      isActive: isActive ?? this.isActive,
       driverProfile: driverProfile ?? this.driverProfile,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -130,6 +136,7 @@ class User extends Equatable {
         phone,
         profilePicture,
         role,
+        isActive,
         driverProfile,
         createdAt,
         updatedAt,

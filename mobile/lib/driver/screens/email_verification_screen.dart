@@ -147,7 +147,6 @@ class _EmailVerificationScreenState
         );
 
     if (success && mounted) {
-      // Navigate to driver home screen
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
           builder: (context) => const DriverHomeScreen(),

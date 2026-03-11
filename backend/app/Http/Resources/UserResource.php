@@ -50,7 +50,7 @@ class UserResource extends JsonResource
                         'is_verified' => $this->driverProfile->is_verified,
                         'is_available' => $this->driverProfile->went_online_at !== null,
                         'status' => $this->driverProfile->went_online_at !== null ? 'online' : 'offline',
-                        'rating' => (float) ($this->driverProfile->rating_average ?? 5.0), // ✅ Use rating_average from migration
+                        'rating' => (float) ($this->driverProfile->rating_average ?? 0.0), // ✅ Use rating_average from migration
                         'rating_count' => $this->driverProfile->rating_count ?? 0, // ✅ Include rating count
                         'total_rides'     => $this->driverProfile->total_rides_given ?? 0,
                         'credits_balance' => $this->driverProfile->credits_balance ?? 0,

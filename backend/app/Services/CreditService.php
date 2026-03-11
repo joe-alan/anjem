@@ -92,6 +92,49 @@ class CreditService
         });
     }
 
+    /**
+     * Deduct credits by admin (penalty, correction, etc.).
+     * Self-contained: wraps in its own DB transaction.
+     *
+     * @return array{balance_before: int, balance_after: int}
+     */
+    public function adminDeductCredits(DriverProfile $profile, int $amount, string $reason): array
+    {
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException('Amount must be positive');
+        }
+
+        return DB::transaction(function () use ($profile, $amount, $reason) {
+            $locked = DriverProfile::where('id', $profile->id)->lockForUpdate()->first();
+
+            if (! $locked) {
+                throw new \RuntimeException("Driver profile not found for id {$profile->id}");
+            }
+
+            if ($locked->credits_balance < $amount) {
+                throw new \RuntimeException('Insufficient credits for deduction');
+            }
+
+            $balanceBefore = $locked->credits_balance;
+            $balanceAfter  = $balanceBefore - $amount;
+
+            $locked->credits_balance     = $balanceAfter;
+            $locked->credits_total_spent = $locked->credits_total_spent + $amount;
+            $locked->save();
+
+            CreditTransaction::create([
+                'driver_id'      => $locked->user_id,
+                'type'           => 'admin_deduction',
+                'amount'         => -$amount,
+                'balance_before' => $balanceBefore,
+                'balance_after'  => $balanceAfter,
+                'description'    => $reason,
+            ]);
+
+            return ['balance_before' => $balanceBefore, 'balance_after' => $balanceAfter];
+        });
+    }
+
     public function getTransactions(int $driverId, int $limit = 50)
     {
         return CreditTransaction::where('driver_id', $driverId)
