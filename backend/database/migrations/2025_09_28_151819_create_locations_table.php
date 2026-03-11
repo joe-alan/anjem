@@ -19,7 +19,6 @@ return new class extends Migration
             $table->integer('radius_m')->default(100);
             $table->boolean('is_beacon')->default(false);
             $table->integer('usage_count')->default(0);
-            $table->string('google_place_id', 500)->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

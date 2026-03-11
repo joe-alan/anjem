@@ -27,6 +27,11 @@ class Kernel extends ConsoleKernel
             ->name('kick-stale-drivers')
             ->withoutOverlapping()
             ->runInBackground();
+
+        // Delete route cache entries older than 30 days to prevent unbounded table growth.
+        $schedule->call(function () {
+            app(\App\Services\RouteCacheService::class)->cleanupStaleRoutes(30);
+        })->daily()->at('03:00')->name('cleanup-stale-routes')->withoutOverlapping();
     }
 
     /**

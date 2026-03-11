@@ -1120,7 +1120,7 @@ class AdminController extends Controller
      */
     public function getRide(Ride $ride): JsonResponse
     {
-        $ride->load(['rider', 'driver', 'pickupLocation', 'destinationLocation', 'ratings']);
+        $ride->load(['rider', 'driver', 'pickupLocation', 'destinationLocation', 'ratings', 'rideRequest']);
 
         return response()->json([
             'success' => true,
@@ -1209,7 +1209,7 @@ class AdminController extends Controller
 
             DB::commit();
 
-            $ride->load(['rider', 'driver', 'pickupLocation', 'destinationLocation']);
+            $ride->load(['rider', 'driver', 'pickupLocation', 'destinationLocation', 'rideRequest']);
 
             return response()->json([
                 'success' => true,

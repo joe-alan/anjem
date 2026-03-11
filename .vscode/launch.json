@@ -2,40 +2,52 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Rider (Android)",
+      "name": "Rider (Android Emulator)",
       "request": "launch",
       "type": "dart",
       "cwd": "${workspaceFolder}/mobile",
       "program": "lib/main_rider.dart",
-      "args": ["--flavor", "rider"],
-      "deviceId": "emulator-5554",
+      "args": [
+        "--flavor", "rider",
+        "--dart-define=MAPBOX_ACCESS_TOKEN=pk.eyJ1Ijoiam9lLWFsYW4iLCJhIjoiY21nbTQ4NXdjMTU5NzJpb2t5MTd2eWM4eSJ9.Hx95EL3r7f9xqfEiX2yYeQ"
+      ],
+      "deviceId": "emulator-5554"
     },
     {
-      "name": "Driver (Android)",
+      "name": "Driver (Android Emulator)",
       "request": "launch",
       "type": "dart",
       "cwd": "${workspaceFolder}/mobile",
       "program": "lib/main_driver.dart",
-      "args": ["--flavor", "driver"],
-      "deviceId": "emulator-5554",
+      "args": [
+        "--flavor", "driver",
+        "--dart-define=MAPBOX_ACCESS_TOKEN=pk.eyJ1Ijoiam9lLWFsYW4iLCJhIjoiY21nbTQ4NXdjMTU5NzJpb2t5MTd2eWM4eSJ9.Hx95EL3r7f9xqfEiX2yYeQ"
+      ],
+      "deviceId": "emulator-5554"
     },
     {
-      "name": "Rider (Android 2)",
+      "name": "Rider (Android Emulator 2)",
       "request": "launch",
       "type": "dart",
       "cwd": "${workspaceFolder}/mobile",
       "program": "lib/main_rider.dart",
-      "args": ["--flavor", "rider"],
-      "deviceId": "emulator-5556",
+      "args": [
+        "--flavor", "rider",
+        "--dart-define=MAPBOX_ACCESS_TOKEN=pk.eyJ1Ijoiam9lLWFsYW4iLCJhIjoiY21nbTQ4NXdjMTU5NzJpb2t5MTd2eWM4eSJ9.Hx95EL3r7f9xqfEiX2yYeQ"
+      ],
+      "deviceId": "emulator-5556"
     },
     {
-      "name": "Driver (Android 2)",
+      "name": "Driver (Android Emulator 2)",
       "request": "launch",
       "type": "dart",
       "cwd": "${workspaceFolder}/mobile",
       "program": "lib/main_driver.dart",
-      "args": ["--flavor", "driver"],
-      "deviceId": "emulator-5556",
+      "args": [
+        "--flavor", "driver",
+        "--dart-define=MAPBOX_ACCESS_TOKEN=pk.eyJ1Ijoiam9lLWFsYW4iLCJhIjoiY21nbTQ4NXdjMTU5NzJpb2t5MTd2eWM4eSJ9.Hx95EL3r7f9xqfEiX2yYeQ"
+      ],
+      "deviceId": "emulator-5556"
     }
   ]
 }

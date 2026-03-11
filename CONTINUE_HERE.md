@@ -2,82 +2,95 @@
 
 ## Current State
 
-**Branch:** `feat/admin-dashboard-phase1`
-**Next action:** Continue manual testing of the admin dashboard (`ADMIN_DASHBOARD_TEST_LOG.md`). Resume at **A-8** (View KTM Document). A-1 through A-7 passed.
+**Branch:** `feat/mapbox-optimisation`
+**Next action:** Run physical device tests using `MAPBOX_OPTIMISATION_TEST_LOG.md`, then open PR → `dev`
 
 ---
 
-## This Session (2026-03-08) — KYC Resource + Rider Suspend + WS Race Fix
+## Mapbox Optimisation — All 7 Phases Complete ✅
+
+| Phase | Title | Status |
+|---|---|---|
+| 1 | Eliminate duplicate Directions calls | ✅ Done |
+| 2 | Enable Search Box API for production | ✅ Done |
+| 3 | Switch to `driving-traffic` profile | ✅ Done |
+| 4 | Schedule route cache cleanup | ✅ Done |
+| 5 | Adaptive driver location updates | ✅ Done |
+| 6 | Security — move hardcoded token | ✅ Done |
+| 7 | Update outdated docs | ✅ Done |
+
+Full plan: `mapbox_optimisation.md` · Implementation reference: `docs/optimization/ROUTE_API_CACHING_PLAN.md`
+
+---
+
+## This Session (2026-03-09) — Mapbox Optimisation
 
 ### Commits this session
-No commits yet — all changes are unstaged. Commit before starting next session.
 
-### Changed files this session
-| File | What changed |
+| Commit | Description |
 |---|---|
-| `backend/app/Filament/Resources/KycResource.php` | **NEW** — dedicated KYC review section in admin panel |
-| `backend/app/Filament/Resources/KycResource/Pages/ListKyc.php` | **NEW** — Filament list page for KYC resource |
-| `backend/app/Filament/Resources/DriverResource.php` | Removed approve/reject KYC and view_document actions; now only credits + suspend |
-| `backend/app/Filament/Widgets/KycPendingWidget.php` | Dashboard KYC badge now links to new KYC section |
-| `backend/app/Providers/Filament/AdminPanelProvider.php` | Registered `KycResource` |
-| `backend/app/Events/UserAccountStatusChanged.php` | Broadcasts to BOTH `private-driver.{id}` AND `private-user.{id}` (was either/or) |
-| `backend/app/Http/Controllers/Api/AdminController.php` | `rating_average ?? 5.0` → `?? 0.0` (3 spots) |
-| `backend/app/Http/Resources/UserResource.php` | `rating_average ?? 5.0` → `?? 0.0` |
-| `backend/routes/api.php` | Auth throttle: `5,1` → `10,1` |
-| `mobile/lib/core/providers/auth_provider.dart` | `_initializeWebSocket()` now runs **before** `isAuthenticated: true` (race fix) |
-| `mobile/lib/core/providers/kyc_provider.dart` | Removed `if (state.isLoading) return` guard in `refreshKycStatus()` |
-| `mobile/lib/core/providers/ride_request_provider.dart` | Always subscribes to user channel on login (not just when pending); added `onAccountSuspended` callback |
-| `mobile/lib/rider/screens/rider_home_screen.dart` | Suspended banner + disabled button; refresh button calls `refreshUser()` |
+| `38350ad` | feat(mapbox): persist route geometry on ride_requests, serve to mobile (Phase 1) |
+| `7735bb4` | fix(mapbox): add type guards in _parseRouteGeometry; fix plan doc type |
+| `d3bd092` | feat(mapbox): enable Search Box API with session token + campus bbox (Phase 2) |
+| `f7f04a1` | docs: fix markdown table spacing in CONTINUE_HERE (CodeRabbit MD058) |
+| `036a5dd` | feat(mapbox): switch to driving-traffic profile for better ETAs (Phase 3) |
+| `b85062f` | feat(mapbox): route cache cleanup, adaptive location updates, secure token (Phases 4-6) |
+| `13ed395` | docs(mapbox): update ROUTE_API_CACHING_PLAN to reflect actual implementation (Phase 7) |
+| `cefdfd8` | docs(mapbox): fix CodeRabbit findings in ROUTE_API_CACHING_PLAN |
+| `6cf9457` | test(mapbox): add unit tests for Phases 1–3 + fix estimated route caching bug |
+| `fcf1a8b` | docs(test-log): add physical device test log for mapbox optimisation (Phases 1–6) |
+
+All on `feat/mapbox-optimisation`. Not yet pushed or PR'd.
 
 ---
 
-## KYC Section — How It Works Now
+## Changed Files This Session
 
-**New "KYC" nav item** under Users group (sort: 2), with a red badge showing pending count.
-
-- Shows **all drivers** by default, filtered to "Pending Review" (email verified, not approved)
-- Filter options: Pending Review / Approved / Not Ready
-- **Review action** opens a `4xl` modal:
-  - Left: KTM photo
-  - Right: student name, ID, email, vehicle plate, color
-  - Toggle buttons: **Approve** (green) / **Reject** (red)
-  - Reject shows conditional reason textarea (min 10 chars, required)
-- Approve/reject both delete the KTM photo from disk, write `AdminAuditLog`, send FCM, broadcast WebSocket
-- Visible for drivers with `email_verified_at` set OR `is_verified = true` (allows rejecting false approvals)
-
-**Drivers section** now only has: Grant Credits, Deduct Credits, Suspend, Unsuspend.
-
----
-
-## Rider Suspend — How It Works Now
-
-**Backend:** `UserAccountStatusChanged` broadcasts to both `private-driver.{id}` and `private-user.{id}` — fixes the case where a user has both roles or where the channel routing was wrong.
-
-**Mobile:**
-- `RideRequestProvider` always subscribes to `private-user.{id}` at login (previously only when a request was pending)
-- `onAccountStatusChanged` → clears ride request state + calls `refreshUser()` via `onAccountSuspended` callback
-- `refreshUser()` updates `authState.user.isActive` → rider home screen shows red suspended banner, Request Ride button disabled
-- Refresh button also calls `refreshUser()` as a fallback
-
-**Race condition fix:** `_initializeWebSocket()` now completes before `isAuthenticated: true` is set. This ensures `_pusher` is non-null when `rideRequestProvider` first subscribes to the user channel.
-
----
-
-## Admin Test Log Status
-
-| Test | Status |
+| File | Change |
 |---|---|
-| A-1 Admin Login & Panel Access | ✅ Pass |
-| A-2 Dashboard KPIs & Widgets | ✅ Pass |
-| A-3 Driver List — Filters & Columns | ✅ Pass |
-| A-4 KYC Approve | ✅ Pass |
-| A-5 KYC Reject | ✅ Pass |
-| A-6 Grant Credits | ✅ Pass |
-| A-7 Deduct Credits | ✅ Pass |
-| A-8 View KTM Document | ⬜ Not tested (moved to KYC section) |
-| A-9 through A-18 | ⬜ Not tested |
+| `backend/database/migrations/2026_03_09_084105_add_route_geometry_to_ride_requests_table.php` | New migration: `route_geometry JSON NULL` on `ride_requests` |
+| `backend/app/Models/RideRequest.php` | `route_geometry` added to `$fillable` + `$casts` |
+| `backend/app/Services/RideService.php` | `createRideRequest()` passes location IDs (enables cache); stores `route_geometry` |
+| `backend/app/Services/RouteCacheService.php` | Default profile `driving-traffic`; skip caching estimated (null geometry) results |
+| `backend/app/Services/MapboxService.php` | URL `mapbox/driving/` → `mapbox/driving-traffic/` |
+| `backend/app/Services/PlaceSearchService.php` | `MIN_RESULTS_THRESHOLD` 0→3; session token; campus bbox |
+| `backend/app/Console/Kernel.php` | Daily 03:00 cleanup job: `cleanupStaleRoutes(30)` |
+| `backend/app/Http/Resources/RideRequestResource.php` | Expose `route_geometry` |
+| `backend/app/Http/Resources/RideResource.php` | Expose `route_geometry` via `rideRequest` relation |
+| `backend/app/Http/Controllers/Api/RideController.php` | Add `rideRequest` to eager-load |
+| `backend/app/Http/Controllers/Api/AdminController.php` | Add `rideRequest` to eager-load |
+| `backend/config/services.php` | Add `search_bbox` to mapbox config |
+| `backend/tests/Unit/Services/MapboxServiceTest.php` | New: 5 tests for driving-traffic profile |
+| `backend/tests/Unit/Services/PlaceSearchServiceTest.php` | New: 8 tests for Search Box (threshold, bbox, session token, caching) |
+| `backend/tests/Unit/Services/RouteCacheDrivingTrafficTest.php` | New: 5 tests for driving-traffic default |
+| `backend/tests/Unit/Services/RideRequestRouteGeometryTest.php` | New: 5 tests for route_geometry storage |
+| `backend/tests/Unit/Services/RouteCacheServiceTest.php` | Updated: `'driving'` → `'driving-traffic'` in all cache fixtures |
+| `mobile/lib/core/models/ride.dart` | `routeCoordinates: List<LatLng>?`; `_parseRouteGeometry()` with type guards |
+| `mobile/lib/core/config/mapbox_config.dart` | `defaultDirectionsProfile` `driving` → `driving-traffic`; token → `String.fromEnvironment` |
+| `mobile/lib/rider/screens/rider_active_ride_screen.dart` | Use backend geometry first; fallback to Mapbox only if null |
+| `mobile/lib/driver/screens/active_ride_screen.dart` | Same for `inProgress`; adaptive location timer (5/10/30s by speed) |
+| `mobile/lib/rider/screens/location_selection_screen.dart` | Fixed misleading null-ID error message |
+| `mobile/test/core/models/ride_test.dart` | New: 13 Flutter tests for `_parseRouteGeometry` + `copyWith` + equality |
+| `docs/optimization/ROUTE_API_CACHING_PLAN.md` | Rewritten: Planned → Implemented; actual architecture documented |
+| `MAPBOX_OPTIMISATION_TEST_LOG.md` | New: physical device test log (MB-1 through MB-E2E) |
 
-> Note: A-8 "View Document" no longer exists as a standalone action in Drivers. KTM review is now inside the KYC section's Review modal. Update the test log accordingly before testing.
+---
+
+## Bug Found & Fixed (by unit tests)
+
+| Bug | Fix |
+|---|---|
+| `RouteCacheService::getOrFetchRoute` tried to INSERT straight-line fallback estimates (null geometry) into `route_caches.route_geometry NOT NULL` → exception propagated → `createRideRequest` returned null whenever Mapbox was unavailable | Added `if (! $routeData['estimated'])` guard — estimated routes not cached |
+
+---
+
+## Test Results
+
+| Suite | Result |
+|---|---|
+| `php artisan test` (full backend) | 317 passed, 73 pre-existing failures (unchanged) |
+| New unit tests (31 tests, 97 assertions) | ✅ All pass |
+| `flutter test test/core/models/ride_test.dart` (13 tests) | ✅ All pass |
 
 ---
 
@@ -87,6 +100,9 @@ No commits yet — all changes are unstaged. Commit before starting next session
 |---|---|---|---|
 | 1 | Pull-to-refresh while backend is down shows Flutter error screen instead of silently hiding the credit chip. | Low | `mobile/lib/driver/screens/driver_home_screen.dart` |
 | 2 | After session-restore (app kill mid-ride + reopen), completing the ride leaves the driver stuck on `ActiveRideScreen`. | Medium | `mobile/lib/driver/screens/active_ride_screen.dart` |
+| 3 | A-16 (admin test) cannot be fully tested — test driver/rider accounts use Google OAuth only. Needs a password-based test account. | Low | — |
+| 4 | Rider suspend: future redesign should fully sever WS/location connections on suspend. Deferred. | Low | `mobile/lib/rider/` |
+| 5 | Admin test log A-17 / A-18 not yet tested. | Low | `docs/test-logs/ADMIN_DASHBOARD_TEST_LOG.md` |
 
 ---
 
@@ -96,23 +112,19 @@ No commits yet — all changes are unstaged. Commit before starting next session
 # From backend/
 php artisan serve          # http://127.0.0.1:8000
 php artisan reverb:start   # WebSocket on :8080
-php artisan queue:work     # Jobs + FCM
-php artisan schedule:work  # Stale driver kick + cleanup
+php artisan queue:work     # Jobs + FCM  ← MUST be running
+php artisan schedule:work  # Stale driver kick + cleanup + route cache GC
 
 # Admin panel: http://localhost:8000/admin
 # Credentials: see database/seeders/AdminUserSeeder.php
 
-# Mobile (driver flavor):
-flutter run --flavor driver -t lib/main_driver.dart
+# Mobile — always pass token:
+flutter run --flavor rider -t lib/main_rider.dart \
+  --dart-define=MAPBOX_ACCESS_TOKEN=pk.eyJ1...
 
-# Mobile (rider flavor):
-flutter run --flavor rider -t lib/main_rider.dart
+flutter run --flavor driver -t lib/main_driver.dart \
+  --dart-define=MAPBOX_ACCESS_TOKEN=pk.eyJ1...
 ```
 
----
-
-## Uncommitted Changes (pre-existing, not our work)
-
-- `CREDIT_SYSTEM_DEVICE_TEST_LOG.md` — deleted (unstaged)
-- `docs/DEVICE_TEST_LOG.md` — deleted (unstaged)
-- `backend/app/Exceptions/Handler.php` — redirects unauthenticated to Filament login (unstaged, pre-existing)
+> **Note:** `queue:work` can die silently. If riders get stuck on "Finding Driver", check the queue worker first.
+> **Note (Phase 6):** App will not render maps without `--dart-define=MAPBOX_ACCESS_TOKEN=...`.

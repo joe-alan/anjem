@@ -113,22 +113,6 @@ class LocationService
     }
 
     /**
-     * Check if a location is within campus bounds
-     * Using Universitas Indonesia campus coordinates as reference
-     */
-    public function isWithinCampusBounds(float $latitude, float $longitude): bool
-    {
-        // UI campus approximate bounds
-        $campusCenterLat = -6.3605;
-        $campusCenterLng = 106.8271;
-        $campusRadiusMeters = 2000; // 2km radius
-
-        $distance = $this->calculateDistance($latitude, $longitude, $campusCenterLat, $campusCenterLng);
-
-        return $distance <= $campusRadiusMeters;
-    }
-
-    /**
      * Get driving distance and duration using Mapbox Directions API
      * Falls back to straight-line estimate if API fails
      *

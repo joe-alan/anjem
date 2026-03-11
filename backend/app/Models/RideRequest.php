@@ -36,6 +36,7 @@ class RideRequest extends Model
         'matched_at',
         'current_driver_id',
         'rider_cooldown_until',
+        'route_geometry',
     ];
 
     /**
@@ -53,6 +54,7 @@ class RideRequest extends Model
         'matched_at' => 'datetime',
         'rider_cooldown_until' => 'datetime',
         'current_driver_id' => 'integer',
+        'route_geometry' => 'json',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

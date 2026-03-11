@@ -45,9 +45,9 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
     // Build markers from beacons
     _buildBeaconMarkers(beaconsState.beacons);
 
-    // Default location (UI Campus, Jakarta)
+    // Default location — Undip Tembalang, Semarang (used only until GPS resolves)
     final initialPosition = locationState.location ??
-        const LatLng(-6.3615, 106.8242);
+        const LatLng(-7.0523, 110.4381);
 
     return Scaffold(
       appBar: AppBar(

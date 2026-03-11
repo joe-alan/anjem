@@ -293,28 +293,6 @@ class LocationServiceTest extends TestCase
     }
 
     /**
-     * Test campus bounds validation - within bounds
-     */
-    public function test_campus_bounds_validation_within_bounds()
-    {
-        // UI Library coordinates (should be within campus)
-        $isWithinBounds = $this->locationService->isWithinCampusBounds(-6.3605, 106.8271);
-
-        $this->assertTrue($isWithinBounds);
-    }
-
-    /**
-     * Test campus bounds validation - outside bounds
-     */
-    public function test_campus_bounds_validation_outside_bounds()
-    {
-        // Monas coordinates (should be outside campus)
-        $isWithinBounds = $this->locationService->isWithinCampusBounds(-6.1754, 106.8272);
-
-        $this->assertFalse($isWithinBounds);
-    }
-
-    /**
      * Test driving details calculation
      */
     public function test_can_get_driving_details()

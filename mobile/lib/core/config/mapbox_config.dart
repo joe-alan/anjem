@@ -6,10 +6,11 @@ class MapboxConfig {
   // Private constructor to prevent instantiation
   MapboxConfig._();
 
-  /// Mapbox public access token
-  /// Used for map tiles, geocoding, search, and directions API
-  static const String accessToken =
-      'pk.eyJ1Ijoiam9lLWFsYW4iLCJhIjoiY21nbTQ4NXdjMTU5NzJpb2t5MTd2eWM4eSJ9.Hx95EL3r7f9xqfEiX2yYeQ';
+  /// Mapbox public access token — injected at build time via --dart-define=MAPBOX_ACCESS_TOKEN
+  static const String accessToken = String.fromEnvironment(
+    'MAPBOX_ACCESS_TOKEN',
+    defaultValue: '',
+  );
 
   /// Default map style URL (Mapbox Streets)
   static const String defaultStyleUrl = 'mapbox://styles/mapbox/streets-v12';
@@ -33,16 +34,16 @@ class MapboxConfig {
       'https://api.mapbox.com/directions/v5/mapbox';
 
   /// Default profile for directions (driving, walking, cycling)
-  static const String defaultDirectionsProfile = 'driving';
+  static const String defaultDirectionsProfile = 'driving-traffic';
 
   /// Default camera settings
   static const double defaultZoom = 15.0;
   static const double defaultPitch = 0.0;
   static const double defaultBearing = 0.0;
 
-  /// UI Campus center (default location for Indonesia University)
-  static const double uiCampusLatitude = -6.3615;
-  static const double uiCampusLongitude = 106.8242;
+  /// Undip (Universitas Diponegoro) Tembalang campus center — Semarang
+  static const double uiCampusLatitude = -7.0523;
+  static const double uiCampusLongitude = 110.4381;
 
   /// Search radius for nearby beacons (in meters)
   static const double searchRadiusMeters = 5000.0; // 5km

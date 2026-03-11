@@ -21,6 +21,7 @@ class RideRequestResource extends JsonResource
             'estimated_distance_km' => $this->estimated_distance_km,
             'estimated_duration_minutes' => $this->estimated_duration_minutes,
             'estimated_fare_rp' => $this->estimated_fare_rp,
+            'route_geometry' => $this->route_geometry,
             'special_requests' => $this->special_requests,
             'expires_at' => $this->expires_at?->toISOString(),
             'matched_at' => $this->matched_at?->toISOString(),
