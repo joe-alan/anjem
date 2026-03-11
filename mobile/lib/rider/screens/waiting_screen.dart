@@ -25,6 +25,38 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
     super.dispose();
   }
 
+  Future<void> _showCancelDialog() async {
+    if (_isCancelling) return;
+    final nav = Navigator.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Request?'),
+        content: const Text('Are you sure you want to cancel this ride request?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Yes, Cancel'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      setState(() => _isCancelling = true);
+      await ref.read(rideRequestProvider.notifier).cancelRequest();
+      if (mounted) {
+        nav.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const RiderHomeScreen()),
+          (route) => false,
+        );
+      }
+    }
+  }
+
   void _startCountdown(DateTime until) {
     _countdownTimer?.cancel();
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -103,7 +135,12 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
 
     final bool noDrivers = requestState.noDriversAvailableUntil != null;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic result) {
+        if (!didPop) _showCancelDialog();
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('Finding Driver'),
         backgroundColor: config.primaryColor,
@@ -174,49 +211,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
               ],
               const SizedBox(height: 48),
               OutlinedButton.icon(
-                onPressed: requestState.isLoading
-                    ? null
-                    : () async {
-                        final nav = Navigator.of(context);
-                        final confirmed = await showDialog<bool>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Cancel Request?'),
-                            content: const Text(
-                              'Are you sure you want to cancel this ride request?',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () =>
-                                    Navigator.of(context).pop(false),
-                                child: const Text('No'),
-                              ),
-                              TextButton(
-                                onPressed: () =>
-                                    Navigator.of(context).pop(true),
-                                child: const Text('Yes, Cancel'),
-                              ),
-                            ],
-                          ),
-                        );
-
-                        if (confirmed == true && mounted) {
-                          setState(() => _isCancelling = true);
-
-                          await ref
-                              .read(rideRequestProvider.notifier)
-                              .cancelRequest();
-
-                          if (mounted) {
-                            nav.pushAndRemoveUntil(
-                              MaterialPageRoute(
-                                builder: (context) => const RiderHomeScreen(),
-                              ),
-                              (route) => false,
-                            );
-                          }
-                        }
-                      },
+                onPressed: requestState.isLoading ? null : _showCancelDialog,
                 icon: const Icon(Icons.close),
                 label: const Text('Cancel Request'),
                 style: OutlinedButton.styleFrom(
@@ -229,6 +224,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

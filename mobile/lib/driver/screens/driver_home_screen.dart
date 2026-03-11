@@ -6,6 +6,7 @@ import '../../core/config/app_config.dart';
 import '../../core/models/ride_request.dart';
 import '../../core/providers/api_provider.dart';
 import '../../core/providers/driver_incoming_request_provider.dart';
+import '../../core/providers/credits_provider.dart';
 import '../../core/providers/driver_status_provider.dart';
 import '../../core/providers/driver_statistics_provider.dart';
 import '../../core/providers/auth_provider.dart';
@@ -165,6 +166,115 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     _isPresentingRideRequest = false;
   }
 
+  void _showCreditsInfoSheet(BuildContext context, int balance) {
+    final Color accentColor = balance == 0
+        ? Colors.red[700]!
+        : balance < 5
+            ? Colors.orange[700]!
+            : Colors.green[700]!;
+
+    final String statusLabel = balance == 0
+        ? 'No credits'
+        : balance < 5
+            ? 'Low credits'
+            : 'Sufficient credits';
+
+    final String statusMessage = balance == 0
+        ? 'You cannot go online or accept rides until your balance is topped up. Contact your admin.'
+        : balance < 5
+            ? 'Your balance is running low. You can still accept rides, but consider contacting admin to top up soon.'
+            : 'You have enough credits to go online and accept rides.';
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                Icon(Icons.toll_rounded, color: accentColor, size: 28),
+                const SizedBox(width: 10),
+                const Text(
+                  'Your Credits',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Balance badge
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: accentColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    '$balance',
+                    style: const TextStyle(
+                      fontSize: 40,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    statusLabel,
+                    style: const TextStyle(fontSize: 13, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Status message
+            Text(statusMessage, style: const TextStyle(fontSize: 14)),
+            const SizedBox(height: 16),
+
+            // How credits work
+            const Text(
+              'How credits work',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const _CreditInfoRow(
+              icon: Icons.check_circle_outline,
+              text: '1 credit is deducted each time you accept a ride',
+            ),
+            const _CreditInfoRow(
+              icon: Icons.block,
+              text: 'You need at least 1 credit to go online',
+            ),
+            const _CreditInfoRow(
+              icon: Icons.admin_panel_settings_outlined,
+              text: 'Credits are granted by admin — contact them to top up',
+            ),
+            const SizedBox(height: 24),
+
+            // Top-up placeholder (future feature)
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: null, // TODO: implement top-up flow
+                icon: const Icon(Icons.add_card_outlined),
+                label: const Text('Top Up — Coming Soon'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
@@ -172,6 +282,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     final driverStatus = ref.watch(driverStatusProvider);
     final statisticsAsync = ref.watch(driverStatisticsProvider);
     final isDriverVerified = ref.watch(isDriverVerifiedProvider);
+    final creditsAsync = ref.watch(creditsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -200,6 +311,31 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         backgroundColor: config.primaryColor,
         foregroundColor: Colors.white,
         actions: [
+          // Credit balance chip
+          creditsAsync.whenData(
+            (balance) => Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: ActionChip(
+                label: Text(
+                  'Credits: $balance',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                backgroundColor: balance == 0
+                    ? Colors.red[700]
+                    : balance < 5
+                        ? Colors.orange[700]
+                        : Colors.green[700],
+                padding: EdgeInsets.zero,
+                visualDensity: VisualDensity.compact,
+                onPressed: () => _showCreditsInfoSheet(context, balance),
+              ),
+            ),
+          ).value ??
+              const SizedBox.shrink(),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
@@ -211,7 +347,10 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          await ref.refresh(driverStatisticsProvider.future);
+          await Future.wait([
+            ref.refresh(driverStatisticsProvider.future).then((_) {}).onError((_, __) {}),
+            ref.refresh(creditsProvider.future).then((_) {}).onError((_, __) {}),
+          ]);
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -541,6 +680,55 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                     ),
                   ),
 
+                // Low-credit warning (only when offline)
+                if (!driverStatus.isOnline)
+                  creditsAsync.whenData((balance) {
+                    if (balance == 0) {
+                      return Card(
+                        color: Colors.red[50],
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.credit_card_off,
+                                  color: Colors.red, size: 28),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Text(
+                                  'You have no credits. Contact admin to top up before going online.',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    } else if (balance < 5) {
+                      return Card(
+                        color: Colors.orange[50],
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.warning_amber,
+                                  color: Colors.orange, size: 28),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Low credits: $balance remaining. Contact admin to top up soon.',
+                                  style:
+                                      const TextStyle(color: Colors.deepOrange),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  }).value ??
+                      const SizedBox.shrink(),
+
                 const SizedBox(height: 24),
 
                 // Quick Actions
@@ -671,6 +859,12 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     return FloatingActionButton.extended(
       onPressed: () async {
         await ref.read(driverStatusProvider.notifier).goOnline();
+        final error = ref.read(driverStatusProvider).error;
+        if (error != null && error.contains('credit') && mounted) {
+          ref.read(driverStatusProvider.notifier).clearError();
+          final balance = ref.read(creditsProvider).value ?? 0;
+          _showCreditsInfoSheet(this.context, balance);
+        }
       },
       icon: const Icon(Icons.play_arrow),
       label: const Text('Go Online'),
@@ -723,3 +917,28 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     );
   }
 }
+
+class _CreditInfoRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _CreditInfoRow({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: Colors.grey[600]),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(text, style: const TextStyle(fontSize: 13)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

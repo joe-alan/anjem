@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CreditController;
 use App\Http\Controllers\Api\DriverController;
 use App\Http\Controllers\Api\PlaceController;
 use App\Http\Controllers\Api\RequestController;
@@ -81,13 +82,16 @@ Route::prefix('v1')->group(function () {
 
             Route::post('online', [DriverController::class, 'goOnline']);
             Route::post('offline', [DriverController::class, 'goOffline']);
-            Route::get('queue', [DriverController::class, 'getQueue']);
             Route::get('queue-position', [DriverController::class, 'getQueuePosition']);
             Route::patch('settings', [DriverController::class, 'updateSettings']);
             // Higher rate limit for location updates (real-time)
             Route::post('location', [DriverController::class, 'updateLocation'])->middleware('throttle:200,1');
-            Route::get('beacons', [DriverController::class, 'getAvailableBeacons']);
             Route::get('statistics', [DriverController::class, 'getStatistics']);
+        });
+
+        Route::prefix('driver/credits')->group(function () {
+            Route::get('balance',      [CreditController::class, 'getBalance']);
+            Route::get('transactions', [CreditController::class, 'getTransactions']);
         });
 
         // Ride management

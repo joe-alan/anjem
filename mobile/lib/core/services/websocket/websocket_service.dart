@@ -263,6 +263,7 @@ class WebSocketService {
     Function(Map<String, dynamic>)? onQueuePositionChanged,
     Function(Map<String, dynamic>)? onRequestCancelled,
     Function(Map<String, dynamic>)? onSessionReplaced,
+    Function(Map<String, dynamic>)? onDriverStatusChanged,
   }) async {
     final channelName = 'driver.$driverId';
 
@@ -312,6 +313,16 @@ class WebSocketService {
         channel.bind('session.replaced', (data) {
           print('Received session.replaced — signing out displaced device');
           onSessionReplaced(data as Map<String, dynamic>? ?? {});
+        });
+      }
+
+      // Listen for driver online status changes (e.g. auto-kick on zero credits)
+      if (onDriverStatusChanged != null) {
+        channel.bind('driver.status.changed', (data) {
+          print('Received driver.status.changed: $data');
+          if (data != null) {
+            onDriverStatusChanged(data as Map<String, dynamic>);
+          }
         });
       }
 

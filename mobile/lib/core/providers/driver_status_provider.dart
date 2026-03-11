@@ -4,6 +4,7 @@ import '../services/api/api_service.dart';
 import '../services/websocket/websocket_service.dart';
 import 'api_provider.dart';
 import 'auth_provider.dart'; // also used for authStateProvider (session.replaced)
+import 'credits_provider.dart';
 import 'driver_incoming_request_provider.dart';
 import 'kyc_provider.dart';
 
@@ -115,6 +116,21 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
       return;
     }
 
+    // Credit gate: driver must have at least 1 credit to go online
+    try {
+      final creditService = _ref.read(creditServiceProvider);
+      final balance = await creditService.getBalance();
+      if (balance < 1) {
+        state = state.copyWith(
+          error:
+              'You need at least 1 credit to go online. Contact admin to top up.',
+        );
+        return;
+      }
+    } catch (_) {
+      // If credit check fails, allow online — do not block on network errors
+    }
+
     state = state.copyWith(isLoading: true, error: null);
 
     try {
@@ -139,6 +155,9 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         isLoading: false,
         queuePosition: queuePosition,
       );
+
+      // Refresh balance so the chip and request screen show the current value.
+      _ref.invalidate(creditsProvider);
 
       // Subscribe to driver channel for incoming ride requests
       await _subscribeToRideRequests();
@@ -241,6 +260,19 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         print('DriverStatusProvider: Session replaced — signing out this device');
         // Another device logged in with this driver account; sign out locally.
         _ref.read(authStateProvider.notifier).signOut();
+      },
+      onDriverStatusChanged: (eventData) {
+        final isOnline = eventData['is_online'] as bool? ?? true;
+        if (!isOnline) {
+          print('DriverStatusProvider: Auto-kicked offline by backend (zero credits)');
+          state = state.copyWith(
+            status: DriverStatusEnum.offline,
+            activeRideId: null,
+            queuePosition: 0,
+          );
+          // Invalidate credits so the chip and warning card reflect balance = 0
+          _ref.invalidate(creditsProvider);
+        }
       },
     );
 
