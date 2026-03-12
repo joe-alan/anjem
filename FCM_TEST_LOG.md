@@ -17,7 +17,7 @@
 | FCM-3  Token Cleared on Logout                    | Setup      | ✅ Pass       |
 | FCM-4  New Ride Request — Driver (Foreground)     | Ride flow  | ✅ Pass       |
 | FCM-5  New Ride Request — Driver (Background)     | Ride flow  | ✅ Pass       |
-| FCM-6  New Ride Request — Driver (Terminated)     | Ride flow  | ⏭️ Deferred   |
+| FCM-6  New Ride Request — Driver (Terminated)     | Ride flow  | 🚫 N/A        |
 | FCM-7  Ride Accepted — Rider                      | Ride flow  | ✅ Pass       |
 | FCM-8  Driver Arrived — Rider                     | Ride flow  | ✅ Pass       |
 | FCM-9  Ride Started — Rider                       | Ride flow  | ✅ Pass       |
@@ -33,7 +33,7 @@
 | FCM-19 Network Offline During Token Send          | Edge case  | ⬜ Not tested |
 | FCM-E2E Full Happy Path with FCM Active           | E2E        | ⬜ Not tested |
 
-> **Status key:** ⬜ Not tested · ✅ Pass · ❌ Fail · ⚠️ Partial · ⏭️ Deferred
+> **Status key:** ⬜ Not tested · ✅ Pass · ❌ Fail · ⚠️ Partial · ⏭️ Deferred · 🚫 N/A
 
 ---
 
@@ -242,7 +242,7 @@ Tray notification WAI (physical device, 3s delay). Three bugs found and fixed:
 
 ```
 
-**Test Result:** ⏭️ Deferred — needs physical device
+**Test Result:** 🚫 N/A — by design, force-killing the app removes the driver from the queue (KickStaleDrivers). No active dispatch exists to restore, so terminated-state notification tap is not a supported flow.
 
 ---
 
