@@ -27,7 +27,7 @@
 | FCM-13 KYC Approved — Driver                      | KYC        | ✅ Pass       |
 | FCM-14 KYC Rejected — Driver                      | KYC        | ✅ Pass       |
 | FCM-15 Null FCM Token — Graceful Skip             | Edge case  | ✅ Pass       |
-| FCM-16 Multiple Rapid Notifications               | Edge case  | ⬜ Not tested |
+| FCM-16 Multiple Rapid Notifications               | Edge case  | ✅ Pass       |
 | FCM-17 Sign Out then Sign In — Token Rotation     | Edge case  | ⬜ Not tested |
 | FCM-18 Permission Denied — App Still Works        | Edge case  | ⬜ Not tested |
 | FCM-19 Network Offline During Token Send          | Edge case  | ⬜ Not tested |
@@ -463,10 +463,10 @@ Token restored after test.
 **Notes / Observations:**
 
 ```
-
+WAI. All 4 notifications delivered in correct order, no crashes or drops.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
