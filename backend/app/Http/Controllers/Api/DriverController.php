@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateLocationRequest;
 use App\Models\Location;
 use App\Models\Ride;
+use App\Models\RideRequest;
 use App\Services\CreditService;
 use App\Services\LocationService;
 use App\Services\MatchingQueueService;
@@ -376,6 +377,64 @@ class DriverController extends Controller
         return response()->json([
             'success' => true,
             'data' => $stats,
+        ]);
+    }
+
+    /**
+     * Return the ride request currently dispatched to this driver, if any.
+     * Used by the mobile app to restore the incoming request sheet after
+     * tapping an FCM notification that opened the app from background/terminated.
+     */
+    public function getCurrentRequest(Request $request): JsonResponse
+    {
+        $driver = $request->user();
+
+        $rideRequest = RideRequest::where('current_driver_id', $driver->id)
+            ->where('status', 'pending')
+            ->with(['pickupLocation', 'destinationLocation', 'rider'])
+            ->first();
+
+        if (! $rideRequest) {
+            return response()->json(['success' => true, 'data' => null]);
+        }
+
+        $pickup = $rideRequest->pickupLocation;
+        $destination = $rideRequest->destinationLocation;
+
+        $transformLocation = function ($loc) {
+            return $loc ? [
+                'id' => $loc->id,
+                'name' => $loc->name,
+                'description' => $loc->description,
+                'type' => $loc->isBeacon() ? 'beacon' : 'p2p',
+                'is_active' => $loc->is_active,
+                'queue_count' => $loc->current_queue_size,
+                'coordinates' => [
+                    'latitude' => $loc->coordinates->latitude,
+                    'longitude' => $loc->coordinates->longitude,
+                ],
+                'created_at' => $loc->created_at?->toISOString() ?? now()->toISOString(),
+                'updated_at' => $loc->updated_at?->toISOString() ?? now()->toISOString(),
+            ] : null;
+        };
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'ride_request_id'        => $rideRequest->id,
+                'rider_id'               => $rideRequest->rider_id,
+                'rider_name'             => $rideRequest->rider?->name,
+                'passenger_count'        => $rideRequest->passenger_count,
+                'special_requests'       => $rideRequest->special_requests,
+                'estimated_fare_rp'      => $rideRequest->estimated_fare_rp,
+                'status'                 => $rideRequest->status,
+                'pickup_location'        => $transformLocation($pickup),
+                'destination_location'   => $transformLocation($destination),
+                'estimated_pickup_minutes' => $rideRequest->getEstimatedPickupTime()->diffInMinutes(now()),
+                'created_at'             => $rideRequest->created_at?->toISOString(),
+                'updated_at'             => $rideRequest->updated_at?->toISOString(),
+                'dispatched_at'          => now()->toISOString(),
+            ],
         ]);
     }
 }
