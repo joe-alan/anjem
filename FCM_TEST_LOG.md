@@ -24,7 +24,7 @@
 | FCM-10 Ride Completed — Both                      | Ride flow  | ⚠️ Partial    |
 | FCM-11 Ride Cancelled — Both                      | Ride flow  | ✅ Pass       |
 | FCM-12 No Drivers Available — Rider               | Ride flow  | ✅ Pass       |
-| FCM-13 KYC Approved — Driver                      | KYC        | ⬜ Not tested |
+| FCM-13 KYC Approved — Driver                      | KYC        | ✅ Pass       |
 | FCM-14 KYC Rejected — Driver                      | KYC        | ⬜ Not tested |
 | FCM-15 Null FCM Token — Graceful Skip             | Edge case  | ⬜ Not tested |
 | FCM-16 Multiple Rapid Notifications               | Edge case  | ⬜ Not tested |
@@ -388,10 +388,10 @@ WAI. Foreground local notification and background system tray both delivered cor
 **Notes / Observations:**
 
 ```
-
+WAI across all three app states (foreground, background, terminated).
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
