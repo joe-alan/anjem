@@ -430,6 +430,10 @@ class RideService
 
             $this->removeActiveRequestCache($ride->ride_request_id);
 
+            // Reset rider cancel streak on successful completion
+            \Illuminate\Support\Facades\Cache::forget("rider_cancel_count:{$ride->rider_id}");
+            \Illuminate\Support\Facades\Cache::forget("rider_cancel_cooldown:{$ride->rider_id}");
+
             Log::info('Ride completed', [
                 'ride_id' => $rideId,
                 'driver_id' => $driverId,
@@ -451,29 +455,34 @@ class RideService
 
     /**
      * Apply cancel penalty to a rider and return meta for the API response.
+     * Uses Redis cache — no new DB columns needed.
      * 1st cancel → warning only. 2nd → warning + 5min cooldown. 3rd → suspend.
      */
     public function applyRiderCancelPenalty(\App\Models\User $rider): array
     {
-        $newCount = $rider->rider_cancel_count + 1;
+        $countKey = "rider_cancel_count:{$rider->id}";
+        $cooldownKey = "rider_cancel_cooldown:{$rider->id}";
+
+        $newCount = \Illuminate\Support\Facades\Cache::increment($countKey);
+        // Set a 24h window on first increment so the key eventually expires
+        if ($newCount === 1) {
+            \Illuminate\Support\Facades\Cache::put($countKey, 1, now()->addHours(24));
+        }
+
         $cooldownUntil = null;
         $suspended = false;
 
         if ($newCount >= 3) {
-            $rider->update([
-                'rider_cancel_count' => $newCount,
-                'is_active' => false,
-                'suspension_reason' => 'Too many ride cancellations',
-            ]);
+            $rider->update(['is_active' => false]);
+            broadcast(new \App\Events\UserAccountStatusChanged(
+                $rider->fresh(['driverProfile']),
+                true,
+                'Too many ride cancellations',
+            ));
             $suspended = true;
         } elseif ($newCount >= 2) {
             $cooldownUntil = now()->addMinutes(5);
-            $rider->update([
-                'rider_cancel_count' => $newCount,
-                'rider_cancel_cooldown_until' => $cooldownUntil,
-            ]);
-        } else {
-            $rider->update(['rider_cancel_count' => $newCount]);
+            \Illuminate\Support\Facades\Cache::put($cooldownKey, $cooldownUntil->toIso8601String(), $cooldownUntil);
         }
 
         return [

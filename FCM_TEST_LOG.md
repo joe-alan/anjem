@@ -12,16 +12,16 @@
 
 | Test | Area | Status |
 |------|------|--------|
-| [FCM-1 Permission & Token Registration](#fcm-1-permission--token-registration) | Setup | ⬜ Not tested |
-| [FCM-2 Token Refresh](#fcm-2-token-refresh) | Setup | ⬜ Not tested |
-| [FCM-3 Token Cleared on Logout](#fcm-3-token-cleared-on-logout) | Setup | ⬜ Not tested |
-| [FCM-4 New Ride Request — Driver (Foreground)](#fcm-4-new-ride-request--driver-foreground) | Ride flow | ⬜ Not tested |
-| [FCM-5 New Ride Request — Driver (Background)](#fcm-5-new-ride-request--driver-background) | Ride flow | ⬜ Not tested |
-| [FCM-6 New Ride Request — Driver (Terminated)](#fcm-6-new-ride-request--driver-terminated) | Ride flow | ⬜ Not tested |
-| [FCM-7 Ride Accepted — Rider](#fcm-7-ride-accepted--rider) | Ride flow | ⬜ Not tested |
-| [FCM-8 Driver Arrived — Rider](#fcm-8-driver-arrived--rider) | Ride flow | ⬜ Not tested |
-| [FCM-9 Ride Started — Rider](#fcm-9-ride-started--rider) | Ride flow | ⬜ Not tested |
-| [FCM-10 Ride Completed — Both](#fcm-10-ride-completed--both) | Ride flow | ⬜ Not tested |
+| [FCM-1 Permission & Token Registration](#fcm-1-permission--token-registration) | Setup | ✅ Pass |
+| [FCM-2 Token Refresh](#fcm-2-token-refresh) | Setup | ⏭️ Deferred |
+| [FCM-3 Token Cleared on Logout](#fcm-3-token-cleared-on-logout) | Setup | ✅ Pass |
+| [FCM-4 New Ride Request — Driver (Foreground)](#fcm-4-new-ride-request--driver-foreground) | Ride flow | ✅ Pass |
+| [FCM-5 New Ride Request — Driver (Background)](#fcm-5-new-ride-request--driver-background) | Ride flow | ⏭️ Deferred |
+| [FCM-6 New Ride Request — Driver (Terminated)](#fcm-6-new-ride-request--driver-terminated) | Ride flow | ⏭️ Deferred |
+| [FCM-7 Ride Accepted — Rider](#fcm-7-ride-accepted--rider) | Ride flow | ✅ Pass |
+| [FCM-8 Driver Arrived — Rider](#fcm-8-driver-arrived--rider) | Ride flow | ✅ Pass |
+| [FCM-9 Ride Started — Rider](#fcm-9-ride-started--rider) | Ride flow | ✅ Pass |
+| [FCM-10 Ride Completed — Both](#fcm-10-ride-completed--both) | Ride flow | ⚠️ Partial |
 | [FCM-11 Ride Cancelled — Both](#fcm-11-ride-cancelled--both) | Ride flow | ⬜ Not tested |
 | [FCM-12 No Drivers Available — Rider](#fcm-12-no-drivers-available--rider) | Ride flow | ⬜ Not tested |
 | [FCM-13 KYC Approved — Driver](#fcm-13-kyc-approved--driver) | KYC | ⬜ Not tested |
@@ -106,7 +106,7 @@ grep "FCM\|fcm\|Notification" storage/logs/laravel.log | tail -30
 
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass — tokens registered for users 17, 18, 19. Backend log confirms `FCM token updated` events. DB `has_token = true` for all active users.
 
 ---
 
@@ -150,10 +150,10 @@ grep "FCM\|fcm\|Notification" storage/logs/laravel.log | tail -30
 **Notes / Observations:**
 
 ```
-
+User 17 (Jonathan Alano) fcm_token = NULL confirmed in DB immediately after logout.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
