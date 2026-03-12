@@ -37,6 +37,9 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
       // WebSocket event was missed while the app was backgrounded.
       ref.read(authStateProvider.notifier).refreshUser();
       ref.read(kycStateProvider.notifier).refreshKycStatus();
+      // Restore incoming request if app was opened via FCM notification tap
+      // and the WS event was missed while backgrounded.
+      ref.read(driverStatusProvider.notifier).checkPendingDispatch();
     }
     // Best-effort offline call when the OS is about to destroy the app.
     if (state == AppLifecycleState.detached) {
