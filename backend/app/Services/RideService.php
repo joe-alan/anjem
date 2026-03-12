@@ -422,6 +422,12 @@ class RideService
                 $ride->rideRequest->markAsCompleted();
             }
 
+            // Reset rider's cancel streak on successful completion
+            $ride->load('rider');
+            if ($ride->rider) {
+                $ride->rider->update(['rider_cancel_count' => 0, 'rider_cancel_cooldown_until' => null]);
+            }
+
             $this->removeActiveRequestCache($ride->ride_request_id);
 
             Log::info('Ride completed', [
@@ -441,6 +447,40 @@ class RideService
 
             return false;
         }
+    }
+
+    /**
+     * Apply cancel penalty to a rider and return meta for the API response.
+     * 1st cancel → warning only. 2nd → warning + 5min cooldown. 3rd → suspend.
+     */
+    public function applyRiderCancelPenalty(\App\Models\User $rider): array
+    {
+        $newCount = $rider->rider_cancel_count + 1;
+        $cooldownUntil = null;
+        $suspended = false;
+
+        if ($newCount >= 3) {
+            $rider->update([
+                'rider_cancel_count' => $newCount,
+                'is_active' => false,
+                'suspension_reason' => 'Too many ride cancellations',
+            ]);
+            $suspended = true;
+        } elseif ($newCount >= 2) {
+            $cooldownUntil = now()->addMinutes(5);
+            $rider->update([
+                'rider_cancel_count' => $newCount,
+                'rider_cancel_cooldown_until' => $cooldownUntil,
+            ]);
+        } else {
+            $rider->update(['rider_cancel_count' => $newCount]);
+        }
+
+        return [
+            'cancel_count' => $newCount,
+            'cooldown_until' => $cooldownUntil?->toIso8601String(),
+            'is_suspended' => $suspended,
+        ];
     }
 
     /**

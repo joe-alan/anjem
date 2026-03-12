@@ -228,6 +228,36 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
               ),
             ),
 
+          // Cancel warning banner
+          if (rideRequestState.cancelCount >= 1)
+            Positioned(
+              bottom: 100,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        rideRequestState.cancelCount >= 2
+                            ? 'Warning: One more cancellation will suspend your account.'
+                            : 'Warning: Repeated cancellations may result in a temporary ban.',
+                        style: TextStyle(color: Colors.orange.shade800, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
           // Request Ride button
           Positioned(
             bottom: 24,
