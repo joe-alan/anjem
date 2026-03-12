@@ -25,7 +25,7 @@
 | FCM-11 Ride Cancelled — Both                      | Ride flow  | ✅ Pass       |
 | FCM-12 No Drivers Available — Rider               | Ride flow  | ✅ Pass       |
 | FCM-13 KYC Approved — Driver                      | KYC        | ✅ Pass       |
-| FCM-14 KYC Rejected — Driver                      | KYC        | ⬜ Not tested |
+| FCM-14 KYC Rejected — Driver                      | KYC        | ✅ Pass       |
 | FCM-15 Null FCM Token — Graceful Skip             | Edge case  | ⬜ Not tested |
 | FCM-16 Multiple Rapid Notifications               | Edge case  | ⬜ Not tested |
 | FCM-17 Sign Out then Sign In — Token Rotation     | Edge case  | ⬜ Not tested |
@@ -410,10 +410,10 @@ WAI across all three app states (foreground, background, terminated).
 **Notes / Observations:**
 
 ```
-
+WAI across all three app states. Navigation to KYC form confirmed on notification tap.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
