@@ -351,6 +351,7 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
       'estimated_wait_time': eventData['estimated_pickup_minutes'],
       'created_at': eventData['created_at'] ?? fallbackTimestamp,
       'updated_at': fallbackTimestamp,
+      'dispatched_at': eventData['dispatched_at'],
     };
 
     return RideRequest.fromJson(requestJson);

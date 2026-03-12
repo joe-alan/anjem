@@ -54,6 +54,7 @@ class NewRideRequest implements ShouldBroadcast
             'expires_at' => $this->rideRequest->expires_at?->toISOString(),
             'created_at' => $this->rideRequest->created_at?->toISOString(),
             'updated_at' => $this->rideRequest->updated_at?->toISOString(),
+            'dispatched_at' => now()->toISOString(),
             'timestamp' => now()->toISOString(),
         ];
     }
