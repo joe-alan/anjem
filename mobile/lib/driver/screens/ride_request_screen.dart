@@ -24,7 +24,7 @@ class RideRequestScreen extends ConsumerStatefulWidget {
 
 class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
   static const int timeoutSeconds = 30;
-  int _secondsRemaining = timeoutSeconds;
+  late int _secondsRemaining;
   Timer? _timer;
   bool _isProcessing = false;
   bool _isDismissing = false;
@@ -33,6 +33,8 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
   @override
   void initState() {
     super.initState();
+    final elapsed = DateTime.now().difference(widget.request.createdAt).inSeconds;
+    _secondsRemaining = (timeoutSeconds - elapsed).clamp(0, timeoutSeconds);
     _startCountdown();
   }
 
@@ -173,6 +175,7 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
   Future<void> _declineRide() async {
     if (_isProcessing) return;
     _timer?.cancel();
+    _isDismissing = true;
 
     setState(() => _isProcessing = true);
 
@@ -185,7 +188,6 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
       print('RideRequestScreen: decline error (ignored) - $e');
     }
 
-    _isDismissing = true;
     _clearIncomingRequest();
 
     if (mounted) {
