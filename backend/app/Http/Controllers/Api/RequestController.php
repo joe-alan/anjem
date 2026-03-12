@@ -80,16 +80,20 @@ class RequestController extends Controller
             ], 400);
         }
 
-        // Check cancel-strike cooldown (user-level, 5 min after 2nd consecutive cancel)
-        if ($rider->rider_cancel_cooldown_until && $rider->rider_cancel_cooldown_until->isFuture()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Please wait before making another ride request.',
-                'data' => [
-                    'cooldown_until' => $rider->rider_cancel_cooldown_until->toISOString(),
-                    'seconds_remaining' => max(0, now()->diffInSeconds($rider->rider_cancel_cooldown_until)),
-                ],
-            ], 429);
+        // Check cancel-strike cooldown (Redis, set after 2nd consecutive cancel)
+        $cancelCooldown = \Illuminate\Support\Facades\Cache::get("rider_cancel_cooldown:{$rider->id}");
+        if ($cancelCooldown) {
+            $cooldownUntil = \Carbon\Carbon::parse($cancelCooldown);
+            if ($cooldownUntil->isFuture()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please wait before making another ride request.',
+                    'data' => [
+                        'cooldown_until' => $cooldownUntil->toISOString(),
+                        'seconds_remaining' => max(0, now()->diffInSeconds($cooldownUntil)),
+                    ],
+                ], 429);
+            }
         }
 
         // Check rider cooldown (enforced after cancel/expire)

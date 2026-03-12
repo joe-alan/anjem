@@ -41,9 +41,6 @@ class User extends Authenticatable implements FilamentUser
         'preferred_payment',
         'is_active',
         'last_active_at',
-        'rider_cancel_count',
-        'rider_cancel_cooldown_until',
-        'suspension_reason',
     ];
 
     /**
@@ -69,8 +66,6 @@ class User extends Authenticatable implements FilamentUser
         'last_active_at' => 'datetime',
         'rider_rating_avg' => 'decimal:2',
         'total_rides_taken' => 'integer',
-        'rider_cancel_count' => 'integer',
-        'rider_cancel_cooldown_until' => 'datetime',
         'password' => 'hashed',
         'role' => 'string', // admin, rider, driver, both
     ];
