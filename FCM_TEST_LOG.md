@@ -29,9 +29,9 @@
 | FCM-15 Null FCM Token — Graceful Skip             | Edge case  | ✅ Pass       |
 | FCM-16 Multiple Rapid Notifications               | Edge case  | ✅ Pass       |
 | FCM-17 Sign Out then Sign In — Token Rotation     | Edge case  | ✅ Pass       |
-| FCM-18 Permission Denied — App Still Works        | Edge case  | ⬜ Not tested |
-| FCM-19 Network Offline During Token Send          | Edge case  | ⬜ Not tested |
-| FCM-E2E Full Happy Path with FCM Active           | E2E        | ⬜ Not tested |
+| FCM-18 Permission Denied — App Still Works        | Edge case  | ✅ Pass       |
+| FCM-19 Network Offline During Token Send          | Edge case  | ✅ Pass       |
+| FCM-E2E Full Happy Path with FCM Active           | E2E        | ✅ Pass       |
 
 > **Status key:** ⬜ Not tested · ✅ Pass · ❌ Fail · ⚠️ Partial · ⏭️ Deferred · 🚫 N/A
 
@@ -509,10 +509,10 @@ WAI. DB confirmed: token nulled on logout, new token registered on login.
 **Notes / Observations:**
 
 ```
-
+WAI. Permission denied logged cleanly, app continued normally, full ride flow via WebSocket unaffected.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
@@ -533,10 +533,11 @@ WAI. DB confirmed: token nulled on logout, new token registered on login.
 **Notes / Observations:**
 
 ```
-
+WAI. Token send failed silently with [FCM] Failed to send token log, no crash.
+Token registered successfully on next launch with backend restored.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
@@ -567,10 +568,11 @@ WAI. DB confirmed: token nulled on logout, new token registered on login.
 **Notes / Observations:**
 
 ```
-
+WAI. All 5 FCM events fired cleanly alongside WebSocket. Request sheet restored on notification
+tap. No duplicates, no crashes, tokens stable throughout ride.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
@@ -612,16 +614,16 @@ WAI. DB confirmed: token nulled on logout, new token registered on login.
 
 ## Sign-off
 
-- [ ] FCM token registered on login for both rider and driver
-- [ ] FCM token cleared on logout
-- [ ] New ride request push delivered to driver (background + terminated)
-- [ ] No duplicate notification when driver app is in foreground
-- [ ] All ride lifecycle pushes delivered to rider
-- [ ] KYC rejected tap navigates to KYC form
-- [ ] Null token: no crash, WebSocket unaffected
-- [ ] Permission denied: app functions normally via WebSocket
-- [ ] E2E full happy path: all 5 FCM events fire cleanly
-- [ ] `fcm-wiring2` ready to merge → `main`
+- [x] FCM token registered on login for both rider and driver
+- [x] FCM token cleared on logout
+- [x] New ride request push delivered to driver (background + terminated)
+- [x] No duplicate notification when driver app is in foreground
+- [x] All ride lifecycle pushes delivered to rider
+- [x] KYC rejected tap navigates to KYC form
+- [x] Null token: no crash, WebSocket unaffected
+- [x] Permission denied: app functions normally via WebSocket
+- [x] E2E full happy path: all 5 FCM events fire cleanly
+- [x] `fcm-wiring2` ready to merge → `main`
 
-**Tested by:** \_\_\_\_\_\_\_\_\_\_\_
-**Date:** \_\_\_\_\_\_\_\_\_\_\_
+**Tested by:** Jonathan Alano
+**Date:** 2026-03-12
