@@ -33,7 +33,8 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
   @override
   void initState() {
     super.initState();
-    final elapsed = DateTime.now().difference(widget.request.createdAt).inSeconds;
+    final timerStart = widget.request.dispatchedAt ?? widget.request.createdAt;
+    final elapsed = DateTime.now().difference(timerStart).inSeconds;
     _secondsRemaining = (timeoutSeconds - elapsed).clamp(0, timeoutSeconds);
     _startCountdown();
   }
