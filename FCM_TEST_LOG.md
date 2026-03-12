@@ -23,7 +23,7 @@
 | FCM-9  Ride Started — Rider                       | Ride flow  | ✅ Pass       |
 | FCM-10 Ride Completed — Both                      | Ride flow  | ⚠️ Partial    |
 | FCM-11 Ride Cancelled — Both                      | Ride flow  | ✅ Pass       |
-| FCM-12 No Drivers Available — Rider               | Ride flow  | ⬜ Not tested |
+| FCM-12 No Drivers Available — Rider               | Ride flow  | ✅ Pass       |
 | FCM-13 KYC Approved — Driver                      | KYC        | ⬜ Not tested |
 | FCM-14 KYC Rejected — Driver                      | KYC        | ⬜ Not tested |
 | FCM-15 Null FCM Token — Graceful Skip             | Edge case  | ⬜ Not tested |
@@ -363,10 +363,10 @@ Tapping notification caused crash (Mapbox PointAnnotationMessenger channel error
 **Notes / Observations:**
 
 ```
-
+WAI. Foreground local notification and background system tray both delivered correctly after timeout.
 ```
 
-**Test Result:** ⬜
+**Test Result:** ✅ Pass
 
 ---
 
