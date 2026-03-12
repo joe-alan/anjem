@@ -16,7 +16,7 @@
 | FCM-2  Token Refresh                              | Setup      | ⏭️ Deferred   |
 | FCM-3  Token Cleared on Logout                    | Setup      | ✅ Pass       |
 | FCM-4  New Ride Request — Driver (Foreground)     | Ride flow  | ✅ Pass       |
-| FCM-5  New Ride Request — Driver (Background)     | Ride flow  | ⏭️ Deferred   |
+| FCM-5  New Ride Request — Driver (Background)     | Ride flow  | ✅ Pass       |
 | FCM-6  New Ride Request — Driver (Terminated)     | Ride flow  | ⏭️ Deferred   |
 | FCM-7  Ride Accepted — Rider                      | Ride flow  | ✅ Pass       |
 | FCM-8  Driver Arrived — Rider                     | Ride flow  | ✅ Pass       |
@@ -203,10 +203,20 @@ User 17 (Jonathan Alano) fcm_token = NULL confirmed in DB immediately after logo
 **Notes / Observations:**
 
 ```
-
+Tray notification WAI (physical device, 3s delay). Three bugs found and fixed:
+1. With 10s+ delay, rider saw no-drivers screen despite driver being online — goOnline() was
+   not sending GPS coords, so current_location was null and ST_Distance check excluded driver.
+   Fixed: goOnline() now fetches GPS and includes coords in the API call.
+2. Tapping notification showed home screen but not the request sheet — WS event was missed
+   while backgrounded, driverIncomingRequestProvider was empty.
+   Fixed: GET /driver/current-request endpoint + checkPendingDispatch() on app resume.
+3. Driver auto-kicked offline ~15s after backgrounding (zero credits log, credits were fine) —
+   KickStaleDrivers treated null last_location_update as immediately stale, fired at next
+   minute tick (could be <60s after going online).
+   Fixed: null heartbeat only stale if went_online_at is also older than threshold.
 ```
 
-**Test Result:** ⏭️ Deferred — emulator FCM background delivery unreliable; needs physical device
+**Test Result:** ✅ Pass
 
 ---
 
@@ -591,6 +601,9 @@ Tapping notification caused crash (Mapbox PointAnnotationMessenger channel error
 | 3  | FCM-10 | Driver foreground completion banner missing (WS screen overlap)          | Low      | ⬜ Open   |
 | 4  | FCM-11 | Mapbox PointAnnotationMessenger crash on notification tap resume          | Medium   | ✅ Fixed  |
 | 5  | FCM-4  | Driver timer shows consumed time when dispatched during no-drivers wait   | Medium   | ✅ Fixed  |
+| 6  | FCM-5  | goOnline() sent no GPS — null current_location excluded driver from match | High     | ✅ Fixed  |
+| 7  | FCM-5  | Notification tap showed home screen, not request sheet (missed WS event)  | High     | ✅ Fixed  |
+| 8  | FCM-5  | KickStaleDrivers kicked driver ~15s after going online (null heartbeat)   | High     | ✅ Fixed  |
 
 ---
 
