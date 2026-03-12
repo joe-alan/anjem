@@ -80,6 +80,18 @@ class RequestController extends Controller
             ], 400);
         }
 
+        // Check cancel-strike cooldown (user-level, 5 min after 2nd consecutive cancel)
+        if ($rider->rider_cancel_cooldown_until && $rider->rider_cancel_cooldown_until->isFuture()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please wait before making another ride request.',
+                'data' => [
+                    'cooldown_until' => $rider->rider_cancel_cooldown_until->toISOString(),
+                    'seconds_remaining' => max(0, now()->diffInSeconds($rider->rider_cancel_cooldown_until)),
+                ],
+            ], 429);
+        }
+
         // Check rider cooldown (enforced after cancel/expire)
         $cooldownUntil = RideRequest::where('rider_id', $rider->id)
             ->where('rider_cooldown_until', '>', now())
@@ -222,6 +234,7 @@ class RequestController extends Controller
 
         // Apply rider cooldown after cancellation
         $this->matchingQueueService->applyRiderCooldown($ride_request);
+        $penaltyMeta = $this->rideService->applyRiderCancelPenalty($user);
 
         // Notify the assigned driver (pending dispatch) via WebSocket so their screen dismisses
         if ($assignedDriverId) {
@@ -247,9 +260,10 @@ class RequestController extends Controller
             'success' => true,
             'message' => 'Ride request cancelled successfully',
             'data' => new RideRequestResource($ride_request),
-            'meta' => [
-                'cooldown_until' => $ride_request->rider_cooldown_until?->toISOString(),
-            ],
+            'meta' => array_merge(
+                ['cooldown_until' => $ride_request->rider_cooldown_until?->toISOString()],
+                $penaltyMeta,
+            ),
         ]);
     }
 

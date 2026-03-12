@@ -73,6 +73,30 @@ class RideService {
     }
   }
 
+  /// Cancel an active ride (rider). Returns the ride and penalty meta.
+  Future<({Ride ride, Map<String, dynamic> meta})> cancelRide(int rideId) async {
+    try {
+      final response = await _apiService.patch(
+        '/rides/$rideId/status',
+        data: {'status': 'cancelled'},
+      );
+
+      if (response.data['success'] != true) {
+        throw Exception(
+          response.data['message'] ?? 'Failed to cancel ride',
+        );
+      }
+
+      return (
+        ride: Ride.fromJson(response.data['data'] as Map<String, dynamic>),
+        meta: (response.data['meta'] as Map<String, dynamic>?) ?? {},
+      );
+    } catch (e) {
+      print('RideService: Error cancelling ride - $e');
+      rethrow;
+    }
+  }
+
   /// Update ride status (used by driver)
   Future<Ride> updateRideStatus({
     required int rideId,

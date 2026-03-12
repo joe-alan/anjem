@@ -28,6 +28,8 @@ class RideRequestState {
   final String? cooldownUntil;
   /// Set when server broadcasts no-drivers-available; rider sees countdown until this time.
   final DateTime? noDriversAvailableUntil;
+  /// Number of consecutive cancellations this session (1 = warning, 2 = cooldown, 3 = suspended).
+  final int cancelCount;
 
   const RideRequestState({
     this.request,
@@ -38,6 +40,7 @@ class RideRequestState {
     this.successMessage,
     this.cooldownUntil,
     this.noDriversAvailableUntil,
+    this.cancelCount = 0,
   });
 
   RideRequestState copyWith({
@@ -49,6 +52,7 @@ class RideRequestState {
     String? successMessage,
     String? cooldownUntil,
     DateTime? noDriversAvailableUntil,
+    int? cancelCount,
   }) {
     return RideRequestState(
       request: request ?? this.request,
@@ -59,6 +63,7 @@ class RideRequestState {
       successMessage: successMessage,
       cooldownUntil: cooldownUntil ?? this.cooldownUntil,
       noDriversAvailableUntil: noDriversAvailableUntil ?? this.noDriversAvailableUntil,
+      cancelCount: cancelCount ?? this.cancelCount,
     );
   }
 
@@ -229,21 +234,45 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
           await apiService.patch('/requests/$requestId/cancel');
 
       String? cooldownUntil;
+      int cancelCount = 0;
+      bool isSuspended = false;
       if (response.data['meta'] != null) {
-        cooldownUntil =
-            response.data['meta']['cooldown_until'] as String?;
+        final meta = response.data['meta'] as Map<String, dynamic>;
+        cooldownUntil = meta['cooldown_until'] as String?;
+        cancelCount = (meta['cancel_count'] as int?) ?? 0;
+        isSuspended = (meta['is_suspended'] as bool?) ?? false;
       }
 
       state = RideRequestState(
         successMessage: 'Ride request cancelled',
         cooldownUntil: cooldownUntil,
+        cancelCount: cancelCount,
       );
       _stopMatchPolling();
+
+      if (isSuspended) {
+        onAccountSuspended?.call();
+      }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
       );
+    }
+  }
+
+  /// Called after an active ride is cancelled — updates cancel strike state.
+  void applyCancelPenalty({
+    required int cancelCount,
+    String? cooldownUntil,
+    required bool isSuspended,
+  }) {
+    state = state.copyWith(
+      cancelCount: cancelCount,
+      cooldownUntil: cooldownUntil,
+    );
+    if (isSuspended) {
+      onAccountSuspended?.call();
     }
   }
 
