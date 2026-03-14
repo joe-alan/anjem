@@ -168,54 +168,60 @@ class _MapboxMapWidgetState extends State<MapboxMapWidget> {
   }
 
   Future<void> _updateMarkers() async {
-    if (_pointAnnotationManager == null) return;
+    if (_pointAnnotationManager == null || !mounted) return;
 
-    // Clear existing annotations
-    if (_annotations.isNotEmpty) {
-      await _pointAnnotationManager!.deleteAll();
-      _annotations.clear();
-    }
+    try {
+      if (_annotations.isNotEmpty) {
+        await _pointAnnotationManager!.deleteAll();
+        _annotations.clear();
+      }
 
-    // Add new markers
-    for (final marker in widget.markers) {
-      final options = PointAnnotationOptions(
-        geometry: Point(
-          coordinates: Position(marker.longitude, marker.latitude),
-        ),
-        iconImage: marker.icon,
-        iconSize: marker.size,
-        iconAnchor: IconAnchor.BOTTOM,
-      );
+      for (final marker in widget.markers) {
+        if (!mounted) return;
+        final options = PointAnnotationOptions(
+          geometry: Point(
+            coordinates: Position(marker.longitude, marker.latitude),
+          ),
+          iconImage: marker.icon,
+          iconSize: marker.size,
+          iconAnchor: IconAnchor.BOTTOM,
+        );
 
-      final annotation = await _pointAnnotationManager!.create(options);
-      _annotations[marker.id] = annotation;
+        final annotation = await _pointAnnotationManager!.create(options);
+        _annotations[marker.id] = annotation;
+      }
+    } catch (e) {
+      debugPrint('MapboxMapWidget: Failed to update markers: $e');
     }
   }
 
   Future<void> _updatePolylines() async {
-    if (_polylineAnnotationManager == null) return;
+    if (_polylineAnnotationManager == null || !mounted) return;
 
-    // Clear existing polylines
-    if (_polylines.isNotEmpty) {
-      await _polylineAnnotationManager!.deleteAll();
-      _polylines.clear();
-    }
+    try {
+      if (_polylines.isNotEmpty) {
+        await _polylineAnnotationManager!.deleteAll();
+        _polylines.clear();
+      }
 
-    // Add new polylines
-    for (final polyline in widget.polylines) {
-      final options = PolylineAnnotationOptions(
-        geometry: LineString(
-          coordinates: polyline.points
-              .map((point) => Position(point.longitude, point.latitude))
-              .toList(),
-        ),
-        lineColor: polyline.color.value,
-        lineWidth: polyline.width,
-        lineOpacity: polyline.opacity,
-      );
+      for (final polyline in widget.polylines) {
+        if (!mounted) return;
+        final options = PolylineAnnotationOptions(
+          geometry: LineString(
+            coordinates: polyline.points
+                .map((point) => Position(point.longitude, point.latitude))
+                .toList(),
+          ),
+          lineColor: polyline.color.value,
+          lineWidth: polyline.width,
+          lineOpacity: polyline.opacity,
+        );
 
-      final annotation = await _polylineAnnotationManager!.create(options);
-      _polylines[polyline.id] = annotation;
+        final annotation = await _polylineAnnotationManager!.create(options);
+        _polylines[polyline.id] = annotation;
+      }
+    } catch (e) {
+      debugPrint('MapboxMapWidget: Failed to update polylines: $e');
     }
   }
 
@@ -223,12 +229,12 @@ class _MapboxMapWidgetState extends State<MapboxMapWidget> {
   void didUpdateWidget(MapboxMapWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // Update markers if they changed
+    if (!mounted) return;
+
     if (widget.markers != oldWidget.markers) {
       _updateMarkers();
     }
 
-    // Update polylines if they changed
     if (widget.polylines != oldWidget.polylines) {
       _updatePolylines();
     }

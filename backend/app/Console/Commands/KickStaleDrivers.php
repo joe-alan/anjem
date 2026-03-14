@@ -28,8 +28,13 @@ class KickStaleDrivers extends Command
             ->whereNotNull('went_online_at')
             ->whereNotNull('queue_joined_at')
             ->where(function ($q) use ($cutoff) {
-                $q->whereNull('last_location_update')
-                  ->orWhere('last_location_update', '<', $cutoff);
+                // Null heartbeat only counts as stale if the driver has also been
+                // online longer than the threshold — prevents kicking drivers who
+                // just went online before their first location update arrives.
+                $q->where(function ($inner) use ($cutoff) {
+                    $inner->whereNull('last_location_update')
+                          ->where('went_online_at', '<', $cutoff);
+                })->orWhere('last_location_update', '<', $cutoff);
             })
             ->with('user')
             ->get();

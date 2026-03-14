@@ -16,6 +16,7 @@ class RideRequest extends Equatable {
   final int? estimatedWaitTime; // in minutes
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? dispatchedAt;
 
   const RideRequest({
     required this.id,
@@ -30,6 +31,7 @@ class RideRequest extends Equatable {
     this.estimatedWaitTime,
     required this.createdAt,
     required this.updatedAt,
+    this.dispatchedAt,
   });
 
   factory RideRequest.fromJson(Map<String, dynamic> json) {
@@ -51,6 +53,9 @@ class RideRequest extends Equatable {
       estimatedWaitTime: json['estimated_wait_time'] as int?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
+      dispatchedAt: json['dispatched_at'] != null
+          ? DateTime.parse(json['dispatched_at'] as String)
+          : null,
     );
   }
 
@@ -121,6 +126,7 @@ class RideRequest extends Equatable {
     int? estimatedWaitTime,
     DateTime? createdAt,
     DateTime? updatedAt,
+    DateTime? dispatchedAt,
   }) {
     return RideRequest(
       id: id ?? this.id,
@@ -135,6 +141,7 @@ class RideRequest extends Equatable {
       estimatedWaitTime: estimatedWaitTime ?? this.estimatedWaitTime,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      dispatchedAt: dispatchedAt ?? this.dispatchedAt,
     );
   }
 
@@ -152,5 +159,6 @@ class RideRequest extends Equatable {
         estimatedWaitTime,
         createdAt,
         updatedAt,
+        dispatchedAt,
       ];
 }

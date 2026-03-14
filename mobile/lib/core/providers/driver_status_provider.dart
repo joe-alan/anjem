@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import '../models/ride_request.dart';
 import '../services/api/api_service.dart';
 import '../services/websocket/websocket_service.dart';
@@ -138,8 +139,27 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
           'DriverStatusProvider: Going online for driver (user ID) $_driverId');
       print('DriverStatusProvider: Is verified: $isVerified');
 
+      // Include current GPS so backend sets current_location immediately —
+      // without this, ST_Distance matching fails until the home screen timer fires.
+      Map<String, dynamic> body = {};
+      try {
+        final permission = await Geolocator.checkPermission();
+        if (permission != LocationPermission.denied &&
+            permission != LocationPermission.deniedForever) {
+          final pos = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              timeLimit: Duration(seconds: 5),
+            ),
+          );
+          body = {'current_latitude': pos.latitude, 'current_longitude': pos.longitude};
+        }
+      } catch (_) {
+        // Non-fatal — backend falls back to last known location
+      }
+
       // Call backend endpoint to go online
-      final response = await _apiService.post('/driver/online');
+      final response = await _apiService.post('/driver/online', data: body);
 
       if (response.data['success'] != true) {
         throw Exception(response.data['message'] ?? 'Failed to go online');
@@ -351,6 +371,7 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
       'estimated_wait_time': eventData['estimated_pickup_minutes'],
       'created_at': eventData['created_at'] ?? fallbackTimestamp,
       'updated_at': fallbackTimestamp,
+      'dispatched_at': eventData['dispatched_at'],
     };
 
     return RideRequest.fromJson(requestJson);
@@ -404,6 +425,22 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
     } catch (e) {
       // Non-fatal: KickStaleDrivers heartbeat will clear it within ~90s.
       print('DriverStatusProvider: kickOfflineOnLaunch — backend notify failed (non-fatal): $e');
+    }
+  }
+
+  /// Fetch the ride request currently dispatched to this driver (if any) and
+  /// populate [driverIncomingRequestProvider] so the request sheet shows.
+  /// Called when app resumes from a new_ride_request FCM notification tap.
+  Future<void> checkPendingDispatch() async {
+    if (!state.isOnline) return;
+    try {
+      final response = await _apiService.get('/driver/current-request');
+      final data = response.data['data'];
+      if (data == null) return;
+      final rideRequest = _mapRideRequestEvent(data as Map<String, dynamic>);
+      _ref.read(driverIncomingRequestProvider.notifier).setRequest(rideRequest);
+    } catch (_) {
+      // Non-fatal — WS will deliver if backend reconnects
     }
   }
 

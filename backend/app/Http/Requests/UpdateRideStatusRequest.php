@@ -13,7 +13,8 @@ class UpdateRideStatusRequest extends FormRequest
     {
         return $this->user() && (
             $this->user()->tokenCan('driver:accept-ride') ||
-            $this->user()->tokenCan('driver:complete-ride')
+            $this->user()->tokenCan('driver:complete-ride') ||
+            $this->user()->tokenCan('rider:cancel-ride')
         );
     }
 
@@ -30,7 +31,7 @@ class UpdateRideStatusRequest extends FormRequest
             'actual_duration_minutes' => 'nullable|integer|min:0|max:1440',
             'actual_fare_rp' => 'nullable|integer|min:0|max:100000',
             'driver_notes' => 'nullable|string|max:500',
-            'cancel_reason' => 'required_if:status,cancelled|string|max:255',
+            'cancel_reason' => 'nullable|string|max:255',
         ];
     }
 }

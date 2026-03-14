@@ -208,6 +208,7 @@ class RideController extends Controller
         $success = false;
         $message = '';
         $previousStatus = $ride->status;
+        $penaltyMeta = [];
 
         switch ($status) {
             case 'driver_arrived':
@@ -328,6 +329,9 @@ class RideController extends Controller
                     $updatedBy = $ride->rider_id === $user->id ? 'rider' : 'driver';
                     broadcast(new RideStatusUpdated($ride, $previousStatus, $updatedBy));
                     $this->notificationService->sendRideCancelledNotification($ride, $user->id, $cancelReason);
+                    if ($ride->rider_id === $user->id) {
+                        $penaltyMeta = $this->rideService->applyRiderCancelPenalty($user);
+                    }
                 }
                 break;
 
@@ -352,6 +356,7 @@ class RideController extends Controller
             'success' => true,
             'message' => $message,
             'data' => new RideResource($ride),
+            'meta' => $penaltyMeta,
         ]);
     }
 
