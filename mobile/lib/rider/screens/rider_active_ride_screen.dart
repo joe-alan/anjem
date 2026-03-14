@@ -5,6 +5,7 @@ import '../../core/config/app_config.dart';
 import '../../core/models/ride.dart';
 import '../../core/models/lat_lng.dart';
 import '../../core/providers/active_ride_provider.dart';
+import '../../core/providers/ride_request_provider.dart';
 import '../../core/widgets/mapbox_map_widget.dart';
 import '../../core/services/mapbox/mapbox_directions_service.dart';
 import 'completed_screen.dart';
@@ -591,7 +592,13 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
 
     try {
       final rideService = ref.read(rideServiceProvider);
-      await rideService.updateRideStatus(rideId: ride.id, status: 'cancelled');
+      final result = await rideService.cancelRide(ride.id);
+      final meta = result.meta;
+      ref.read(rideRequestProvider.notifier).applyCancelPenalty(
+        cancelCount: (meta['cancel_count'] as int?) ?? 0,
+        cooldownUntil: meta['cooldown_until'] as String?,
+        isSuspended: (meta['is_suspended'] as bool?) ?? false,
+      );
       // ref.listen above will handle navigation once the status update arrives.
       // Fallback: if no navigation within 10 seconds, go home anyway.
       Future.delayed(const Duration(seconds: 10), () {

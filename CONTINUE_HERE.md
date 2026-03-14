@@ -2,8 +2,8 @@
 
 ## Current State
 
-**Branch:** `feat/fcm-wiring`
-**Next action:** Device-test FCM using `FCM_TEST_LOG.md`, then open PR → `dev`
+**Branch:** `fcm-wiring2`
+**Next action:** Device-test FCM using `FCM_TEST_LOG.md`, then open PR → `main`
 
 ---
 

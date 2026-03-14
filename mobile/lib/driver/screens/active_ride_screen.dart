@@ -32,6 +32,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
   Set<MapPolyline> _polylines = {};
   Timer? _locationUpdateTimer;
   bool _isUpdatingStatus = false;
+  bool _isCancelling = false;
   final MapboxDirectionsService _directionsService = MapboxDirectionsService();
   LatLng? _currentDriverLocation;
 
@@ -325,8 +326,8 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
       // If completed, navigate back to home
       if (status == 'completed') {
         _handleRideCompletion();
-      } else {
-        // Refresh route for new status
+      } else if (status != 'cancelled') {
+        // Refresh route for new status (skip on cancel — WS listener handles navigation)
         _fetchAndDisplayRoute().catchError((e) {
           print('⚠️ [Driver] Status change route fetch error handled: $e');
         });
@@ -395,15 +396,21 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
 
   void _handleRideCancelled() {
     ref.read(driverStatusProvider.notifier).setActiveRide(null);
+    ref.read(sessionStateProvider.notifier).updateSessionState(
+      SessionState(
+        state: SessionStateType.idle,
+        driverContext: DriverContext(isDriver: true, isOnline: true),
+      ),
+    );
 
     if (mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ride was cancelled'),
+        SnackBar(
+          content: Text(_isCancelling ? 'Ride cancelled' : 'Ride was cancelled by the rider'),
           backgroundColor: Colors.orange,
-          duration: Duration(seconds: 3),
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -482,7 +489,11 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
       final newStatus = next.ride?.status;
 
       if (newStatus == RideStatus.cancelled) {
-        _showCancellationInfo(next.ride);
+        if (_isCancelling) {
+          _handleRideCancelled();
+        } else {
+          _showCancellationInfo(next.ride);
+        }
         return;
       }
 
@@ -953,6 +964,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
+                _isCancelling = true;
                 await _updateRideStatus('cancelled');
               },
               child: const Text(

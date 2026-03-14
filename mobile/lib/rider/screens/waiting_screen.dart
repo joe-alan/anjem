@@ -147,8 +147,36 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
         foregroundColor: Colors.white,
         automaticallyImplyLeading: false,
       ),
-      body: Center(
-        child: Padding(
+      body: Column(
+        children: [
+          if (requestState.cancelCount >= 1)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.shade300),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      requestState.cancelCount >= 2
+                          ? 'Warning: One more cancellation will suspend your account.'
+                          : 'Warning: Repeated cancellations may result in a temporary ban.',
+                      style: TextStyle(color: Colors.orange.shade800, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Expanded(
+          child: Center(
+          child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -224,6 +252,9 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
             ],
           ),
         ),
+        ),
+        ),
+        ],
       ),
       ),
     );
