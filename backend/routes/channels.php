@@ -43,6 +43,11 @@ Broadcast::channel('ride.{rideId}', function ($user, $rideId) {
            (int) $user->id === (int) $ride->driver_id;
 });
 
+// Admin live updates channel (session-authenticated admin users only)
+Broadcast::channel('admin.live', function ($user) {
+    return $user->isAdmin();
+});
+
 // Public beacon channels (no authentication required)
 // These are rate-limited and contain only aggregate data
 Broadcast::channel('beacon.{beaconId}', function ($user, $beaconId) {
