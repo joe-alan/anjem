@@ -38,7 +38,7 @@ class DriverQueuePage extends Page
 
         return [
             'total' => $drivers->count(),
-            'avg_wait_minutes' => round($avgWaitMinutes),
+            'avg_wait_minutes' => (int) round($avgWaitMinutes),
             'in_cooldown' => $inCooldown,
         ];
     }
