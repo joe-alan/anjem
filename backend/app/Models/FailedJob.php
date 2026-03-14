@@ -10,6 +10,8 @@ class FailedJob extends Model
 
     public $timestamps = false;
 
+    protected $guarded = [];
+
     protected $casts = [
         'failed_at' => 'datetime',
     ];
