@@ -371,6 +371,14 @@ class MapboxMapController {
     );
   }
 
+  /// Convert geographic coordinate to screen pixel position.
+  Future<Offset> pixelForCoordinate(double lat, double lng) async {
+    final screenCoord = await _mapboxMap.pixelForCoordinate(
+      Point(coordinates: Position(lng, lat)),
+    );
+    return Offset(screenCoord.x, screenCoord.y);
+  }
+
   /// Dispose the controller
   void dispose() {
     // Cleanup if needed
