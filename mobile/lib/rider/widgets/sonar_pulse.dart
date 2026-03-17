@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-/// Animated sonar pulse rings expanding outward from center.
+/// Animated sonar pulse — 3 rings expanding outward from center, continuously.
 ///
-/// Communicates system state:
-/// - [active] = true  → steady calm pulse (searching)
-/// - [active] = false → pulse stops (pool exhausted / idle)
+/// Uses a single AnimationController with addListener+setState to guarantee
+/// per-frame rebuilds. Ring positions computed mathematically from controller
+/// value so they stay perfectly staggered.
 class SonarPulse extends StatefulWidget {
   final bool active;
   final Color color;
@@ -24,6 +24,7 @@ class SonarPulse extends StatefulWidget {
 class _SonarPulseState extends State<SonarPulse>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+  static const _ringCount = 3;
 
   @override
   void initState() {
@@ -31,7 +32,9 @@ class _SonarPulseState extends State<SonarPulse>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 3000),
-    );
+    )..addListener(() {
+        if (mounted) setState(() {});
+      });
     if (widget.active) _controller.repeat();
   }
 
@@ -42,8 +45,6 @@ class _SonarPulseState extends State<SonarPulse>
       _controller.repeat();
     } else if (!widget.active && _controller.isAnimating) {
       _controller.stop();
-      // Animate to 0 so rings fade out gracefully
-      _controller.animateTo(0, duration: const Duration(milliseconds: 600));
     }
   }
 
@@ -55,57 +56,31 @@ class _SonarPulseState extends State<SonarPulse>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, _) {
-        return CustomPaint(
-          size: Size(widget.maxRadius * 2, widget.maxRadius * 2),
-          painter: _SonarPainter(
-            progress: _controller.value,
-            color: widget.color,
-            maxRadius: widget.maxRadius,
-            ringCount: 3,
-          ),
-        );
-      },
+    final diameter = widget.maxRadius * 2;
+    return SizedBox(
+      width: diameter,
+      height: diameter,
+      child: Stack(
+        alignment: Alignment.center,
+        children: List.generate(_ringCount, (i) {
+          // Each ring offset by 1/3 of the cycle
+          final t = (_controller.value + i / _ringCount) % 1.0;
+          final size = t * diameter;
+          final opacity = (1.0 - t).clamp(0.0, 0.45);
+          if (size < 2) return const SizedBox.shrink();
+          return Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: widget.color.withValues(alpha: opacity),
+                width: 2.0,
+              ),
+            ),
+          );
+        }),
+      ),
     );
   }
-}
-
-class _SonarPainter extends CustomPainter {
-  final double progress;
-  final Color color;
-  final double maxRadius;
-  final int ringCount;
-
-  _SonarPainter({
-    required this.progress,
-    required this.color,
-    required this.maxRadius,
-    required this.ringCount,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-
-    for (int i = 0; i < ringCount; i++) {
-      // Stagger rings evenly across the cycle
-      final ringProgress = (progress + i / ringCount) % 1.0;
-      final radius = ringProgress * maxRadius;
-      // Fade out as ring expands
-      final opacity = (1.0 - ringProgress).clamp(0.0, 0.4);
-
-      final paint = Paint()
-        ..color = color.withValues(alpha: opacity)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.0;
-
-      canvas.drawCircle(center, radius, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_SonarPainter old) =>
-      old.progress != progress || old.color != color;
 }
