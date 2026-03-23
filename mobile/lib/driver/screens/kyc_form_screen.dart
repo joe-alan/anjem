@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import '../../core/providers/kyc_provider.dart';
 import '../../core/config/app_config.dart';
 import 'email_verification_screen.dart';
@@ -145,10 +146,10 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
 
         // Show snackbar
         if (mounted) {
+          final l10n = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                  'Draft data loaded (saved ${_formatDate(draft['saved_at'])})'),
+              content: Text(l10n.draftDataLoaded(_formatDate(draft['saved_at'] as String?))),
               backgroundColor: Colors.blue,
               duration: const Duration(seconds: 3),
             ),
@@ -205,9 +206,10 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to pick image: ${e.toString()}'),
+            content: Text(l10n.failedToPickImage(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -282,10 +284,13 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
       return;
     }
 
+    // Read l10n before async gap
+    final l10n = AppLocalizations.of(context);
+
     // Check availability
     setState(() {
       _checkingEmail = true;
-      _emailAvailabilityMessage = 'Checking availability...';
+      _emailAvailabilityMessage = l10n.checkingAvailability;
       _emailAvailable = null;
     });
 
@@ -294,19 +299,21 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
       final isAvailable = await kycService.checkEmailAvailability(email);
 
       if (mounted) {
+        final l10nPost = AppLocalizations.of(context);
         setState(() {
           _checkingEmail = false;
           _emailAvailable = isAvailable;
           _emailAvailabilityMessage = isAvailable
-              ? '✓ Email is available'
-              : '✗ This email is already registered';
+              ? l10nPost.emailAvailable
+              : l10nPost.emailUnavailable;
         });
       }
     } catch (e) {
       if (mounted) {
+        final l10nPost = AppLocalizations.of(context);
         setState(() {
           _checkingEmail = false;
-          _emailAvailabilityMessage = 'Could not check availability';
+          _emailAvailabilityMessage = l10nPost.emailCheckError;
           _emailAvailable = null;
         });
       }
@@ -327,10 +334,12 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
       return;
     }
 
+    final l10n = AppLocalizations.of(context);
+
     if (_ktmPhoto == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please upload your KTM photo'),
+        SnackBar(
+          content: Text(l10n.pleaseUploadKtm),
           backgroundColor: Colors.red,
         ),
       );
@@ -339,8 +348,8 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
 
     if (_vehicleColor.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a vehicle color'),
+        SnackBar(
+          content: Text(l10n.pleaseSelectColor),
           backgroundColor: Colors.red,
         ),
       );
@@ -383,6 +392,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
   @override
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
+    final l10n = AppLocalizations.of(context);
 
     // Show error messages
     ref.listen<KycState>(kycStateProvider, (previous, next) {
@@ -392,7 +402,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
             content: Text(next.error!),
             backgroundColor: Colors.red,
             action: SnackBarAction(
-              label: 'Dismiss',
+              label: l10n.dismiss,
               textColor: Colors.white,
               onPressed: () {
                 ref.read(kycStateProvider.notifier).clearError();
@@ -408,7 +418,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Driver Verification'),
+        title: Text(l10n.driverVerificationTitle),
         backgroundColor: config.primaryColor,
         foregroundColor: Colors.white,
       ),
@@ -431,9 +441,9 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'KYC Rejected',
-                            style: TextStyle(
+                          Text(
+                            l10n.kycRejectedBannerTitle,
+                            style: const TextStyle(
                               color: Colors.red,
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
@@ -470,9 +480,9 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
                   });
                 },
                 children: [
-                  _buildStudentInfoPage(),
-                  _buildVehicleInfoPage(),
-                  _buildKtmPhotoPage(),
+                  _buildStudentInfoPage(l10n),
+                  _buildVehicleInfoPage(l10n),
+                  _buildKtmPhotoPage(l10n),
                 ],
               ),
             ),
@@ -492,7 +502,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text('Back'),
+                        child: Text(l10n.back),
                       ),
                     ),
                   if (_currentPage > 0) const SizedBox(width: 16),
@@ -524,7 +534,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
                                 ),
                               ),
                             )
-                          : Text(_currentPage < 2 ? 'Next' : 'Submit'),
+                          : Text(_currentPage < 2 ? l10n.next : l10n.submit),
                     ),
                   ),
                 ],
@@ -556,27 +566,28 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
   void _showCarNotSupportedDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Vehicle Type Not Supported'),
-        content: const Text(
-          'Sorry, we currently only support motorcycles. Car support will be available soon!',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              setState(() {
-                _vehicleType = 'motorcycle';
-              });
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+      builder: (context) {
+        final l10n = AppLocalizations.of(context);
+        return AlertDialog(
+          title: Text(l10n.vehicleTypeNotSupportedTitle),
+          content: Text(l10n.vehicleTypeNotSupportedMessage),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                setState(() {
+                  _vehicleType = 'motorcycle';
+                });
+              },
+              child: Text(l10n.ok),
+            ),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildStudentInfoPage() {
+  Widget _buildStudentInfoPage(AppLocalizations l10n) {
     return Form(
       key: _formKey,
       child: SingleChildScrollView(
@@ -584,17 +595,17 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Student Information',
-            style: TextStyle(
+          Text(
+            l10n.studentInfoPageTitle,
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Enter your student details for verification',
-            style: TextStyle(
+          Text(
+            l10n.studentInfoPageSubtitle,
+            style: const TextStyle(
               fontSize: 14,
               color: Colors.grey,
             ),
@@ -604,12 +615,12 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
             controller: _studentEmailController,
             keyboardType: TextInputType.emailAddress,
             decoration: InputDecoration(
-              labelText: 'Student Email *',
-              hintText: 'your.email@students.undip.ac.id',
+              labelText: l10n.studentEmailLabel,
+              hintText: l10n.studentEmailHint,
               prefixIcon: const Icon(Icons.email),
               border: const OutlineInputBorder(),
               helperText:
-                  _emailAvailabilityMessage ?? 'Must be your university email',
+                  _emailAvailabilityMessage ?? l10n.studentEmailHelper,
               helperStyle: TextStyle(
                 color: _emailAvailable == true
                     ? Colors.green
@@ -643,18 +654,18 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
             },
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Student email is required';
+                return l10n.validatorStudentEmailRequired;
               }
               if (!value.contains('@')) {
-                return 'Invalid email format';
+                return l10n.validatorInvalidEmailFormat;
               }
               // Check domain
               if (!value.toLowerCase().endsWith('@students.undip.ac.id')) {
-                return 'Email must be from students.undip.ac.id domain';
+                return l10n.validatorEmailDomainInvalid;
               }
               // Check if email is available (this is shown via helperText, but also block submission)
               if (_emailAvailable == false) {
-                return 'This email is already registered';
+                return l10n.validatorEmailAlreadyRegistered;
               }
               return null;
             },
@@ -663,15 +674,15 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
           TextFormField(
             controller: _studentIdController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Student ID *',
-              hintText: 'e.g., 24010123140147',
-              prefixIcon: Icon(Icons.badge),
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.studentIdLabel,
+              hintText: l10n.studentIdHint,
+              prefixIcon: const Icon(Icons.badge),
+              border: const OutlineInputBorder(),
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Student ID is required';
+                return l10n.validatorStudentIdRequired;
               }
               return null;
             },
@@ -680,15 +691,15 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
           TextFormField(
             controller: _studentNameController,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              labelText: 'Full Name (as on KTM) *',
-              hintText: 'Your full name',
-              prefixIcon: Icon(Icons.person),
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.fullNameLabel,
+              hintText: l10n.fullNameHint,
+              prefixIcon: const Icon(Icons.person),
+              border: const OutlineInputBorder(),
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Full name is required';
+                return l10n.validatorFullNameRequired;
               }
               return null;
             },
@@ -698,31 +709,31 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
     ));
   }
 
-  Widget _buildVehicleInfoPage() {
+  Widget _buildVehicleInfoPage(AppLocalizations l10n) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Vehicle Information',
-            style: TextStyle(
+          Text(
+            l10n.vehicleInfoPageTitle,
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Enter your vehicle details',
-            style: TextStyle(
+          Text(
+            l10n.vehicleInfoPageSubtitle,
+            style: const TextStyle(
               fontSize: 14,
               color: Colors.grey,
             ),
           ),
           const SizedBox(height: 32),
-          const Text(
-            'Vehicle Type *',
-            style: TextStyle(
+          Text(
+            l10n.vehicleTypeLabel,
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
             ),
@@ -732,7 +743,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
             children: [
               Expanded(
                 child: RadioListTile<String>(
-                  title: const Text('Motorcycle'),
+                  title: Text(l10n.motorcycleOption),
                   value: 'motorcycle',
                   groupValue: _vehicleType,
                   onChanged: (value) {
@@ -744,7 +755,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
               ),
               Expanded(
                 child: RadioListTile<String>(
-                  title: const Text('Car'),
+                  title: Text(l10n.carOption),
                   value: 'car',
                   groupValue: _vehicleType,
                   onChanged: (value) {
@@ -761,9 +772,9 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          const Text(
-            'License Plate *',
-            style: TextStyle(
+          Text(
+            l10n.licensePlateLabel,
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
             ),
@@ -794,7 +805,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
                   ],
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Required';
+                      return l10n.validatorRequired;
                     }
                     return null;
                   },
@@ -825,7 +836,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
                   ],
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Required';
+                      return l10n.validatorRequired;
                     }
                     return null;
                   },
@@ -856,7 +867,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
                   ],
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Required';
+                      return l10n.validatorRequired;
                     }
                     return null;
                   },
@@ -866,7 +877,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Format: XX - 1234 - XXX',
+            l10n.licensePlateFormat,
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey[600],
@@ -874,12 +885,12 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            decoration: const InputDecoration(
-              labelText: 'Vehicle Color *',
-              prefixIcon: Icon(Icons.palette),
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.vehicleColorLabel,
+              prefixIcon: const Icon(Icons.palette),
+              border: const OutlineInputBorder(),
             ),
-            hint: const Text('Select vehicle color'),
+            hint: Text(l10n.selectColorHint),
             items: _vehicleColors.map((color) {
               return DropdownMenuItem(
                 value: color,
@@ -894,7 +905,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
             },
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Vehicle color is required';
+                return l10n.validatorVehicleColorRequired;
               }
               return null;
             },
@@ -904,7 +915,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
     );
   }
 
-  Widget _buildKtmPhotoPage() {
+  Widget _buildKtmPhotoPage(AppLocalizations l10n) {
     final config = AppConfig.instance;
 
     return SingleChildScrollView(
@@ -912,17 +923,17 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Upload KTM Photo',
-            style: TextStyle(
+          Text(
+            l10n.ktmPhotoPageTitle,
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Take a clear photo of your student ID card',
-            style: TextStyle(
+          Text(
+            l10n.ktmPhotoPageSubtitle,
+            style: const TextStyle(
               fontSize: 14,
               color: Colors.grey,
             ),
@@ -963,7 +974,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No photo selected',
+                    l10n.noPhotoSelected,
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey[600],
@@ -979,7 +990,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () => _pickKtmPhoto(ImageSource.camera),
                   icon: const Icon(Icons.camera_alt),
-                  label: const Text('Take Photo'),
+                  label: Text(l10n.takePhotoButton),
                 ),
               ),
               const SizedBox(width: 16),
@@ -987,7 +998,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () => _pickKtmPhoto(ImageSource.gallery),
                   icon: const Icon(Icons.photo_library),
-                  label: const Text('From Gallery'),
+                  label: Text(l10n.fromGalleryButton),
                 ),
               ),
             ],
@@ -1007,7 +1018,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Make sure your KTM photo is clear and all details are visible',
+                    l10n.ktmPhotoInfo,
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.blue[700],

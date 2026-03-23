@@ -1,5 +1,8 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/l10n/app_localizations.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../config/app_config.dart';
 import '../providers/auth_provider.dart';
 
@@ -10,6 +13,7 @@ class LoginScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final config = AppConfig.instance;
     final authState = ref.watch(authStateProvider);
+    final l10n = AppLocalizations.of(context);
 
     // Show error if any
     if (authState.error != null) {
@@ -19,7 +23,7 @@ class LoginScreen extends ConsumerWidget {
             content: Text(authState.error!),
             backgroundColor: Colors.red,
             action: SnackBarAction(
-              label: 'Dismiss',
+              label: l10n.dismiss,
               textColor: Colors.white,
               onPressed: () {
                 ref.read(authStateProvider.notifier).clearError();
@@ -73,9 +77,7 @@ class LoginScreen extends ConsumerWidget {
 
                 // Tagline
                 Text(
-                  config.isRiderApp
-                      ? 'Your campus ride, on demand'
-                      : 'Drive and earn on campus',
+                  config.isRiderApp ? l10n.riderTagline : l10n.driverTagline,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 18,
@@ -112,9 +114,7 @@ class LoginScreen extends ConsumerWidget {
                           },
                         ),
                   label: Text(
-                    authState.isLoading
-                        ? 'Signing in...'
-                        : 'Sign in with Google',
+                    authState.isLoading ? l10n.signingIn : l10n.signInWithGoogle,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -130,13 +130,43 @@ class LoginScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
 
                 // Terms and Privacy
-                Text(
-                  'By signing in, you agree to our Terms of Service and Privacy Policy',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.white.withOpacity(0.7),
+                Text.rich(
+                  TextSpan(
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withOpacity(0.7),
+                    ),
+                    children: [
+                      TextSpan(text: l10n.termsNoticePrefix),
+                      TextSpan(
+                        text: l10n.termsAndConditions,
+                        style: const TextStyle(
+                          decoration: TextDecoration.underline,
+                          color: Colors.white,
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () => launchUrl(
+                                Uri.parse('https://www.anjem.me/syarat-dan-ketentuan/'),
+                                mode: LaunchMode.externalApplication,
+                              ),
+                      ),
+                      TextSpan(text: l10n.termsNoticeConnector),
+                      TextSpan(
+                        text: l10n.privacyPolicy,
+                        style: const TextStyle(
+                          decoration: TextDecoration.underline,
+                          color: Colors.white,
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () => launchUrl(
+                                Uri.parse('https://www.anjem.me/kebijakan-privasi'),
+                                mode: LaunchMode.externalApplication,
+                              ),
+                      ),
+                      TextSpan(text: l10n.termsNoticeSuffix),
+                    ],
                   ),
+                  textAlign: TextAlign.center,
                 ),
 
                 const SizedBox(height: 48),

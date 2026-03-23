@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/ride.dart';
 import '../../core/providers/ride_history_provider.dart';
@@ -12,10 +13,11 @@ class RideHistoryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final config = AppConfig.instance;
     final historyState = ref.watch(rideHistoryProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ride History'),
+        title: Text(l10n.rideHistoryTitle),
         backgroundColor: config.primaryColor,
         foregroundColor: Colors.white,
       ),
@@ -28,14 +30,14 @@ class RideHistoryScreen extends ConsumerWidget {
             child: Row(
               children: [
                 _FilterChip(
-                  label: 'All',
+                  label: l10n.filterAll,
                   isSelected: historyState.selectedFilter == 'all',
                   onTap: () =>
                       ref.read(rideHistoryProvider.notifier).setFilter('all'),
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: 'Completed',
+                  label: l10n.filterCompleted,
                   isSelected: historyState.selectedFilter == 'completed',
                   onTap: () => ref
                       .read(rideHistoryProvider.notifier)
@@ -43,7 +45,7 @@ class RideHistoryScreen extends ConsumerWidget {
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: 'Cancelled',
+                  label: l10n.filterCancelled,
                   isSelected: historyState.selectedFilter == 'cancelled',
                   onTap: () => ref
                       .read(rideHistoryProvider.notifier)
@@ -69,7 +71,7 @@ class RideHistoryScreen extends ConsumerWidget {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'No rides yet',
+                              l10n.noRidesYet,
                               style: TextStyle(
                                 fontSize: 18,
                                 color: Colors.grey[600],
@@ -248,17 +250,18 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     Color color;
     String text;
 
     switch (status) {
       case RideStatus.completed:
         color = Colors.green;
-        text = 'Completed';
+        text = l10n.filterCompleted;
         break;
       case RideStatus.cancelled:
         color = Colors.red;
-        text = 'Cancelled';
+        text = l10n.filterCancelled;
         break;
       default:
         color = Colors.grey;
@@ -291,43 +294,44 @@ class _RideDetailsDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final dateFormat = DateFormat('MMM dd, yyyy • hh:mm a');
 
     return AlertDialog(
-      title: const Text('Ride Details'),
+      title: Text(l10n.rideDetailsTitle),
       content: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             _DetailRow(
-              label: 'Date',
+              label: l10n.dateLabel,
               value: dateFormat.format(ride.createdAt),
             ),
             _DetailRow(
-              label: 'From',
+              label: l10n.fromLabel,
               value: ride.pickupLocation.name,
             ),
             _DetailRow(
-              label: 'To',
+              label: l10n.toLabel,
               value: ride.destinationLocation.name,
             ),
             _DetailRow(
-              label: 'Fare',
+              label: l10n.fareLabel,
               value: 'Rp ${ride.fare.toStringAsFixed(0)}',
             ),
             if (ride.driver != null)
               _DetailRow(
-                label: 'Driver',
+                label: l10n.driverLabel,
                 value: ride.driver!.name,
               ),
             _DetailRow(
-              label: 'Passengers',
+              label: l10n.passengerCountTitle,
               value: '${ride.passengerCount}',
             ),
             if (ride.specialRequests != null)
               _DetailRow(
-                label: 'Special Requests',
+                label: l10n.specialRequestsTitle,
                 value: ride.specialRequests!,
               ),
           ],
@@ -336,7 +340,7 @@ class _RideDetailsDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
+          child: Text(l10n.close),
         ),
       ],
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/ride.dart';
 import '../../core/providers/ride_history_provider.dart';
@@ -22,27 +23,16 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
   final Set<String> _selectedTags = {};
   final _feedbackController = TextEditingController();
 
-  // ✅ Display-friendly tag labels
-  final List<String> _availableTags = [
-    'Clean Vehicle',
-    'Safe Driving',
-    'Friendly Driver',
-    'On Time',
-    'Professional',
-    'Smooth Ride',
-    'Helpful',
+  // Backend keys for tags — display names resolved via l10n at build time
+  static const List<String> _tagKeys = [
+    'clean_vehicle',
+    'safe_driving',
+    'friendly',
+    'on_time',
+    'professional',
+    'smooth_ride',
+    'helpful',
   ];
-
-  // ✅ Map display labels to backend snake_case keys
-  final Map<String, String> _tagMapping = {
-    'Clean Vehicle': 'clean_vehicle',
-    'Safe Driving': 'safe_driving',
-    'Friendly Driver': 'friendly',
-    'On Time': 'on_time',
-    'Professional': 'professional',
-    'Smooth Ride': 'smooth_ride',
-    'Helpful': 'helpful',
-  };
 
   @override
   void dispose() {
@@ -50,13 +40,35 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
     super.dispose();
   }
 
+  String _tagLabel(AppLocalizations l10n, String key) {
+    switch (key) {
+      case 'clean_vehicle':
+        return l10n.tagCleanVehicle;
+      case 'safe_driving':
+        return l10n.tagSafeDriving;
+      case 'friendly':
+        return l10n.tagFriendlyDriver;
+      case 'on_time':
+        return l10n.tagOnTime;
+      case 'professional':
+        return l10n.tagProfessional;
+      case 'smooth_ride':
+        return l10n.tagSmoothRide;
+      case 'helpful':
+        return l10n.tagHelpful;
+      default:
+        return key;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Rate Your Ride'),
+        title: Text(l10n.rateYourRideTitle),
         backgroundColor: config.primaryColor,
         foregroundColor: Colors.white,
         automaticallyImplyLeading: false,
@@ -83,9 +95,9 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
 
             const SizedBox(height: 24),
 
-            const Text(
-              'Ride Completed!',
-              style: TextStyle(
+            Text(
+              l10n.rideCompletedHeading,
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
@@ -102,7 +114,7 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Fare:'),
+                        Text(l10n.fareLabel),
                         Text(
                           'Rp ${widget.ride.fare.toStringAsFixed(0)}',
                           style: const TextStyle(
@@ -116,7 +128,7 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('From:'),
+                        Text(l10n.fromLabel),
                         Expanded(
                           child: Text(
                             widget.ride.pickupLocation.name,
@@ -130,7 +142,7 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('To:'),
+                        Text(l10n.toLabel),
                         Expanded(
                           child: Text(
                             widget.ride.destinationLocation.name,
@@ -148,9 +160,9 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
             const SizedBox(height: 32),
 
             // Rating
-            const Text(
-              'How was your ride?',
-              style: TextStyle(
+            Text(
+              l10n.howWasYourRide,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
@@ -181,9 +193,9 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
               const SizedBox(height: 24),
 
               // Tags
-              const Text(
-                'What did you like?',
-                style: TextStyle(
+              Text(
+                l10n.whatDidYouLike,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -194,17 +206,17 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: _availableTags.map((tag) {
-                  final isSelected = _selectedTags.contains(tag);
+                children: _tagKeys.map((key) {
+                  final isSelected = _selectedTags.contains(key);
                   return FilterChip(
-                    label: Text(tag),
+                    label: Text(_tagLabel(l10n, key)),
                     selected: isSelected,
                     onSelected: (selected) {
                       setState(() {
                         if (selected) {
-                          _selectedTags.add(tag);
+                          _selectedTags.add(key);
                         } else {
-                          _selectedTags.remove(tag);
+                          _selectedTags.remove(key);
                         }
                       });
                     },
@@ -217,9 +229,9 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
               const SizedBox(height: 24),
 
               // Feedback
-              const Text(
-                'Additional Feedback (Optional)',
-                style: TextStyle(
+              Text(
+                l10n.additionalFeedbackOptional,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -231,7 +243,7 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
                 controller: _feedbackController,
                 maxLines: 3,
                 decoration: InputDecoration(
-                  hintText: 'Share your experience...',
+                  hintText: l10n.shareFeedbackHint,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -247,15 +259,10 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
               child: ElevatedButton(
                 onPressed: _rating > 0
                     ? () async {
-                        // ✅ Convert display tags to backend format
-                        final backendTags = _selectedTags
-                            .map((tag) => _tagMapping[tag] ?? tag)
-                            .toList();
-
                         await ref.read(rideHistoryProvider.notifier).rateRide(
                               rideId: widget.ride.id,
                               rating: _rating,
-                              tags: backendTags,  // ✅ Send converted tags
+                              tags: _selectedTags.toList(),
                               feedback: _feedbackController.text.trim(),
                             );
 
@@ -274,9 +281,9 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: const Text(
-                  'Submit Rating',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                child: Text(
+                  l10n.submitRatingButton,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -293,7 +300,7 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
                   (route) => false,
                 );
               },
-              child: const Text('Skip for now'),
+              child: Text(l10n.skipForNow),
             ),
           ],
         ),

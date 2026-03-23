@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/lat_lng.dart';
 import '../../core/models/place_search_result.dart';
@@ -82,12 +83,13 @@ class _LocationSelectionScreenState
   @override
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
+    final l10n = AppLocalizations.of(context);
     final searchState = ref.watch(placeSearchProvider);
     final searchResults = searchState.results;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Select Locations'),
+        title: Text(l10n.selectLocationsTitle),
         backgroundColor: config.primaryColor,
         foregroundColor: Colors.white,
       ),
@@ -99,7 +101,7 @@ class _LocationSelectionScreenState
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search locations (gates, canteens, faculties...)',
+                hintText: l10n.searchLocationsHint,
                 prefixIcon: _isSearching || searchState.isLoading
                     ? const Padding(
                         padding: EdgeInsets.all(12.0),
@@ -148,7 +150,7 @@ class _LocationSelectionScreenState
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Pickup: ${_pickupLocation!.name}',
+                                '${l10n.pickupLabel}: ${_pickupLocation!.name}',
                                 style: const TextStyle(fontWeight: FontWeight.w600),
                               ),
                               if (_pickupLocation!.address != null)
@@ -183,7 +185,7 @@ class _LocationSelectionScreenState
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Destination: ${_destinationLocation!.name}',
+                                '${l10n.dropOffLabel}: ${_destinationLocation!.name}',
                                 style: const TextStyle(fontWeight: FontWeight.w600),
                               ),
                               if (_destinationLocation!.address != null)
@@ -231,10 +233,10 @@ class _LocationSelectionScreenState
                 ? Center(
                     child: Text(
                       searchState.isLoading || _isSearching
-                          ? 'Searching...'
+                          ? l10n.searchingText
                           : _searchController.text.isEmpty
-                              ? 'Start typing to search for locations'
-                              : 'No results found',
+                              ? l10n.startTypingHint
+                              : l10n.noResultsFound,
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                   )
@@ -281,7 +283,7 @@ class _LocationSelectionScreenState
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
-                                      'Beacon',
+                                      l10n.beaconLabel,
                                       style: TextStyle(
                                         fontSize: 10,
                                         color: Colors.blue[900],
@@ -323,7 +325,7 @@ class _LocationSelectionScreenState
                                     _pickupLocation = place;
                                   });
                                 },
-                                child: const Text('Pickup'),
+                                child: Text(l10n.pickupLabel),
                               ),
                             if (!isDestination &&
                                 _destinationLocation == null &&
@@ -334,7 +336,7 @@ class _LocationSelectionScreenState
                                     _destinationLocation = place;
                                   });
                                 },
-                                child: const Text('Drop-off'),
+                                child: Text(l10n.dropOffLabel),
                               ),
                           ],
                         ),
@@ -356,12 +358,9 @@ class _LocationSelectionScreenState
                           // Check if both locations have IDs (exist in database)
                           if (_pickupLocation!.id == null ||
                               _destinationLocation!.id == null) {
-                            // Show error: only support database locations for now
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Could not resolve one of the selected locations. Please try searching again.',
-                                ),
+                              SnackBar(
+                                content: Text(l10n.locationResolveFailed),
                                 backgroundColor: Colors.orange,
                               ),
                             );
@@ -373,16 +372,13 @@ class _LocationSelectionScreenState
                           });
 
                           try {
-                            // Safe extraction of IDs (already validated above)
                             final pickupId = _pickupLocation!.id;
                             final destinationId = _destinationLocation!.id;
 
-                            // Double-check IDs are not null (shouldn't happen due to check above)
                             if (pickupId == null || destinationId == null) {
                               throw Exception('Location IDs are null. Please select valid beacons.');
                             }
 
-                            // Get fare estimate with non-null IDs
                             await ref
                                 .read(rideRequestProvider.notifier)
                                 .getEstimate(
@@ -392,7 +388,6 @@ class _LocationSelectionScreenState
 
                             if (!mounted) return;
 
-                            // Navigate to ride details with PlaceSearchResults directly
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (context) => RideDetailsScreen(
@@ -403,9 +398,10 @@ class _LocationSelectionScreenState
                             );
                           } catch (e) {
                             if (!mounted) return;
+                            final l10nErr = AppLocalizations.of(context);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Failed to get estimate: ${e.toString()}'),
+                                content: Text(l10nErr.estimateFailed(e.toString())),
                                 backgroundColor: Colors.red,
                               ),
                             );
@@ -431,9 +427,9 @@ class _LocationSelectionScreenState
                             valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : const Text(
-                          'Continue',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      : Text(
+                          l10n.continueButton,
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                 ),
               ),
