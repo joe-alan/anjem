@@ -49,6 +49,36 @@ Anjem is a campus ride-sharing platform composed of a Laravel 11 backend (`backe
 - Dart: Effective Dart; explicit types where clarity matters; widgets ≤20–25 lines; reusable components in `lib/core/widgets`; state handled via Riverpod providers.
 - Run formatters/analyzers before committing.
 
+## Internationalisation (i18n)
+
+The app uses Flutter's `gen-l10n` system. **Never hardcode user-visible strings** in Dart files.
+
+### Adding a string
+1. Add the key to `mobile/lib/l10n/app_en.arb` (English source of truth).
+2. Add the matching translation to `mobile/lib/l10n/app_id.arb` (Bahasa Indonesia).
+3. Use it in Dart: `AppLocalizations.of(context).yourKey`.
+4. Parametrised strings use `{placeholder}` in ARB and become method calls in Dart: `l10n.etaMinutes(minutes)`.
+
+### Async safety
+Read `AppLocalizations.of(context)` **before** any `await`. After an async gap, re-read inside `if (mounted)`:
+```dart
+final l10n = AppLocalizations.of(context); // before await
+await someAsyncCall();
+if (mounted) {
+  final l10n = AppLocalizations.of(context); // re-read post-await
+  ScaffoldMessenger.of(context).showSnackBar(...);
+}
+```
+Builder/helper methods that need l10n should receive it as a parameter (`AppLocalizations l10n`) rather than calling `of(context)` inside them.
+
+### Default locale & switching
+- Default locale is **Bahasa Indonesia** (`id`), set in `mobile/lib/core/providers/locale_provider.dart`.
+- `MaterialApp` in `mobile/lib/core/app.dart` watches `localeProvider` — updating its state switches the whole app live:
+  ```dart
+  ref.read(localeProvider.notifier).state = const Locale('en');
+  ```
+- There is currently no in-app language switcher UI; adding one requires only a settings screen that writes to `localeProvider`.
+
 ## Branching & Git Flow
 
 - `main`: production-ready; protected.
