@@ -230,6 +230,11 @@
   },
 
   "driverSettingsTitle": "Driver Settings",
+  "riderSettingsTitle": "Settings",
+  "languageSectionTitle": "Language",
+  "languageSectionDesc": "App display language",
+  "languageEnglish": "English",
+  "languageIndonesian": "Bahasa Indonesia",
   "maxPickupRadiusTitle": "Max Pickup Radius",
   "maxPickupRadiusDesc": "Only receive ride requests where the pickup is within this distance from your current location.",
   "failedToLoadSettings": "Failed to load settings",
