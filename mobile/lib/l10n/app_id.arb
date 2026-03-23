@@ -1,7 +1,7 @@
 {
   "@@locale": "id",
 
-  "cancel": "Batal",
+  "cancel": "Cancel",
   "yes": "Ya",
   "no": "Tidak",
   "ok": "OK",
@@ -9,7 +9,7 @@
   "close": "Tutup",
   "back": "Kembali",
   "continueButton": "Lanjutkan",
-  "loading": "Memuat...",
+  "loading": "Loading...",
   "saving": "Menyimpan...",
   "cancelling": "Membatalkan...",
   "submit": "Kirim",
@@ -63,9 +63,9 @@
   "findingDriverTitle": "Mencari Pengemudi",
   "noDriversAvailable": "Tidak ada pengemudi tersedia saat ini",
   "findingDriverMessage": "Sedang mencari pengemudi untuk Anda...",
-  "retryingInSeconds": "Mencoba lagi dalam {seconds} detik\u2026",
+  "retryingInSeconds": "Sedang dicoba lagi sampai {seconds} detik\u2026",
   "queuePosition": "Posisi Antrian: {position}",
-  "pleaseWaitMessage": "Harap tunggu sementara kami mencocokkan Anda dengan pengemudi terdekat",
+  "pleaseWaitMessage": "Harap tunggu sementara kami mencarikan Anda dengan pengemudi terdekat",
   "cancelRequestButton": "Batalkan Permintaan",
 
   "driverFoundTitle": "Pengemudi Ditemukan!",
@@ -93,7 +93,7 @@
   "whatDidYouLike": "Apa yang Anda sukai?",
   "additionalFeedbackOptional": "Masukan Tambahan (Opsional)",
   "shareFeedbackHint": "Bagikan pengalaman Anda...",
-  "submitRatingButton": "Kirim Penilaian",
+  "submitRatingButton": "Kirim Rating",
   "tagCleanVehicle": "Kendaraan Bersih",
   "tagSafeDriving": "Berkendara Aman",
   "tagFriendlyDriver": "Pengemudi Ramah",

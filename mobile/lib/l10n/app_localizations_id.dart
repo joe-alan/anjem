@@ -9,7 +9,7 @@ class AppLocalizationsId extends AppLocalizations {
   AppLocalizationsId([String locale = 'id']) : super(locale);
 
   @override
-  String get cancel => 'Batal';
+  String get cancel => 'Cancel';
 
   @override
   String get yes => 'Ya';
@@ -33,7 +33,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get continueButton => 'Lanjutkan';
 
   @override
-  String get loading => 'Memuat...';
+  String get loading => 'Loading...';
 
   @override
   String get saving => 'Menyimpan...';
@@ -66,7 +66,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get yourDriver => 'Pengemudi Anda';
 
   @override
-  String get riderTagline => 'Tumpangan kampus, kapan saja';
+  String get riderTagline => 'Antar Jemput anda, kapan saja';
 
   @override
   String get driverTagline => 'Berkendara dan berpenghasilan di kampus';
@@ -111,7 +111,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get accountSuspendedBanner =>
-      'Akun Anda telah ditangguhkan. Anda tidak dapat memesan perjalanan.';
+      'Akun Anda telah diblokir. Anda tidak dapat memesan perjalanan.';
 
   @override
   String get activeRideRequestBanner =>
@@ -122,14 +122,14 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get oneMoreCancellationWarning =>
-      'Peringatan: Satu pembatalan lagi akan menangguhkan akun Anda.';
+      'Peringatan: Satu pembatalan lagi akan memblokir akun Anda.';
 
   @override
   String get repeatedCancellationsWarning =>
-      'Peringatan: Pembatalan berulang dapat mengakibatkan penangguhan sementara.';
+      'Peringatan: Pembatalan berulang dapat mengakibatkan blokir sementara.';
 
   @override
-  String get accountSuspendedButton => 'Akun Ditangguhkan';
+  String get accountSuspendedButton => 'Akun diblokir';
 
   @override
   String get requestInProgressButton => 'Permintaan Sedang Diproses';
@@ -141,14 +141,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get selectLocationsTitle => 'Pilih Lokasi';
 
   @override
-  String get searchLocationsHint =>
-      'Cari lokasi (gerbang, kantin, fakultas...)';
+  String get searchLocationsHint => 'Cari lokasi (Rusunawa Undip...)';
 
   @override
-  String get pickupLabel => 'Jemput';
+  String get pickupLabel => 'Jemput disini';
 
   @override
-  String get dropOffLabel => 'Tujuan';
+  String get dropOffLabel => 'Antar kesini';
 
   @override
   String get searchingText => 'Mencari...';
@@ -192,7 +191,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String retryingInSeconds(int seconds) {
-    return 'Mencoba lagi dalam $seconds detik…';
+    return 'Sedang dicoba lagi sampai $seconds detik…';
   }
 
   @override
@@ -202,7 +201,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get pleaseWaitMessage =>
-      'Harap tunggu sementara kami mencocokkan Anda dengan pengemudi terdekat';
+      'Harap tunggu sementara kami mencarikan Anda dengan pengemudi terdekat';
 
   @override
   String get cancelRequestButton => 'Batalkan Permintaan';
@@ -290,7 +289,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get shareFeedbackHint => 'Bagikan pengalaman Anda...';
 
   @override
-  String get submitRatingButton => 'Kirim Penilaian';
+  String get submitRatingButton => 'Kirim Rating';
 
   @override
   String get tagCleanVehicle => 'Kendaraan Bersih';
@@ -396,7 +395,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get statusLabel => 'Status';
 
   @override
-  String get statusSuspended => 'Ditangguhkan';
+  String get statusSuspended => 'diblokir';
 
   @override
   String get statusVerified => 'Terverifikasi';
@@ -412,7 +411,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get accountSuspendedContactAdmin =>
-      'Akun Anda telah ditangguhkan. Hubungi admin.';
+      'Akun Anda telah diblokir. Hubungi admin.';
 
   @override
   String suspensionReason(String reason) {

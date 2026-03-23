@@ -1,3 +1,4 @@
+import 'package:action_slider/action_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/l10n/app_localizations.dart';
@@ -27,7 +28,6 @@ class RideDetailsScreen extends ConsumerStatefulWidget {
 
 class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
   final _specialRequestsController = TextEditingController();
-  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -215,99 +215,98 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
                       const SizedBox(height: 24),
 
                       // Confirm button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _isSubmitting || requestState.isLoading
-                              ? null
-                              : () async {
-                                  if (_isSubmitting) return;
-
-                                  // Validate IDs before submission
-                                  if (widget.pickupLocation.id == null ||
-                                      widget.destinationLocation.id == null) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(l10n.locationResolveFailed),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                    return;
-                                  }
-
-                                  setState(() => _isSubmitting = true);
-
-                                  try {
-                                    final pickupId = widget.pickupLocation.id;
-                                    final destinationId = widget.destinationLocation.id;
-
-                                    if (pickupId == null || destinationId == null) {
-                                      throw Exception('Internal error: Location IDs are null');
-                                    }
-
-                                    await ref
-                                        .read(rideRequestProvider.notifier)
-                                        .createRequest(
-                                          pickupBeaconId: pickupId,
-                                          destinationBeaconId: destinationId,
-                                          passengerCount: 1,
-                                          specialRequests:
-                                              _specialRequestsController.text.trim(),
-                                        );
-
-                                    final updatedState = ref.read(rideRequestProvider);
-
-                                    if (!mounted) return;
-
-                                    if (updatedState.request != null) {
-                                      Navigator.of(context).pushReplacement(
-                                        MaterialPageRoute(
-                                          builder: (context) => const WaitingScreen(),
-                                        ),
-                                      );
-                                    } else if (updatedState.error != null) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text(updatedState.error!),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
-                                      setState(() => _isSubmitting = false);
-                                    }
-                                  } catch (e) {
-                                    if (!mounted) return;
-
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(l10n.failedGeneric(e.toString())),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                    setState(() => _isSubmitting = false);
-                                  }
-                                },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: config.primaryColor,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                      ActionSlider.standard(
+                        sliderBehavior: SliderBehavior.stretch,
+                        backgroundColor: config.primaryColor.withOpacity(0.1),
+                        toggleColor: config.primaryColor,
+                        icon: const Icon(Icons.arrow_forward_ios, color: Colors.white),
+                        loadingIcon: const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
                           ),
-                          child: _isSubmitting || requestState.isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                  ),
-                                )
-                              : Text(
-                                  l10n.confirmRequest,
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                                ),
                         ),
+                        successIcon: const Icon(Icons.check_rounded, color: Colors.white),
+                        child: Text(
+                          l10n.confirmRequest,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: config.primaryColor,
+                          ),
+                        ),
+                        action: (controller) async {
+                          if (requestState.isLoading) {
+                            controller.reset();
+                            return;
+                          }
+
+                          // Validate IDs before submission
+                          if (widget.pickupLocation.id == null ||
+                              widget.destinationLocation.id == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(l10n.locationResolveFailed),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            controller.reset();
+                            return;
+                          }
+
+                          controller.loading();
+
+                          try {
+                            final pickupId = widget.pickupLocation.id!;
+                            final destinationId = widget.destinationLocation.id!;
+
+                            await ref
+                                .read(rideRequestProvider.notifier)
+                                .createRequest(
+                                  pickupBeaconId: pickupId,
+                                  destinationBeaconId: destinationId,
+                                  passengerCount: 1,
+                                  specialRequests:
+                                      _specialRequestsController.text.trim(),
+                                );
+
+                            final updatedState = ref.read(rideRequestProvider);
+
+                            if (!mounted) return;
+
+                            if (updatedState.request != null) {
+                              controller.success();
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                  builder: (context) => const WaitingScreen(),
+                                ),
+                              );
+                            } else if (updatedState.error != null) {
+                              controller.failure();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(updatedState.error!),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              await Future.delayed(const Duration(seconds: 2));
+                              if (mounted) controller.reset();
+                            }
+                          } catch (e) {
+                            if (!mounted) return;
+                            controller.failure();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(l10n.failedGeneric(e.toString())),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            await Future.delayed(const Duration(seconds: 2));
+                            if (mounted) controller.reset();
+                          }
+                        },
                       ),
                     ],
                   ),
