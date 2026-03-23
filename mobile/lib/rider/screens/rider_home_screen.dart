@@ -10,6 +10,7 @@ import '../../core/providers/session_provider.dart';
 import '../../core/providers/user_location_provider.dart';
 import '../../core/widgets/mapbox_map_widget.dart';
 import 'location_selection_screen.dart';
+import 'rider_settings_screen.dart';
 import 'waiting_screen.dart';
 
 class RiderHomeScreen extends ConsumerStatefulWidget {
@@ -62,6 +63,15 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
           tooltip: l10n.logoutTooltip,
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: l10n.settingsButton,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const RiderSettingsScreen(),
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
