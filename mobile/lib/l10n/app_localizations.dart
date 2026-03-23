@@ -215,7 +215,7 @@ abstract class AppLocalizations {
   /// No description provided for @riderTagline.
   ///
   /// In en, this message translates to:
-  /// **'Your campus ride, on demand'**
+  /// **'Your ride, on demand'**
   String get riderTagline;
 
   /// No description provided for @driverTagline.

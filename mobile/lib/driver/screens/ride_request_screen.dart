@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:action_slider/action_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/l10n/app_localizations.dart';
@@ -431,48 +432,50 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
                     const SizedBox(height: 24),
 
                     // Action Buttons
-                    if (!_isProcessing) ...[
-                      ElevatedButton.icon(
-                        onPressed: _acceptRide,
-                        icon: const Icon(Icons.check_circle),
-                        label: Text(l10n.acceptRideButton),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          textStyle: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    ActionSlider.standard(
+                      sliderBehavior: SliderBehavior.stretch,
+                      backgroundColor: Colors.green.shade50,
+                      toggleColor: Colors.green,
+                      icon: const Icon(Icons.arrow_forward_ios, color: Colors.white),
+                      loadingIcon: const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      OutlinedButton.icon(
-                        onPressed: _declineRide,
-                        icon: const Icon(Icons.cancel),
-                        label: Text(l10n.declineButton),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.grey[700],
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          side: BorderSide(color: Colors.grey[400]!),
-                          textStyle: const TextStyle(
-                            fontSize: 16,
-                          ),
+                      successIcon: const Icon(Icons.check_rounded, color: Colors.white),
+                      child: Text(
+                        l10n.acceptRideButton,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
                         ),
                       ),
-                    ] else
-                      Center(
-                        child: Column(
-                          children: [
-                            const CircularProgressIndicator(),
-                            const SizedBox(height: 16),
-                            Text(
-                              l10n.acceptingRide,
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          ],
+                      action: (controller) async {
+                        controller.loading();
+                        await _acceptRide();
+                        // _acceptRide pops the screen on both success and error;
+                        // reset only if still mounted (e.g. unexpected path).
+                        if (mounted) controller.reset();
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: _isProcessing ? null : _declineRide,
+                      icon: const Icon(Icons.cancel),
+                      label: Text(l10n.declineButton),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: BorderSide(color: Colors.grey[400]!),
+                        textStyle: const TextStyle(
+                          fontSize: 16,
                         ),
                       ),
+                    ),
                   ],
                 ),
               ),

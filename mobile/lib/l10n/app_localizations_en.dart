@@ -66,7 +66,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get yourDriver => 'Your driver';
 
   @override
-  String get riderTagline => 'Your campus ride, on demand';
+  String get riderTagline => 'Your ride, on demand';
 
   @override
   String get driverTagline => 'Drive and earn on campus';

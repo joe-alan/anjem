@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:action_slider/action_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -775,7 +776,9 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
   }
 
   Widget _buildActionButton(RideStatus status, AppLocalizations l10n) {
-    if (_isUpdatingStatus) {
+    // For simple status-advance buttons, guard against double-taps with a spinner.
+    // The Complete Ride slider manages its own loading state so is excluded.
+    if (_isUpdatingStatus && status != RideStatus.inProgress) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(12.0),
@@ -818,19 +821,61 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
         );
 
       case RideStatus.inProgress:
-        return ElevatedButton.icon(
-          onPressed: () => _updateRideStatus('completed'),
-          icon: const Icon(Icons.check_circle),
-          label: Text(l10n.completeRideFab),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            textStyle: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+        return ActionSlider.standard(
+          sliderBehavior: SliderBehavior.stretch,
+          backgroundColor: Colors.green.shade50,
+          toggleColor: Colors.green,
+          icon: const Icon(Icons.arrow_forward_ios, color: Colors.white),
+          loadingIcon: const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              color: Colors.white,
             ),
           ),
+          successIcon: const Icon(Icons.check_rounded, color: Colors.white),
+          child: Text(
+            l10n.completeRideFab,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.green,
+            ),
+          ),
+          action: (controller) async {
+            controller.loading();
+            try {
+              final apiService = ref.read(apiServiceProvider);
+              await apiService.patch(
+                '/rides/${widget.rideId}/status',
+                data: {'status': 'completed'},
+              );
+              controller.success();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.statusUpdatedTo(
+                        _formatStatus('completed', l10n))),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                _handleRideCompletion();
+              }
+            } catch (e) {
+              controller.failure();
+              await Future.delayed(const Duration(seconds: 2));
+              if (mounted) {
+                controller.reset();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.failedToUpdateStatus(e.toString())),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          },
         );
 
       default:
