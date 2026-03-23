@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/place_search_result.dart';
 import '../../core/providers/ride_request_provider.dart';
@@ -25,7 +26,6 @@ class RideDetailsScreen extends ConsumerStatefulWidget {
 }
 
 class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
-  int _passengerCount = 1;
   final _specialRequestsController = TextEditingController();
   bool _isSubmitting = false;
 
@@ -38,6 +38,7 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
+    final l10n = AppLocalizations.of(context);
     final requestState = ref.watch(rideRequestProvider);
     final fareEstimate = requestState.fareEstimate;
 
@@ -63,7 +64,7 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
             children: [
               // AppBar
               AppBar(
-                title: const Text('Ride Details'),
+                title: Text(l10n.rideDetailsTitle),
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 foregroundColor: Colors.white,
@@ -132,9 +133,9 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text(
-                                    'Estimated Fare:',
-                                    style: TextStyle(fontSize: 14),
+                                  Text(
+                                    l10n.estimatedFareLabel,
+                                    style: const TextStyle(fontSize: 14),
                                   ),
                                   Text(
                                     fareEstimate.formattedFare,
@@ -179,41 +180,14 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
                         const SizedBox(height: 20),
                       ],
 
-                      // Passenger count
-                      const Text(
-                        'Passenger Count',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 8),
+                      // Motorcycle passenger note
                       Row(
                         children: [
-                          IconButton(
-                            onPressed: _passengerCount > 1
-                                ? () => setState(() => _passengerCount--)
-                                : null,
-                            icon: const Icon(Icons.remove_circle_outline),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey[300]!),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              '$_passengerCount',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: _passengerCount < 4
-                                ? () => setState(() => _passengerCount++)
-                                : null,
-                            icon: const Icon(Icons.add_circle_outline),
-                          ),
+                          Icon(Icons.motorcycle, size: 18, color: Colors.grey[600]),
                           const SizedBox(width: 8),
                           Text(
-                            'Max: 4 passengers',
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            l10n.motorcycleOnlyNote,
+                            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                           ),
                         ],
                       ),
@@ -221,16 +195,16 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
                       const SizedBox(height: 20),
 
                       // Special requests
-                      const Text(
-                        'Special Requests (Optional)',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                      Text(
+                        l10n.specialRequestsHint,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 8),
                       TextField(
                         controller: _specialRequestsController,
                         maxLines: 2,
                         decoration: InputDecoration(
-                          hintText: 'e.g., "Please wait at gate 2"',
+                          hintText: l10n.specialRequestsPlaceholder,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -253,10 +227,8 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
                                   if (widget.pickupLocation.id == null ||
                                       widget.destinationLocation.id == null) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Invalid location selection. Please go back and select valid beacons.',
-                                        ),
+                                      SnackBar(
+                                        content: Text(l10n.locationResolveFailed),
                                         backgroundColor: Colors.red,
                                       ),
                                     );
@@ -266,11 +238,9 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
                                   setState(() => _isSubmitting = true);
 
                                   try {
-                                    // Safe extraction of IDs (already validated above)
                                     final pickupId = widget.pickupLocation.id;
                                     final destinationId = widget.destinationLocation.id;
 
-                                    // This should never happen due to validation above, but be extra safe
                                     if (pickupId == null || destinationId == null) {
                                       throw Exception('Internal error: Location IDs are null');
                                     }
@@ -280,7 +250,7 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
                                         .createRequest(
                                           pickupBeaconId: pickupId,
                                           destinationBeaconId: destinationId,
-                                          passengerCount: _passengerCount,
+                                          passengerCount: 1,
                                           specialRequests:
                                               _specialRequestsController.text.trim(),
                                         );
@@ -309,7 +279,7 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
 
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content: Text('Failed: ${e.toString()}'),
+                                        content: Text(l10n.failedGeneric(e.toString())),
                                         backgroundColor: Colors.red,
                                       ),
                                     );
@@ -333,9 +303,9 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
                                     valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                   ),
                                 )
-                              : const Text(
-                                  'Confirm Request',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                              : Text(
+                                  l10n.confirmRequest,
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                                 ),
                         ),
                       ),

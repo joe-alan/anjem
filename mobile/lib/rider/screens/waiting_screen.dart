@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import '../../core/config/app_config.dart';
 import '../../core/providers/ride_request_provider.dart';
 import 'rider_active_ride_screen.dart';
@@ -27,20 +28,21 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
 
   Future<void> _showCancelDialog() async {
     if (_isCancelling) return;
+    final l10n = AppLocalizations.of(context);
     final nav = Navigator.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cancel Request?'),
-        content: const Text('Are you sure you want to cancel this ride request?'),
+        title: Text(l10n.cancelRequestTitle),
+        content: Text(l10n.cancelRequestConfirmMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('No'),
+            child: Text(l10n.no),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Yes, Cancel'),
+            child: Text(l10n.yesCancelButton),
           ),
         ],
       ),
@@ -85,6 +87,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
   @override
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
+    final l10n = AppLocalizations.of(context);
     final requestState = ref.watch(rideRequestProvider);
 
     ref.listen<RideRequestState>(rideRequestProvider, (previous, next) {
@@ -142,7 +145,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
       },
       child: Scaffold(
       appBar: AppBar(
-        title: const Text('Finding Driver'),
+        title: Text(l10n.findingDriverTitle),
         backgroundColor: config.primaryColor,
         foregroundColor: Colors.white,
         automaticallyImplyLeading: false,
@@ -166,8 +169,8 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
                   Expanded(
                     child: Text(
                       requestState.cancelCount >= 2
-                          ? 'Warning: One more cancellation will suspend your account.'
-                          : 'Warning: Repeated cancellations may result in a temporary ban.',
+                          ? l10n.oneMoreCancellationWarning
+                          : l10n.repeatedCancellationsWarning,
                       style: TextStyle(color: Colors.orange.shade800, fontSize: 13),
                     ),
                   ),
@@ -206,9 +209,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
               ),
               const SizedBox(height: 32),
               Text(
-                noDrivers
-                    ? 'No drivers available right now'
-                    : 'Finding a driver for you...',
+                noDrivers ? l10n.noDriversAvailable : l10n.findingDriverMessage,
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -218,22 +219,22 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
               const SizedBox(height: 12),
               if (noDrivers) ...[
                 Text(
-                  'Retrying in $_countdownSeconds seconds…',
+                  l10n.retryingInSeconds(_countdownSeconds),
                   style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   textAlign: TextAlign.center,
                 ),
               ] else ...[
                 if (requestState.request != null)
                   Text(
-                    'Queue Position: ${requestState.request!.queuePosition ?? "-"}',
+                    l10n.queuePosition(requestState.request!.queuePosition?.toString() ?? '-'),
                     style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                   ),
                 const SizedBox(height: 8),
                 const CircularProgressIndicator(),
                 const SizedBox(height: 16),
-                const Text(
-                  'Please wait while we match you with a nearby driver',
-                  style: TextStyle(fontSize: 14),
+                Text(
+                  l10n.pleaseWaitMessage,
+                  style: const TextStyle(fontSize: 14),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -241,7 +242,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
               OutlinedButton.icon(
                 onPressed: requestState.isLoading ? null : _showCancelDialog,
                 icon: const Icon(Icons.close),
-                label: const Text('Cancel Request'),
+                label: Text(l10n.cancelRequestButton),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.red,
                   side: const BorderSide(color: Colors.red),

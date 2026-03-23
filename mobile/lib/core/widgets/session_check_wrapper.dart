@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import '../config/app_config.dart';
 import '../models/session_state.dart';
 import '../providers/session_provider.dart';
@@ -180,15 +181,16 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
   }
 
   void _showResumeDialog(SessionState sessionState) {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Continue Previous Session?'),
+        title: Text(l10n.continueSessionTitle),
         content: Text(
           sessionState.needsToResumeRide
-              ? 'You have an active ride. Would you like to continue?'
-              : 'You have a pending ride request. Would you like to continue?',
+              ? l10n.continueRideMessage
+              : l10n.continuePendingMessage,
         ),
         actions: [
           TextButton(
@@ -210,11 +212,11 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
                 });
               }
             },
-            child: const Text('Yes'),
+            child: Text(l10n.yes),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('No'),
+            child: Text(l10n.no),
           ),
         ],
       ),

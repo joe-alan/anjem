@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/ride_request.dart';
 import '../../core/providers/api_provider.dart';
@@ -74,10 +75,11 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
 
     _clearIncomingRequest();
     if (mounted) {
+      final l10n = AppLocalizations.of(context);
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Request timed out'),
+        SnackBar(
+          content: Text(l10n.requestTimedOut),
           backgroundColor: Colors.orange,
         ),
       );
@@ -116,6 +118,7 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
         _clearIncomingRequest();
 
         if (mounted) {
+          final l10n = AppLocalizations.of(context);
           // Navigate to ActiveRideScreen
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
@@ -124,8 +127,8 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
           );
 
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Ride accepted!'),
+            SnackBar(
+              content: Text(l10n.rideAccepted),
               backgroundColor: Colors.green,
             ),
           );
@@ -140,10 +143,11 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
       _timer?.cancel();
 
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         // Show snackbar first — it persists on the parent screen after pop.
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_parseError(e)),
+            content: Text(_parseError(e, l10n)),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 4),
           ),
@@ -155,22 +159,22 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
     }
   }
 
-  String _parseError(Object error) {
+  String _parseError(Object error, AppLocalizations l10n) {
     if (error is ApiException) {
       if (error.statusCode == 410) {
-        return 'This ride request was cancelled by the rider';
+        return l10n.errorRideCancelledByRider;
       } else if (error.statusCode == 409) {
-        return 'This ride was already accepted by another driver';
+        return l10n.errorRideAlreadyAccepted;
       } else if (error.statusCode == 402) {
-        return 'Insufficient credits to accept this ride';
+        return l10n.errorInsufficientCredits;
       } else if (error.statusCode == 400) {
-        return 'You already have an active ride';
+        return l10n.errorAlreadyActiveRide;
       } else if (error.statusCode == 404) {
-        return 'Ride request no longer available';
+        return l10n.errorRideNoLongerAvailable;
       }
       return error.message;
     }
-    return 'Failed to accept ride. Please try again.';
+    return l10n.errorFailedToAccept;
   }
 
   Future<void> _declineRide() async {
@@ -192,10 +196,11 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
     _clearIncomingRequest();
 
     if (mounted) {
+      final l10n = AppLocalizations.of(context);
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ride declined'),
+        SnackBar(
+          content: Text(l10n.rideDeclined),
           backgroundColor: Colors.grey,
         ),
       );
@@ -209,6 +214,7 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
   @override
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
+    final l10n = AppLocalizations.of(context);
     final progress = _secondsRemaining / timeoutSeconds;
 
     // Dismiss if the rider/admin cancelled or the backend re-dispatched to another driver.
@@ -220,15 +226,14 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
         _timer?.cancel();
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Ride request was cancelled'),
+          SnackBar(
+            content: Text(l10n.rideCancelledByRider),
             backgroundColor: Colors.orange,
           ),
         );
       }
     });
 
-    // ✅ FIX: Replace deprecated WillPopScope with PopScope (Flutter 3.12+)
     return PopScope(
       canPop: !_isProcessing,
       onPopInvokedWithResult: (bool didPop, dynamic result) {
@@ -238,7 +243,7 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('New Ride Request'),
+          title: Text(l10n.newRideRequestTitle),
           backgroundColor: config.primaryColor,
           foregroundColor: Colors.white,
           automaticallyImplyLeading: !_isProcessing,
@@ -266,7 +271,7 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
                       child: Column(
                         children: [
                           Text(
-                            'Accept within',
+                            l10n.acceptWithinLabel,
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[600],
@@ -316,7 +321,7 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Ride Details',
+                              l10n.rideDetailsTitle,
                               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -327,7 +332,7 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
                             _buildLocationRow(
                               Icons.radio_button_checked,
                               Colors.green,
-                              'Pickup',
+                              l10n.pickupLabel,
                               widget.request.pickupLocation.name,
                               widget.request.pickupLocation.description,
                             ),
@@ -338,7 +343,7 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
                             _buildLocationRow(
                               Icons.location_on,
                               Colors.red,
-                              'Destination',
+                              l10n.destinationLabel,
                               widget.request.destinationLocation.name,
                               widget.request.destinationLocation.description,
                             ),
@@ -352,12 +357,14 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
                                 _buildInfoItem(
                                   Icons.attach_money,
                                   'Rp ${_formatCurrency(widget.request.estimatedFare)}',
-                                  'Fare',
+                                  l10n.fareLabel,
                                 ),
                                 _buildInfoItem(
                                   Icons.person,
                                   '${widget.request.passengerCount}',
-                                  widget.request.passengerCount == 1 ? 'Passenger' : 'Passengers',
+                                  widget.request.passengerCount == 1
+                                      ? l10n.passengerSingular
+                                      : l10n.passengerPlural,
                                 ),
                               ],
                             ),
@@ -375,9 +382,9 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
-                                          'Special Requests',
-                                          style: TextStyle(
+                                        Text(
+                                          l10n.specialRequestsTitle,
+                                          style: const TextStyle(
                                             fontSize: 12,
                                             color: Colors.grey,
                                           ),
@@ -428,7 +435,7 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
                       ElevatedButton.icon(
                         onPressed: _acceptRide,
                         icon: const Icon(Icons.check_circle),
-                        label: const Text('Accept Ride'),
+                        label: Text(l10n.acceptRideButton),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
                           foregroundColor: Colors.white,
@@ -443,7 +450,7 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
                       OutlinedButton.icon(
                         onPressed: _declineRide,
                         icon: const Icon(Icons.cancel),
-                        label: const Text('Decline'),
+                        label: Text(l10n.declineButton),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.grey[700],
                           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -454,14 +461,14 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
                         ),
                       ),
                     ] else
-                      const Center(
+                      Center(
                         child: Column(
                           children: [
-                            CircularProgressIndicator(),
-                            SizedBox(height: 16),
+                            const CircularProgressIndicator(),
+                            const SizedBox(height: 16),
                             Text(
-                              'Accepting ride...',
-                              style: TextStyle(fontSize: 16),
+                              l10n.acceptingRide,
+                              style: const TextStyle(fontSize: 16),
                             ),
                           ],
                         ),

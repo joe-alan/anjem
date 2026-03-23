@@ -1,0 +1,393 @@
+{
+  "@@locale": "en",
+
+  "cancel": "Cancel",
+  "yes": "Yes",
+  "no": "No",
+  "ok": "OK",
+  "retry": "Retry",
+  "close": "Close",
+  "back": "Back",
+  "continueButton": "Continue",
+  "loading": "Loading...",
+  "saving": "Saving...",
+  "cancelling": "Cancelling...",
+  "submit": "Submit",
+  "next": "Next",
+  "skipForNow": "Skip for now",
+  "gotIt": "Got it!",
+  "openSettings": "Open Settings",
+  "dismiss": "Dismiss",
+  "driverFallback": "Driver",
+  "yourDriver": "Your driver",
+
+  "riderTagline": "Your ride, on demand",
+  "driverTagline": "Drive and earn on campus",
+  "signInWithGoogle": "Sign in with Google",
+  "signingIn": "Signing in...",
+  "termsNoticePrefix": "By signing in, you agree to our ",
+  "termsAndConditions": "Terms \u0026 Conditions",
+  "termsNoticeConnector": " and ",
+  "privacyPolicy": "Privacy Policy",
+  "termsNoticeSuffix": "",
+
+  "continueSessionTitle": "Continue Previous Session?",
+  "continueRideMessage": "You have an active ride. Would you like to continue?",
+  "continuePendingMessage": "You have a pending ride request. Would you like to continue?",
+
+  "logoutTitle": "Logout",
+  "logoutConfirmMessage": "Are you sure you want to logout?",
+  "accountSuspendedBanner": "Your account has been suspended. You cannot request rides.",
+  "activeRideRequestBanner": "You have an active ride request",
+  "viewButton": "View",
+  "oneMoreCancellationWarning": "Warning: One more cancellation will suspend your account.",
+  "repeatedCancellationsWarning": "Warning: Repeated cancellations may result in a temporary ban.",
+  "accountSuspendedButton": "Account Suspended",
+  "requestInProgressButton": "Request in Progress",
+  "requestRideButton": "Request Ride",
+
+  "selectLocationsTitle": "Select Locations",
+  "searchLocationsHint": "Search locations (gates, canteens, faculties...)",
+  "pickupLabel": "Pickup",
+  "dropOffLabel": "Drop-off",
+  "searchingText": "Searching...",
+  "startTypingHint": "Start typing to search for locations",
+  "noResultsFound": "No results found",
+  "locationResolveFailed": "Could not resolve one of the selected locations. Please try searching again.",
+  "estimateFailed": "Failed to get estimate: {error}",
+  "@estimateFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "beaconLabel": "Beacon",
+
+  "cancelRequestTitle": "Cancel Request?",
+  "cancelRequestConfirmMessage": "Are you sure you want to cancel this ride request?",
+  "yesCancelButton": "Yes, Cancel",
+  "findingDriverTitle": "Finding Driver",
+  "noDriversAvailable": "No drivers available right now",
+  "findingDriverMessage": "Finding a driver for you...",
+  "retryingInSeconds": "Retrying in {seconds} seconds\u2026",
+  "@retryingInSeconds": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "queuePosition": "Queue Position: {position}",
+  "@queuePosition": {
+    "placeholders": {
+      "position": {"type": "String"}
+    }
+  },
+  "pleaseWaitMessage": "Please wait while we match you with a nearby driver",
+  "cancelRequestButton": "Cancel Request",
+
+  "driverFoundTitle": "Driver Found!",
+  "driverOnTheWayMessage": "{driverName} is on the way",
+  "@driverOnTheWayMessage": {
+    "placeholders": {
+      "driverName": {"type": "String"}
+    }
+  },
+  "callingDriver": "Calling driver...",
+  "rideCancelledTitle": "Ride Cancelled",
+  "driverCancelledMessage": "Your driver cancelled this ride.",
+  "adminCancelReason": "Admin reason: {reason}",
+  "@adminCancelReason": {
+    "placeholders": {
+      "reason": {"type": "String"}
+    }
+  },
+  "cancelRideTitle": "Cancel Ride?",
+  "cancelRideConfirmMessage": "Are you sure you want to cancel? This may result in a brief cooldown before you can request again.",
+  "cancelFailed": "Failed to cancel: {error}",
+  "@cancelFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "statusDriverOnTheWay": "Driver on the way",
+  "statusDriverArrived": "Driver has arrived",
+  "statusRideInProgress": "Ride in progress",
+  "statusRideCompleted": "Ride completed",
+  "statusRideCancelled": "Ride cancelled",
+  "etaMinutes": "ETA: {minutes} min",
+  "@etaMinutes": {
+    "placeholders": {
+      "minutes": {"type": "String"}
+    }
+  },
+
+  "rateYourRideTitle": "Rate Your Ride",
+  "rideCompletedHeading": "Ride Completed!",
+  "fareLabel": "Fare:",
+  "fromLabel": "From:",
+  "toLabel": "To:",
+  "howWasYourRide": "How was your ride?",
+  "whatDidYouLike": "What did you like?",
+  "additionalFeedbackOptional": "Additional Feedback (Optional)",
+  "shareFeedbackHint": "Share your experience...",
+  "submitRatingButton": "Submit Rating",
+  "tagCleanVehicle": "Clean Vehicle",
+  "tagSafeDriving": "Safe Driving",
+  "tagFriendlyDriver": "Friendly Driver",
+  "tagOnTime": "On Time",
+  "tagProfessional": "Professional",
+  "tagSmoothRide": "Smooth Ride",
+  "tagHelpful": "Helpful",
+
+  "rideHistoryTitle": "Ride History",
+  "filterAll": "All",
+  "filterCompleted": "Completed",
+  "filterCancelled": "Cancelled",
+  "noRidesYet": "No rides yet",
+  "rideDetailsTitle": "Ride Details",
+
+  "estimatedFareLabel": "Estimated Fare:",
+  "passengerCountTitle": "Passenger Count",
+  "specialRequestsHint": "Special Requests (Optional)",
+  "confirmRequest": "Confirm Request",
+
+  "welcomeDriver": "Welcome, {name}!",
+  "@welcomeDriver": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "statusOnlineWithRide": "You have an active ride",
+  "statusOnlineIdle": "Waiting for ride requests...",
+  "statusOfflineMessage": "Go online to start receiving ride requests",
+  "joiningQueue": "Joining queue...",
+  "youreNextInQueue": "You\u2019re next in queue!",
+  "queuePositionNumber": "Queue Position: #{position}",
+  "@queuePositionNumber": {
+    "placeholders": {
+      "position": {"type": "int"}
+    }
+  },
+  "nextRideComing": "The next ride request will come to you",
+  "driversAheadOfYou": "{count} driver(s) ahead of you",
+  "@driversAheadOfYou": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "todaysEarningsTitle": "Today\u2019s Earnings",
+  "ridesCompletedToday": "{count} rides completed today",
+  "@ridesCompletedToday": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "ratingLabel": "Rating",
+  "totalRidesLabel": "Total Rides",
+  "statusLabel": "Status",
+  "statusSuspended": "Suspended",
+  "statusVerified": "Verified",
+  "statusUnverified": "Unverified",
+  "youHaveActiveRide": "You have an active ride",
+  "viewActiveRide": "View Active Ride",
+  "accountSuspendedContactAdmin": "Your account has been suspended. Contact admin.",
+  "suspensionReason": "Reason: {reason}",
+  "@suspensionReason": {
+    "placeholders": {
+      "reason": {"type": "String"}
+    }
+  },
+  "pendingApprovalBanner": "Your account is pending admin approval. You cannot go online until approved.",
+  "unableToLoadStats": "Unable to load statistics",
+  "noCreditsWarning": "You have no credits. Contact admin to top up before going online.",
+  "lowCreditsWarning": "Low credits: {balance} remaining. Contact admin to top up soon.",
+  "@lowCreditsWarning": {
+    "placeholders": {
+      "balance": {"type": "int"}
+    }
+  },
+  "earningsHistoryButton": "Earnings History",
+  "settingsButton": "Settings",
+  "loadingProfile": "Loading Profile...",
+  "goOnlineButton": "Go Online",
+  "activeRideButton": "Active Ride",
+  "goOfflineButton": "Go Offline",
+  "topUpComingSoon": "Top Up \u2014 Coming Soon",
+  "yourCreditsTitle": "Your Credits",
+  "noCreditsBalance": "No credits",
+  "lowCreditsBalance": "Low credits",
+  "sufficientCreditsBalance": "Sufficient credits",
+  "noCreditsMessage": "You cannot go online or accept rides until your balance is topped up. Contact your admin.",
+  "lowCreditsMessage": "Your balance is running low. You can still accept rides, but consider contacting admin to top up soon.",
+  "sufficientCreditsMessage": "You have enough credits to go online and accept rides.",
+  "howCreditsWork": "How credits work",
+  "creditInfo1": "1 credit is deducted each time you accept a ride",
+  "creditInfo2": "You need at least 1 credit to go online",
+  "creditInfo3": "Credits are granted by admin \u2014 contact them to top up",
+  "creditsChip": "Credits: {balance}",
+  "@creditsChip": {
+    "placeholders": {
+      "balance": {"type": "int"}
+    }
+  },
+
+  "driverSettingsTitle": "Driver Settings",
+  "maxPickupRadiusTitle": "Max Pickup Radius",
+  "maxPickupRadiusDesc": "Only receive ride requests where the pickup is within this distance from your current location.",
+  "failedToLoadSettings": "Failed to load settings",
+  "failedToSaveSettings": "Failed to save settings. Please try again.",
+  "settingsSavedSuccess": "Settings saved successfully",
+  "saveSettingsButton": "Save Settings",
+
+  "driverVerificationTitle": "Driver Verification",
+  "studentInfoPageTitle": "Student Information",
+  "studentInfoPageSubtitle": "Enter your student details for verification",
+  "vehicleInfoPageTitle": "Vehicle Information",
+  "vehicleInfoPageSubtitle": "Enter your vehicle details",
+  "ktmPhotoPageTitle": "Upload KTM Photo",
+  "ktmPhotoPageSubtitle": "Take a clear photo of your student ID card",
+  "studentEmailLabel": "Student Email *",
+  "studentIdLabel": "Student ID *",
+  "fullNameLabel": "Full Name (as on KTM) *",
+  "vehicleTypeLabel": "Vehicle Type *",
+  "motorcycleOption": "Motorcycle",
+  "carOption": "Car",
+  "vehicleColorLabel": "Vehicle Color *",
+  "vehicleTypeNotSupportedTitle": "Vehicle Type Not Supported",
+  "vehicleTypeNotSupportedMessage": "Sorry, we currently only support motorcycles. Car support will be available soon!",
+  "takePhotoButton": "Take Photo",
+  "fromGalleryButton": "From Gallery",
+  "pleaseUploadKtm": "Please upload your KTM photo",
+  "pleaseSelectColor": "Please select a vehicle color",
+  "failedToPickImage": "Failed to pick image: {error}",
+  "@failedToPickImage": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "checkingAvailability": "Checking availability...",
+  "emailAvailable": "\u2713 Email is available",
+  "emailUnavailable": "\u2717 This email is already registered",
+  "emailCheckError": "Could not check availability",
+  "kycRejectedBannerTitle": "KYC Rejected",
+  "draftDataLoaded": "Draft data loaded (saved {timeAgo})",
+  "@draftDataLoaded": {
+    "placeholders": {
+      "timeAgo": {"type": "String"}
+    }
+  },
+  "noPhotoSelected": "No photo selected",
+  "ktmPhotoInfo": "Make sure your KTM photo is clear and all details are visible",
+
+  "emailVerificationTitle": "Email Verification",
+  "verifyYourEmailHeading": "Verify Your Email",
+  "verificationCodeSentTo": "We\u2019ve sent a 6-digit verification code to",
+  "verifyEmailButton": "Verify Email",
+  "pleaseEnterCode": "Please enter the 6-digit code",
+  "didntReceiveCode": "Didn\u2019t receive the code? ",
+  "resendCountdown": "Resend in {seconds}s",
+  "@resendCountdown": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "resendCode": "Resend Code",
+  "verificationCodeExpiry": "The verification code expires in 10 minutes. Please check your spam folder if you don\u2019t see the email.",
+
+  "newRideRequestTitle": "New Ride Request",
+  "acceptWithinLabel": "Accept within",
+  "requestTimedOut": "Request timed out",
+  "rideAccepted": "Ride accepted!",
+  "rideDeclined": "Ride declined",
+  "rideCancelledByRider": "Ride request was cancelled",
+  "errorRideCancelledByRider": "This ride request was cancelled by the rider",
+  "errorRideAlreadyAccepted": "This ride was already accepted by another driver",
+  "errorInsufficientCredits": "Insufficient credits to accept this ride",
+  "errorAlreadyActiveRide": "You already have an active ride",
+  "errorRideNoLongerAvailable": "Ride request no longer available",
+  "errorFailedToAccept": "Failed to accept ride. Please try again.",
+  "destinationLabel": "Destination",
+  "passengerSingular": "Passenger",
+  "passengerPlural": "Passengers",
+  "specialRequestsTitle": "Special Requests",
+  "acceptRideButton": "Accept Ride",
+  "declineButton": "Decline",
+  "acceptingRide": "Accepting ride...",
+
+  "locationPermissionTitle": "Location Permission Required",
+  "locationPermissionMessage": "This app needs location permission to track your ride and update your position. Please enable location access in Settings.",
+  "rideCompletedSnackbar": "Ride completed! \uD83C\uDF89",
+  "rideCancelledSnackbar": "Ride cancelled",
+  "rideCancelledByRiderSnackbar": "Ride was cancelled by the rider",
+  "activeRideTitle": "Active Ride",
+  "goBackButton": "Go Back",
+  "failedToLoadRide": "Failed to load ride",
+  "statusUpdatedTo": "Status updated to {status}",
+  "@statusUpdatedTo": {
+    "placeholders": {
+      "status": {"type": "String"}
+    }
+  },
+  "failedToUpdateStatus": "Failed to update status: {error}",
+  "@failedToUpdateStatus": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "markAsArrivedFab": "Mark as Arrived",
+  "startRideFab": "Start Ride",
+  "completeRideFab": "Complete Ride",
+  "cancelRideActiveTitle": "Cancel Ride",
+  "cancelRideActiveConfirmMessage": "Are you sure you want to cancel this ride? This may affect your driver rating.",
+  "noContinueButton": "No, Continue",
+  "yesCancelRide": "Yes, Cancel",
+  "adminOverrideBanner": "Admin Override: {reason}",
+  "@adminOverrideBanner": {
+    "placeholders": {
+      "reason": {"type": "String"}
+    }
+  },
+  "driverStatusDrivingToPickup": "Driving to pickup",
+  "driverStatusArrivedAtPickup": "Arrived at pickup",
+  "driverStatusRideInProgress": "Ride in progress",
+  "driverStatusRideCompleted": "Ride completed",
+  "driverStatusRideCancelled": "Ride cancelled",
+
+  "logoutTooltip": "Logout",
+  "cancelRideTooltip": "Cancel ride",
+  "statusOnlineLabel": "ONLINE",
+  "statusOfflineLabel": "OFFLINE",
+  "riderFallback": "Rider",
+  "radiusCurrentLabel": "{radius} km radius",
+  "@radiusCurrentLabel": {
+    "placeholders": {
+      "radius": {"type": "String"}
+    }
+  },
+  "radiusMinLabel": "0.5 km",
+  "radiusMaxLabel": "20 km",
+  "dateLabel": "Date",
+  "driverLabel": "Driver",
+  "maxPassengersHint": "Max: 4 passengers",
+  "specialRequestsPlaceholder": "e.g., \"Please wait at gate 2\"",
+  "failedGeneric": "Failed: {error}",
+  "@failedGeneric": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "validatorStudentEmailRequired": "Student email is required",
+  "validatorInvalidEmailFormat": "Invalid email format",
+  "validatorEmailDomainInvalid": "Email must be from students.undip.ac.id domain",
+  "validatorEmailAlreadyRegistered": "This email is already registered",
+  "validatorStudentIdRequired": "Student ID is required",
+  "validatorFullNameRequired": "Full name is required",
+  "validatorRequired": "Required",
+  "validatorVehicleColorRequired": "Vehicle color is required",
+  "studentEmailHint": "your.email@students.undip.ac.id",
+  "studentEmailHelper": "Must be your university email",
+  "studentIdHint": "e.g., 24010123140147",
+  "fullNameHint": "Your full name",
+  "selectColorHint": "Select vehicle color",
+  "licensePlateLabel": "License Plate *",
+  "licensePlateFormat": "Format: XX - 1234 - XXX",
+  "motorcycleOnlyNote": "Motorcycle rides — maximum 1 passenger"
+}

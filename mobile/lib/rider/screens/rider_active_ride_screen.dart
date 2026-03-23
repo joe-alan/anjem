@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/ride.dart';
 import '../../core/models/lat_lng.dart';
@@ -192,6 +193,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
   @override
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
+    final l10n = AppLocalizations.of(context);
     final rideState = ref.watch(activeRideProvider);
 
     // Listen for ride status changes (WebSocket updates)
@@ -272,13 +274,13 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
 
           // Driver matched popup (shows initially, can be dismissed)
           if (_showDriverMatchedPopup && ride.status == RideStatus.accepted)
-            _buildDriverMatchedPopup(context, ride, config),
+            _buildDriverMatchedPopup(context, ride, config, l10n),
 
           // Top status card (always visible)
-          _buildStatusCard(context, ride, rideState, config),
+          _buildStatusCard(context, ride, rideState, config, l10n),
 
           // Bottom driver info card
-          _buildDriverInfoCard(context, ride, config),
+          _buildDriverInfoCard(context, ride, config, l10n),
         ],
       ),
     );
@@ -286,7 +288,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
 
   /// Build driver matched popup (dismissible)
   Widget _buildDriverMatchedPopup(
-      BuildContext context, Ride ride, AppConfig config) {
+      BuildContext context, Ride ride, AppConfig config, AppLocalizations l10n) {
     return Positioned.fill(
       child: GestureDetector(
         onTap: () {
@@ -321,9 +323,9 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
 
                     const SizedBox(height: 16),
 
-                    const Text(
-                      'Driver Found!',
-                      style: TextStyle(
+                    Text(
+                      l10n.driverFoundTitle,
+                      style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
@@ -332,7 +334,8 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
                     const SizedBox(height: 8),
 
                     Text(
-                      '${ride.driver?.name ?? "Your driver"} is on the way',
+                      l10n.driverOnTheWayMessage(
+                          ride.driver?.name ?? l10n.yourDriver),
                       style: const TextStyle(fontSize: 14, color: Colors.grey),
                       textAlign: TextAlign.center,
                     ),
@@ -353,7 +356,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
                           vertical: 12,
                         ),
                       ),
-                      child: const Text('Got it!'),
+                      child: Text(l10n.gotIt),
                     ),
                   ],
                 ),
@@ -367,12 +370,12 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
 
   /// Build top status card
   Widget _buildStatusCard(BuildContext context, Ride ride,
-      ActiveRideState rideState, AppConfig config) {
+      ActiveRideState rideState, AppConfig config, AppLocalizations l10n) {
     return Positioned(
       top: 0,
       left: 16,
       right: 16,
-      child: SafeArea(  // ✅ SafeArea should be INSIDE Positioned
+      child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.only(top: 16),
           child: Card(
@@ -394,7 +397,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        _getStatusText(ride.status),
+                        _getStatusText(ride.status, l10n),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -411,7 +414,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
                           size: 16, color: config.primaryColor),
                       const SizedBox(width: 4),
                       Text(
-                        'ETA: ${rideState.estimatedArrivalMinutes!.toStringAsFixed(0)} min',
+                        l10n.etaMinutes(rideState.estimatedArrivalMinutes!.toStringAsFixed(0)),
                         style: TextStyle(color: Colors.grey[600]),
                       ),
                     ],
@@ -428,7 +431,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
 
   /// Build bottom driver info card
   Widget _buildDriverInfoCard(
-      BuildContext context, Ride ride, AppConfig config) {
+      BuildContext context, Ride ride, AppConfig config, AppLocalizations l10n) {
     return Positioned(
       bottom: 16,
       left: 16,
@@ -461,7 +464,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          ride.driver?.name ?? 'Driver',
+                          ride.driver?.name ?? l10n.driverFallback,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -483,8 +486,8 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
                     onPressed: () {
                       // TODO: Call driver
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Calling driver...'),
+                        SnackBar(
+                          content: Text(l10n.callingDriver),
                         ),
                       );
                     },
@@ -505,7 +508,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.close, size: 16),
-                    label: Text(_isCancelling ? 'Cancelling...' : 'Cancel Ride'),
+                    label: Text(_isCancelling ? l10n.cancelling : l10n.cancelRideTitle),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red,
                       side: const BorderSide(color: Colors.red),
@@ -523,6 +526,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
   Future<void> _showCancellationInfo(Ride? ride) async {
     if (!mounted) return;
 
+    final l10n = AppLocalizations.of(context);
     final adminReason = ride?.adminReason;
     final isAdmin = ride?.adminOverride == true;
 
@@ -530,7 +534,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('Ride Cancelled'),
+        title: Text(l10n.rideCancelledTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -538,13 +542,13 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
             const SizedBox(height: 16),
             if (isAdmin && adminReason != null)
               Text(
-                'Admin reason: $adminReason',
+                l10n.adminCancelReason(adminReason),
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 14),
               )
             else
-              const Text(
-                'Your driver cancelled this ride.',
+              Text(
+                l10n.driverCancelledMessage,
                 textAlign: TextAlign.center,
               ),
           ],
@@ -552,7 +556,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('OK'),
+            child: Text(l10n.ok),
           ),
         ],
       ),
@@ -566,21 +570,20 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
   }
 
   Future<void> _cancelRide(Ride ride) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Cancel Ride?'),
-        content: const Text(
-          'Are you sure you want to cancel? This may result in a brief cooldown before you can request again.',
-        ),
+        title: Text(l10n.cancelRideTitle),
+        content: Text(l10n.cancelRideConfirmMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('No'),
+            child: Text(l10n.no),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Yes, Cancel', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.yesCancelButton, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -611,10 +614,11 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
       });
     } catch (e) {
       if (!mounted) return;
+      final l10nErr = AppLocalizations.of(context);
       setState(() => _isCancelling = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to cancel: $e'),
+          content: Text(l10nErr.cancelFailed(e.toString())),
           backgroundColor: Colors.red,
         ),
       );
@@ -633,7 +637,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         id: 'pickup',
         latitude: ride.pickupLocation.coordinates.latitude,
         longitude: ride.pickupLocation.coordinates.longitude,
-        icon: 'circle',  // ✅ Guaranteed Mapbox icon
+        icon: 'circle',
         size: 1.5,
       ),
     );
@@ -644,7 +648,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         id: 'destination',
         latitude: ride.destinationLocation.coordinates.latitude,
         longitude: ride.destinationLocation.coordinates.longitude,
-        icon: 'marker',  // ✅ Guaranteed Mapbox icon
+        icon: 'marker',
         size: 1.5,
       ),
     );
@@ -656,7 +660,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
           id: 'driver',
           latitude: driverLocation.latitude,
           longitude: driverLocation.longitude,
-          icon: 'car',  // ✅ Guaranteed Mapbox icon
+          icon: 'car',
           size: 1.8,
         ),
       );
@@ -708,18 +712,18 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
     }
   }
 
-  String _getStatusText(RideStatus status) {
+  String _getStatusText(RideStatus status, AppLocalizations l10n) {
     switch (status) {
       case RideStatus.accepted:
-        return 'Driver on the way';
+        return l10n.statusDriverOnTheWay;
       case RideStatus.driverArrived:
-        return 'Driver has arrived';
+        return l10n.statusDriverArrived;
       case RideStatus.inProgress:
-        return 'Ride in progress';
+        return l10n.statusRideInProgress;
       case RideStatus.completed:
-        return 'Ride completed';
+        return l10n.statusRideCompleted;
       case RideStatus.cancelled:
-        return 'Ride cancelled';
+        return l10n.statusRideCancelled;
     }
   }
 }

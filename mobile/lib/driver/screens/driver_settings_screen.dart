@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import '../../core/config/app_config.dart';
 import '../../core/providers/api_provider.dart';
 import '../../core/providers/driver_status_provider.dart';
@@ -52,10 +53,13 @@ class _DriverSettingsScreenState extends ConsumerState<DriverSettingsScreen> {
         ref.read(driverStatusProvider.notifier).updateMaxRadius(radius);
       }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _error = 'Failed to load settings';
-      });
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        setState(() {
+          _isLoading = false;
+          _error = l10n.failedToLoadSettings;
+        });
+      }
     }
   }
 
@@ -77,10 +81,13 @@ class _DriverSettingsScreenState extends ConsumerState<DriverSettingsScreen> {
             .read(driverStatusProvider.notifier)
             .updateMaxRadius(_maxPickupRadius);
 
-        setState(() {
-          _isSaving = false;
-          _successMessage = 'Settings saved successfully';
-        });
+        if (mounted) {
+          final l10n = AppLocalizations.of(context);
+          setState(() {
+            _isSaving = false;
+            _successMessage = l10n.settingsSavedSuccess;
+          });
+        }
 
         Future.delayed(const Duration(seconds: 2), () {
           if (mounted) {
@@ -91,20 +98,24 @@ class _DriverSettingsScreenState extends ConsumerState<DriverSettingsScreen> {
         throw Exception(response.data['message'] ?? 'Failed to save settings');
       }
     } catch (e) {
-      setState(() {
-        _isSaving = false;
-        _error = 'Failed to save settings. Please try again.';
-      });
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        setState(() {
+          _isSaving = false;
+          _error = l10n.failedToSaveSettings;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Driver Settings'),
+        title: Text(l10n.driverSettingsTitle),
         backgroundColor: config.primaryColor,
         foregroundColor: Colors.white,
       ),
@@ -124,7 +135,7 @@ class _DriverSettingsScreenState extends ConsumerState<DriverSettingsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Max Pickup Radius',
+                            l10n.maxPickupRadiusTitle,
                             style: Theme.of(context)
                                 .textTheme
                                 .titleMedium
@@ -132,7 +143,7 @@ class _DriverSettingsScreenState extends ConsumerState<DriverSettingsScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Only receive ride requests where the pickup is within this distance from your current location.',
+                            l10n.maxPickupRadiusDesc,
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.grey[600],
@@ -173,7 +184,7 @@ class _DriverSettingsScreenState extends ConsumerState<DriverSettingsScreen> {
                                     color: config.primaryColor.withOpacity(0.3)),
                               ),
                               child: Text(
-                                '${_maxPickupRadius.toStringAsFixed(1)} km radius',
+                                l10n.radiusCurrentLabel(_maxPickupRadius.toStringAsFixed(1)),
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -186,10 +197,10 @@ class _DriverSettingsScreenState extends ConsumerState<DriverSettingsScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('0.5 km',
+                              Text(l10n.radiusMinLabel,
                                   style: TextStyle(
                                       fontSize: 12, color: Colors.grey[500])),
-                              Text('20 km',
+                              Text(l10n.radiusMaxLabel,
                                   style: TextStyle(
                                       fontSize: 12, color: Colors.grey[500])),
                             ],
@@ -249,7 +260,7 @@ class _DriverSettingsScreenState extends ConsumerState<DriverSettingsScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.save),
-                    label: Text(_isSaving ? 'Saving...' : 'Save Settings'),
+                    label: Text(_isSaving ? l10n.saving : l10n.saveSettingsButton),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: config.primaryColor,
                       foregroundColor: Colors.white,

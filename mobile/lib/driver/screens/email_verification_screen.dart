@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import '../../core/providers/kyc_provider.dart';
 import '../../core/config/app_config.dart';
 import 'driver_home_screen.dart';
@@ -129,12 +130,13 @@ class _EmailVerificationScreenState
   }
 
   Future<void> _verifyCode() async {
+    final l10n = AppLocalizations.of(context);
     final code = _getCode();
 
     if (code.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter the 6-digit code'),
+        SnackBar(
+          content: Text(l10n.pleaseEnterCode),
           backgroundColor: Colors.red,
         ),
       );
@@ -160,6 +162,7 @@ class _EmailVerificationScreenState
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
     final kycState = ref.watch(kycStateProvider);
+    final l10n = AppLocalizations.of(context);
 
     // Show error and success messages
     ref.listen<KycState>(kycStateProvider, (previous, next) {
@@ -169,7 +172,7 @@ class _EmailVerificationScreenState
             content: Text(next.error!),
             backgroundColor: Colors.red,
             action: SnackBarAction(
-              label: 'Dismiss',
+              label: l10n.dismiss,
               textColor: Colors.white,
               onPressed: () {
                 ref.read(kycStateProvider.notifier).clearError();
@@ -185,7 +188,7 @@ class _EmailVerificationScreenState
             content: Text(next.successMessage!),
             backgroundColor: Colors.green,
             action: SnackBarAction(
-              label: 'Dismiss',
+              label: l10n.dismiss,
               textColor: Colors.white,
               onPressed: () {
                 ref.read(kycStateProvider.notifier).clearSuccessMessage();
@@ -198,7 +201,7 @@ class _EmailVerificationScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Email Verification'),
+        title: Text(l10n.emailVerificationTitle),
         backgroundColor: config.primaryColor,
         foregroundColor: Colors.white,
       ),
@@ -227,9 +230,9 @@ class _EmailVerificationScreenState
             const SizedBox(height: 32),
 
             // Title
-            const Text(
-              'Verify Your Email',
-              style: TextStyle(
+            Text(
+              l10n.verifyYourEmailHeading,
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
@@ -240,7 +243,7 @@ class _EmailVerificationScreenState
 
             // Description
             Text(
-              'We\'ve sent a 6-digit verification code to',
+              l10n.verificationCodeSentTo,
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey[600],
@@ -291,9 +294,9 @@ class _EmailVerificationScreenState
                               AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       )
-                    : const Text(
-                        'Verify Email',
-                        style: TextStyle(fontSize: 16),
+                    : Text(
+                        l10n.verifyEmailButton,
+                        style: const TextStyle(fontSize: 16),
                       ),
               ),
             ),
@@ -306,7 +309,7 @@ class _EmailVerificationScreenState
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Didn\'t receive the code? ',
+                    l10n.didntReceiveCode,
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[600],
@@ -314,7 +317,7 @@ class _EmailVerificationScreenState
                   ),
                   if (_resendCountdown > 0)
                     Text(
-                      'Resend in ${_resendCountdown}s',
+                      l10n.resendCountdown(_resendCountdown),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -325,7 +328,7 @@ class _EmailVerificationScreenState
                     GestureDetector(
                       onTap: kycState.isLoading ? null : _sendVerificationCode,
                       child: Text(
-                        'Resend Code',
+                        l10n.resendCode,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -354,7 +357,7 @@ class _EmailVerificationScreenState
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'The verification code expires in 10 minutes. Please check your spam folder if you don\'t see the email.',
+                      l10n.verificationCodeExpiry,
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.blue[700],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/lat_lng.dart';
 import '../../core/providers/auth_provider.dart';
@@ -31,6 +32,7 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
+    final l10n = AppLocalizations.of(context);
     final beaconsState = ref.watch(beaconsProvider);
     final locationState = ref.watch(userLocationProvider);
     final rideRequestState = ref.watch(rideRequestProvider);
@@ -57,7 +59,7 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
         leading: IconButton(
           icon: const Icon(Icons.logout),
           onPressed: () => _showLogoutDialog(context),
-          tooltip: 'Logout',
+          tooltip: l10n.logoutTooltip,
         ),
         actions: [
           IconButton(
@@ -97,24 +99,24 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
 
           // Loading indicator
           if (beaconsState.isLoading || locationState.isLoading)
-            const Positioned(
+            Positioned(
               top: 16,
               left: 0,
               right: 0,
               child: Center(
                 child: Card(
                   child: Padding(
-                    padding: EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(16.0),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        SizedBox(
+                        const SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
-                        SizedBox(width: 12),
-                        Text('Loading...'),
+                        const SizedBox(width: 12),
+                        Text(l10n.loading),
                       ],
                     ),
                   ),
@@ -182,7 +184,7 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Your account has been suspended. You cannot request rides.',
+                          l10n.accountSuspendedBanner,
                           style: TextStyle(color: Colors.red[700], fontWeight: FontWeight.w500),
                         ),
                       ),
@@ -208,7 +210,7 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'You have an active ride request',
+                          l10n.activeRideRequestBanner,
                           style: TextStyle(color: Colors.blue[700]),
                         ),
                       ),
@@ -220,7 +222,7 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
                             ),
                           );
                         },
-                        child: const Text('View'),
+                        child: Text(l10n.viewButton),
                       ),
                     ],
                   ),
@@ -248,8 +250,8 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
                     Expanded(
                       child: Text(
                         rideRequestState.cancelCount >= 2
-                            ? 'Warning: One more cancellation will suspend your account.'
-                            : 'Warning: Repeated cancellations may result in a temporary ban.',
+                            ? l10n.oneMoreCancellationWarning
+                            : l10n.repeatedCancellationsWarning,
                         style: TextStyle(color: Colors.orange.shade800, fontSize: 13),
                       ),
                     ),
@@ -278,7 +280,11 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
                       },
                 icon: const Icon(Icons.add_location),
                 label: Text(
-                  isSuspended ? 'Account Suspended' : hasActiveRequest ? 'Request in Progress' : 'Request Ride',
+                  isSuspended
+                      ? l10n.accountSuspendedButton
+                      : hasActiveRequest
+                          ? l10n.requestInProgressButton
+                          : l10n.requestRideButton,
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 style: ElevatedButton.styleFrom(
@@ -306,8 +312,6 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
           id: 'beacon_${beacon.id}',
           latitude: beacon.coordinates.latitude,
           longitude: beacon.coordinates.longitude,
-          // title and snippet are not directly supported in simplified wrapper
-          // Will need to handle marker info windows separately if needed
           icon: 'marker-15', // Mapbox default marker
           size: 1.5, // Larger size for beacons
         ),
@@ -326,16 +330,17 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
   }
 
   void _showLogoutDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Logout'),
-          content: const Text('Are you sure you want to logout?'),
+          title: Text(l10n.logoutTitle),
+          content: Text(l10n.logoutConfirmMessage),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             TextButton(
               onPressed: () async {
@@ -344,9 +349,9 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
                 ref.read(sessionStateProvider.notifier).clearSession();
                 await ref.read(authStateProvider.notifier).signOut();
               },
-              child: const Text(
-                'Logout',
-                style: TextStyle(color: Colors.red),
+              child: Text(
+                l10n.logoutTitle,
+                style: const TextStyle(color: Colors.red),
               ),
             ),
           ],

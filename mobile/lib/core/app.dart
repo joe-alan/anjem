@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import 'config/app_config.dart';
 import 'navigation/navigator_key.dart';
 import 'providers/auth_provider.dart';
 import 'providers/fcm_provider.dart';
 import 'providers/kyc_provider.dart';
+import 'providers/locale_provider.dart';
 import 'models/kyc_submission.dart';
 import 'widgets/splash_screen.dart';
 import 'widgets/login_screen.dart';
@@ -24,6 +26,9 @@ class AnjerApp extends ConsumerWidget {
     return MaterialApp(
       title: config.appName,
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: ref.watch(localeProvider),
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: config.primaryColor,
