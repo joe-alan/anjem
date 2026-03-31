@@ -117,7 +117,7 @@
   "welcomeDriver": "Selamat datang, {name}!",
   "statusOnlineWithRide": "Anda memiliki anjem aktif",
   "statusOnlineIdle": "Menunggu permintaan anjem...",
-  "statusOfflineMessage": "Klik "Mulai Anjem" untuk mulai menerima permintaan anjem",
+  "statusOfflineMessage": "Klik \"Mulai Anjem\" untuk mulai menerima permintaan anjem",
   "joiningQueue": "Bergabung ke antrian...",
   "youreNextInQueue": "Anda berikutnya dalam antrian!",
   "queuePositionNumber": "Posisi Antrian: #{position}",

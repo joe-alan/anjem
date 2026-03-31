@@ -499,6 +499,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get driverSettingsTitle => 'Driver Settings';
 
   @override
+  String get riderSettingsTitle => 'Settings';
+
+  @override
+  String get languageSectionTitle => 'Language';
+
+  @override
+  String get languageSectionDesc => 'App display language';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
+  String get languageIndonesian => 'Bahasa Indonesia';
+
+  @override
   String get maxPickupRadiusTitle => 'Max Pickup Radius';
 
   @override
@@ -805,7 +820,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get radiusMinLabel => '0.5 km';
 
   @override
-  String get radiusMaxLabel => '20 km';
+  String get radiusMaxLabel => '5 km';
+
+  @override
+  String get noMaxRadiusLabel => 'No max pickup radius';
+
+  @override
+  String get noMaxRadiusDesc =>
+      'Accept all ride requests regardless of distance';
+
+  @override
+  String get recenterMap => 'Recenter map';
 
   @override
   String get dateLabel => 'Date';
