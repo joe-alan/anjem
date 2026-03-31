@@ -580,7 +580,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
             },
           ),
 
-          // Top status card
+          // Top status card (matches rider layout: status dot + text only)
           Positioned(
             top: 0,
             left: 0,
@@ -590,61 +590,32 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: Card(
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0, vertical: 12.0),
+                    child: Row(
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: _getStatusColor(ride.status),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _getStatusText(ride.status, l10n),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.close),
-                              onPressed: () {
-                                _showCancelDialog(l10n);
-                              },
-                              tooltip: l10n.cancelRideTooltip,
-                            ),
-                          ],
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(ride.status),
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                        const Divider(height: 16),
-                        Row(
-                          children: [
-                            Icon(Icons.person,
-                                size: 16, color: Colors.grey[600]),
-                            const SizedBox(width: 4),
-                            Text(
-                              ride.rider?.name ?? l10n.riderFallback,
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w500),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _getStatusText(ride.status, l10n),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
                             ),
-                            const Spacer(),
-                            Icon(Icons.attach_money,
-                                size: 16, color: config.primaryColor),
-                            Text(
-                              'Rp ${_formatCurrency(ride.fare)}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: config.primaryColor,
-                              ),
-                            ),
-                          ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => _showCancelDialog(l10n),
+                          tooltip: l10n.cancelRideTooltip,
                         ),
                       ],
                     ),
@@ -657,7 +628,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
           // Admin override banner
           if (ride.adminOverride == true && ride.adminReason != null)
             Positioned(
-              top: 130,
+              top: 110,
               left: 16,
               right: 16,
               child: Container(
@@ -687,6 +658,19 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
               ),
             ),
 
+          // Recenter button
+          Positioned(
+            bottom: 220,
+            right: 16,
+            child: FloatingActionButton.small(
+              heroTag: 'recenter_driver',
+              backgroundColor: Colors.white,
+              onPressed: () => _fitBounds(ride),
+              tooltip: l10n.recenterMap,
+              child: Icon(Icons.my_location, color: config.primaryColor),
+            ),
+          ),
+
           // Bottom action card
           Positioned(
             bottom: 16,
@@ -699,71 +683,91 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Route info
+                    // Rider info row (moved from top card)
                     Row(
                       children: [
+                        Icon(Icons.person, size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 12,
-                                    height: 12,
-                                    decoration: const BoxDecoration(
-                                      color: Colors.green,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      ride.pickupLocation.name,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 12,
-                                    height: 12,
-                                    decoration: const BoxDecoration(
-                                      color: Colors.red,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      ride.destinationLocation.name,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                          child: Text(
+                            ride.rider?.name ?? l10n.riderFallback,
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Icon(Icons.attach_money,
+                            size: 16, color: config.primaryColor),
+                        Text(
+                          'Rp ${_formatCurrency(ride.fare)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: config.primaryColor,
                           ),
                         ),
                       ],
                     ),
 
-                    const Divider(height: 24),
+                    const Divider(height: 20),
 
-                    // Action button based on current status
+                    // Route info
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 10,
+                              height: 10,
+                              decoration: const BoxDecoration(
+                                color: Colors.green,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                ride.pickupLocation.name,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Container(
+                              width: 10,
+                              height: 10,
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                ride.destinationLocation.name,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    const Divider(height: 20),
+
+                    // Action slider based on current status
                     _buildActionButton(ride.status, l10n),
                   ],
                 ),
@@ -776,48 +780,121 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
   }
 
   Widget _buildActionButton(RideStatus status, AppLocalizations l10n) {
-    // For simple status-advance buttons, guard against double-taps with a spinner.
-    // The Complete Ride slider manages its own loading state so is excluded.
-    if (_isUpdatingStatus && status != RideStatus.inProgress) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(12.0),
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
     switch (status) {
       case RideStatus.accepted:
-        return ElevatedButton.icon(
-          onPressed: () => _updateRideStatus('driver_arrived'),
-          icon: const Icon(Icons.pin_drop),
-          label: Text(l10n.markAsArrivedFab),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.orange,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            textStyle: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+        return ActionSlider.standard(
+          sliderBehavior: SliderBehavior.stretch,
+          backgroundColor: Colors.orange.shade50,
+          toggleColor: Colors.orange,
+          icon: const Icon(Icons.arrow_forward_ios, color: Colors.white),
+          loadingIcon: const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              color: Colors.white,
             ),
           ),
+          successIcon: const Icon(Icons.check_rounded, color: Colors.white),
+          child: Text(
+            l10n.markAsArrivedFab,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.orange,
+            ),
+          ),
+          action: (controller) async {
+            controller.loading();
+            try {
+              final apiService = ref.read(apiServiceProvider);
+              await apiService.patch(
+                '/rides/${widget.rideId}/status',
+                data: {'status': 'driver_arrived'},
+              );
+              controller.success();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.statusUpdatedTo(
+                        _formatStatus('driver_arrived', l10n))),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                _fetchAndDisplayRoute().catchError((_) {});
+              }
+            } catch (e) {
+              controller.failure();
+              await Future.delayed(const Duration(seconds: 2));
+              if (mounted) {
+                controller.reset();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.failedToUpdateStatus(e.toString())),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          },
         );
 
       case RideStatus.driverArrived:
-        return ElevatedButton.icon(
-          onPressed: () => _updateRideStatus('in_progress'),
-          icon: const Icon(Icons.play_arrow),
-          label: Text(l10n.startRideFab),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            textStyle: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+        return ActionSlider.standard(
+          sliderBehavior: SliderBehavior.stretch,
+          backgroundColor: Colors.blue.shade50,
+          toggleColor: Colors.blue,
+          icon: const Icon(Icons.arrow_forward_ios, color: Colors.white),
+          loadingIcon: const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              color: Colors.white,
             ),
           ),
+          successIcon: const Icon(Icons.check_rounded, color: Colors.white),
+          child: Text(
+            l10n.startRideFab,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+            ),
+          ),
+          action: (controller) async {
+            controller.loading();
+            try {
+              final apiService = ref.read(apiServiceProvider);
+              await apiService.patch(
+                '/rides/${widget.rideId}/status',
+                data: {'status': 'in_progress'},
+              );
+              controller.success();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.statusUpdatedTo(
+                        _formatStatus('in_progress', l10n))),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                _fetchAndDisplayRoute().catchError((_) {});
+              }
+            } catch (e) {
+              controller.failure();
+              await Future.delayed(const Duration(seconds: 2));
+              if (mounted) {
+                controller.reset();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.failedToUpdateStatus(e.toString())),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          },
         );
 
       case RideStatus.inProgress:

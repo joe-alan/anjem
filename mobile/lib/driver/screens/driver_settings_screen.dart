@@ -16,17 +16,21 @@ class DriverSettingsScreen extends ConsumerStatefulWidget {
 
 class _DriverSettingsScreenState extends ConsumerState<DriverSettingsScreen> {
   double _maxPickupRadius = 5.0;
+  bool _noMaxRadius = false;
   bool _isLoading = false;
   bool _isSaving = false;
   String? _error;
   String? _successMessage;
 
+  static const double _noMaxSentinel = 50.0;
+
   @override
   void initState() {
     super.initState();
     // Initialise from current state
-    _maxPickupRadius =
-        ref.read(driverStatusProvider).maxPickupRadiusKm;
+    final savedRadius = ref.read(driverStatusProvider).maxPickupRadiusKm;
+    _noMaxRadius = savedRadius >= _noMaxSentinel;
+    _maxPickupRadius = _noMaxRadius ? 5.0 : savedRadius.clamp(0.5, 5.0);
     _loadCurrentSettings();
   }
 
@@ -46,7 +50,9 @@ class _DriverSettingsScreenState extends ConsumerState<DriverSettingsScreen> {
             (data['max_pickup_radius_km'] as num?)?.toDouble() ?? 5.0;
 
         setState(() {
-          _maxPickupRadius = radius;
+          _noMaxRadius = radius >= _noMaxSentinel;
+          _maxPickupRadius =
+              _noMaxRadius ? 5.0 : radius.clamp(0.5, 5.0);
           _isLoading = false;
         });
 
@@ -74,7 +80,8 @@ class _DriverSettingsScreenState extends ConsumerState<DriverSettingsScreen> {
     try {
       final apiService = ref.read(apiServiceProvider);
       final response = await apiService.patch('/driver/settings', data: {
-        'max_pickup_radius_km': _maxPickupRadius,
+        'max_pickup_radius_km':
+            _noMaxRadius ? _noMaxSentinel : _maxPickupRadius,
       });
 
       if (response.data['success'] == true) {
@@ -127,86 +134,114 @@ class _DriverSettingsScreenState extends ConsumerState<DriverSettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Max Pickup Radius
+                  // No max pickup radius toggle
                   Card(
                     elevation: 2,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n.maxPickupRadiusTitle,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            l10n.maxPickupRadiusDesc,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[600],
+                    child: SwitchListTile(
+                      title: Text(
+                        l10n.noMaxRadiusLabel,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        l10n.noMaxRadiusDesc,
+                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                      ),
+                      value: _noMaxRadius,
+                      activeColor: config.primaryColor,
+                      onChanged: (value) => setState(() => _noMaxRadius = value),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Max Pickup Radius slider (greyed out when no-max is active)
+                  Opacity(
+                    opacity: _noMaxRadius ? 0.38 : 1.0,
+                    child: Card(
+                      elevation: 2,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.maxPickupRadiusTitle,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              const Icon(Icons.location_on, color: Colors.blue),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Slider(
-                                  value: _maxPickupRadius,
-                                  min: 0.5,
-                                  max: 20.0,
-                                  divisions: 39,
-                                  label:
-                                      '${_maxPickupRadius.toStringAsFixed(1)} km',
-                                  activeColor: config.primaryColor,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _maxPickupRadius =
-                                          double.parse(value.toStringAsFixed(1));
-                                    });
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                          Center(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: config.primaryColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                    color: config.primaryColor.withOpacity(0.3)),
-                              ),
-                              child: Text(
-                                l10n.radiusCurrentLabel(_maxPickupRadius.toStringAsFixed(1)),
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: config.primaryColor,
-                                ),
+                            const SizedBox(height: 4),
+                            Text(
+                              l10n.maxPickupRadiusDesc,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(l10n.radiusMinLabel,
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                const Icon(Icons.location_on, color: Colors.blue),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Slider(
+                                    value: _maxPickupRadius,
+                                    min: 0.5,
+                                    max: 5.0,
+                                    divisions: 9,
+                                    label:
+                                        '${_maxPickupRadius.toStringAsFixed(1)} km',
+                                    activeColor: config.primaryColor,
+                                    onChanged: _noMaxRadius
+                                        ? null
+                                        : (value) {
+                                            setState(() {
+                                              _maxPickupRadius = double.parse(
+                                                  value.toStringAsFixed(1));
+                                            });
+                                          },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: config.primaryColor
+                                      .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                      color: config.primaryColor
+                                          .withValues(alpha: 0.3)),
+                                ),
+                                child: Text(
+                                  l10n.radiusCurrentLabel(
+                                      _maxPickupRadius.toStringAsFixed(1)),
                                   style: TextStyle(
-                                      fontSize: 12, color: Colors.grey[500])),
-                              Text(l10n.radiusMaxLabel,
-                                  style: TextStyle(
-                                      fontSize: 12, color: Colors.grey[500])),
-                            ],
-                          ),
-                        ],
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: config.primaryColor,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(l10n.radiusMinLabel,
+                                    style: TextStyle(
+                                        fontSize: 12, color: Colors.grey[500])),
+                                Text(l10n.radiusMaxLabel,
+                                    style: TextStyle(
+                                        fontSize: 12, color: Colors.grey[500])),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

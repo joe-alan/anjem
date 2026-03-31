@@ -279,6 +279,19 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
           // Top status card (always visible)
           _buildStatusCard(context, ride, rideState, config, l10n),
 
+          // Recenter button
+          Positioned(
+            bottom: 170,
+            right: 16,
+            child: FloatingActionButton.small(
+              heroTag: 'recenter_rider',
+              backgroundColor: Colors.white,
+              onPressed: () => _fitBounds(ride, driverLocation),
+              tooltip: l10n.recenterMap,
+              child: Icon(Icons.my_location, color: config.primaryColor),
+            ),
+          ),
+
           // Bottom driver info card
           _buildDriverInfoCard(context, ride, config, l10n),
         ],

@@ -368,7 +368,10 @@
     }
   },
   "radiusMinLabel": "0.5 km",
-  "radiusMaxLabel": "20 km",
+  "radiusMaxLabel": "5 km",
+  "noMaxRadiusLabel": "No max pickup radius",
+  "noMaxRadiusDesc": "Accept all ride requests regardless of distance",
+  "recenterMap": "Recenter map",
   "dateLabel": "Date",
   "driverLabel": "Driver",
   "maxPassengersHint": "Max: 4 passengers",
