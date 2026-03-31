@@ -612,11 +612,13 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                             ),
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => _showCancelDialog(l10n),
-                          tooltip: l10n.cancelRideTooltip,
-                        ),
+                        if (ride.status == RideStatus.accepted ||
+                            ride.status == RideStatus.driverArrived)
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => _showCancelDialog(l10n),
+                            tooltip: l10n.cancelRideTooltip,
+                          ),
                       ],
                     ),
                   ),
@@ -660,7 +662,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
 
           // Recenter button
           Positioned(
-            bottom: 220,
+            bottom: 250,
             right: 16,
             child: FloatingActionButton.small(
               heroTag: 'recenter_driver',
@@ -683,31 +685,55 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Rider info row (moved from top card)
+                    // Rider info row
                     Row(
                       children: [
-                        Icon(Icons.person, size: 16, color: Colors.grey[600]),
-                        const SizedBox(width: 4),
+                        CircleAvatar(
+                          radius: 22,
+                          backgroundColor:
+                              config.primaryColor.withValues(alpha: 0.12),
+                          child: Icon(Icons.person,
+                              color: config.primaryColor, size: 22),
+                        ),
+                        const SizedBox(width: 10),
                         Expanded(
-                          child: Text(
-                            ride.rider?.name ?? l10n.riderFallback,
-                            style: const TextStyle(fontWeight: FontWeight.w500),
-                            overflow: TextOverflow.ellipsis,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                ride.rider?.name ?? l10n.riderFallback,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                'Rp ${_formatCurrency(ride.fare)}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: config.primaryColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        Icon(Icons.attach_money,
-                            size: 16, color: config.primaryColor),
-                        Text(
-                          'Rp ${_formatCurrency(ride.fare)}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: config.primaryColor,
-                          ),
+                        IconButton(
+                          icon: Icon(Icons.phone, color: config.primaryColor),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(l10n.callingRider)),
+                            );
+                          },
                         ),
                       ],
                     ),
 
-                    const Divider(height: 20),
+                    const Divider(height: 16),
 
                     // Route info
                     Column(
@@ -765,7 +791,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                       ],
                     ),
 
-                    const Divider(height: 20),
+                    const Divider(height: 16),
 
                     // Action slider based on current status
                     _buildActionButton(ride.status, l10n),

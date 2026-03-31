@@ -482,6 +482,12 @@ abstract class AppLocalizations {
   /// **'Calling driver...'**
   String get callingDriver;
 
+  /// No description provided for @callingRider.
+  ///
+  /// In en, this message translates to:
+  /// **'Calling rider...'**
+  String get callingRider;
+
   /// No description provided for @rideCancelledTitle.
   ///
   /// In en, this message translates to:

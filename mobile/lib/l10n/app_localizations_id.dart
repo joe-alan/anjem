@@ -217,6 +217,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get callingDriver => 'Menghubungi pengemudi...';
 
   @override
+  String get callingRider => 'Menghubungi penumpang...';
+
+  @override
   String get rideCancelledTitle => 'Anjem Dibatalkan';
 
   @override

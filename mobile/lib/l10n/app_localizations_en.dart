@@ -218,6 +218,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get callingDriver => 'Calling driver...';
 
   @override
+  String get callingRider => 'Calling rider...';
+
+  @override
   String get rideCancelledTitle => 'Ride Cancelled';
 
   @override
