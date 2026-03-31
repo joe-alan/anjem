@@ -54,13 +54,16 @@ Anjem is a campus ride-sharing platform composed of a Laravel 11 backend (`backe
 The app uses Flutter's `gen-l10n` system. **Never hardcode user-visible strings** in Dart files.
 
 ### Adding a string
+
 1. Add the key to `mobile/lib/l10n/app_en.arb` (English source of truth).
 2. Add the matching translation to `mobile/lib/l10n/app_id.arb` (Bahasa Indonesia).
 3. Use it in Dart: `AppLocalizations.of(context).yourKey`.
 4. Parametrised strings use `{placeholder}` in ARB and become method calls in Dart: `l10n.etaMinutes(minutes)`.
 
 ### Async safety
+
 Read `AppLocalizations.of(context)` **before** any `await`. After an async gap, re-read inside `if (mounted)`:
+
 ```dart
 final l10n = AppLocalizations.of(context); // before await
 await someAsyncCall();
@@ -69,9 +72,11 @@ if (mounted) {
   ScaffoldMessenger.of(context).showSnackBar(...);
 }
 ```
+
 Builder/helper methods that need l10n should receive it as a parameter (`AppLocalizations l10n`) rather than calling `of(context)` inside them.
 
 ### Default locale & switching
+
 - Default locale is **Bahasa Indonesia** (`id`), set in `mobile/lib/core/providers/locale_provider.dart`.
 - `MaterialApp` in `mobile/lib/core/app.dart` watches `localeProvider` — updating its state switches the whole app live:
   ```dart
