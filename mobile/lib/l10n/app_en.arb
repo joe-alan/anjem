@@ -91,6 +91,7 @@
     }
   },
   "callingDriver": "Calling driver...",
+  "callingRider": "Calling rider...",
   "rideCancelledTitle": "Ride Cancelled",
   "driverCancelledMessage": "Your driver cancelled this ride.",
   "adminCancelReason": "Admin reason: {reason}",

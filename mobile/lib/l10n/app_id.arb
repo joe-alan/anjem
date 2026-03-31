@@ -71,6 +71,7 @@
   "driverFoundTitle": "Pengemudi Ditemukan!",
   "driverOnTheWayMessage": "{driverName} sedang dalam perjalanan",
   "callingDriver": "Menghubungi pengemudi...",
+  "callingRider": "Menghubungi penumpang...",
   "rideCancelledTitle": "Anjem Dibatalkan",
   "driverCancelledMessage": "Pengemudi Anda membatalkan anjem ini.",
   "adminCancelReason": "Alasan admin: {reason}",

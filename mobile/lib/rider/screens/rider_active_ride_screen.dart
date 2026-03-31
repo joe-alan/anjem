@@ -281,7 +281,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
 
           // Recenter button
           Positioned(
-            bottom: 170,
+            bottom: 200,
             right: 16,
             child: FloatingActionButton.small(
               heroTag: 'recenter_rider',
@@ -417,6 +417,15 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
                         ),
                       ),
                     ),
+                    if (ride.status == RideStatus.accepted)
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => _cancelRide(ride),
+                        tooltip: l10n.cancelRideTooltip,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        iconSize: 20,
+                      ),
                   ],
                 ),
                 if (rideState.estimatedArrivalMinutes != null) ...[
@@ -455,10 +464,11 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Driver info row
               Row(
                 children: [
                   CircleAvatar(
-                    radius: 24,
+                    radius: 22,
                     backgroundImage: ride.driver?.avatarUrl != null
                         ? NetworkImage(ride.driver!.avatarUrl!)
                         : null,
@@ -467,21 +477,23 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
                             (ride.driver?.name.isNotEmpty == true)
                                 ? ride.driver!.name[0].toUpperCase()
                                 : 'D',
-                            style: const TextStyle(fontSize: 18),
+                            style: const TextStyle(fontSize: 16),
                           )
                         : null,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           ride.driver?.name ?? l10n.driverFallback,
                           style: const TextStyle(
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.bold,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                         if (ride.driver?.driverProfile != null)
                           Text(
@@ -494,46 +506,107 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
                       ],
                     ),
                   ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: config.primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'Rp ${_formatCurrency(ride.fare)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: config.primaryColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
                   IconButton(
                     icon: Icon(Icons.phone, color: config.primaryColor),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                     onPressed: () {
-                      // TODO: Call driver
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(l10n.callingDriver),
-                        ),
+                        SnackBar(content: Text(l10n.callingDriver)),
                       );
                     },
                   ),
                 ],
               ),
-              // Cancel button — only before ride starts
-              if (ride.status == RideStatus.accepted) ...[
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: _isCancelling ? null : () => _cancelRide(ride),
-                    icon: _isCancelling
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.close, size: 16),
-                    label: Text(_isCancelling ? l10n.cancelling : l10n.cancelRideTitle),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
-                    ),
+
+              const Divider(height: 16),
+
+              // Route info
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          ride.pickupLocation.name,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          ride.destinationLocation.name,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  String _formatCurrency(double amount) {
+    if (amount >= 1000000) {
+      return '${(amount / 1000000).toStringAsFixed(1)}M';
+    } else if (amount >= 1000) {
+      return '${(amount / 1000).toStringAsFixed(1)}K';
+    }
+    return amount.toStringAsFixed(0);
   }
 
   Future<void> _showCancellationInfo(Ride? ride) async {
