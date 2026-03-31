@@ -66,7 +66,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get yourDriver => 'Pengemudi Anda';
 
   @override
-  String get riderTagline => 'Antar Jemput anda, kapan saja';
+  String get riderTagline => 'Antar Jemput Anda untuk kapan saja';
 
   @override
   String get driverTagline => 'Berkendara dan berpenghasilan di kampus';
@@ -97,11 +97,11 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get continueRideMessage =>
-      'Anda memiliki perjalanan aktif. Ingin melanjutkan?';
+      'Anda memiliki anjem aktif. Ingin melanjutkan?';
 
   @override
   String get continuePendingMessage =>
-      'Anda memiliki permintaan perjalanan yang tertunda. Ingin melanjutkan?';
+      'Anda memiliki permintaan anjem yang tertunda. Ingin melanjutkan?';
 
   @override
   String get logoutTitle => 'Keluar';
@@ -111,11 +111,10 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get accountSuspendedBanner =>
-      'Akun Anda telah diblokir. Anda tidak dapat memesan perjalanan.';
+      'Akun Anda telah diblokir. Anda tidak dapat memesan anjem.';
 
   @override
-  String get activeRideRequestBanner =>
-      'Anda memiliki permintaan perjalanan aktif';
+  String get activeRideRequestBanner => 'Anda memiliki permintaan anjem aktif';
 
   @override
   String get viewButton => 'Lihat';
@@ -135,7 +134,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get requestInProgressButton => 'Permintaan Sedang Diproses';
 
   @override
-  String get requestRideButton => 'Pesan Perjalanan';
+  String get requestRideButton => 'Pesan Anjem';
 
   @override
   String get selectLocationsTitle => 'Pilih Lokasi';
@@ -175,7 +174,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get cancelRequestConfirmMessage =>
-      'Apakah Anda yakin ingin membatalkan permintaan perjalanan ini?';
+      'Apakah Anda yakin ingin membatalkan permintaan anjem ini?';
 
   @override
   String get yesCancelButton => 'Ya, Batalkan';
@@ -191,7 +190,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String retryingInSeconds(int seconds) {
-    return 'Sedang dicoba lagi sampai $seconds detik…';
+    return 'Sedang mencoba ulang... tersisa $seconds detik…';
   }
 
   @override
@@ -201,7 +200,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get pleaseWaitMessage =>
-      'Harap tunggu sementara kami mencarikan Anda dengan pengemudi terdekat';
+      'Harap tunggu sementara kami mencarikan Anda pengemudi terdekat';
 
   @override
   String get cancelRequestButton => 'Batalkan Permintaan';
@@ -218,11 +217,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get callingDriver => 'Menghubungi pengemudi...';
 
   @override
-  String get rideCancelledTitle => 'Perjalanan Dibatalkan';
+  String get rideCancelledTitle => 'Anjem Dibatalkan';
 
   @override
-  String get driverCancelledMessage =>
-      'Pengemudi Anda membatalkan perjalanan ini.';
+  String get driverCancelledMessage => 'Pengemudi Anda membatalkan anjem ini.';
 
   @override
   String adminCancelReason(String reason) {
@@ -230,7 +228,7 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get cancelRideTitle => 'Batalkan Perjalanan?';
+  String get cancelRideTitle => 'Batalkan Anjem?';
 
   @override
   String get cancelRideConfirmMessage =>
@@ -248,13 +246,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get statusDriverArrived => 'Pengemudi telah tiba';
 
   @override
-  String get statusRideInProgress => 'Perjalanan berlangsung';
+  String get statusRideInProgress => 'Anjem berlangsung';
 
   @override
-  String get statusRideCompleted => 'Perjalanan selesai';
+  String get statusRideCompleted => 'Anjem selesai';
 
   @override
-  String get statusRideCancelled => 'Perjalanan dibatalkan';
+  String get statusRideCancelled => 'Anjem dibatalkan';
 
   @override
   String etaMinutes(String minutes) {
@@ -262,10 +260,10 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get rateYourRideTitle => 'Nilai Perjalanan Anda';
+  String get rateYourRideTitle => 'Rate Anjem Anda';
 
   @override
-  String get rideCompletedHeading => 'Perjalanan Selesai!';
+  String get rideCompletedHeading => 'Anjem Selesai!';
 
   @override
   String get fareLabel => 'Tarif:';
@@ -277,7 +275,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get toLabel => 'Ke:';
 
   @override
-  String get howWasYourRide => 'Bagaimana perjalanan Anda?';
+  String get howWasYourRide => 'Bagaimana anjem Anda?';
 
   @override
   String get whatDidYouLike => 'Apa yang Anda sukai?';
@@ -313,7 +311,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get tagHelpful => 'Membantu';
 
   @override
-  String get rideHistoryTitle => 'Riwayat Perjalanan';
+  String get rideHistoryTitle => 'Riwayat Anjem';
 
   @override
   String get filterAll => 'Semua';
@@ -325,10 +323,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get filterCancelled => 'Dibatalkan';
 
   @override
-  String get noRidesYet => 'Belum ada perjalanan';
+  String get noRidesYet => 'Belum ada anjem';
 
   @override
-  String get rideDetailsTitle => 'Detail Perjalanan';
+  String get rideDetailsTitle => 'Detail Anjem';
 
   @override
   String get estimatedFareLabel => 'Estimasi Tarif:';
@@ -340,7 +338,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get specialRequestsHint => 'Permintaan Khusus (Opsional)';
 
   @override
-  String get confirmRequest => 'Konfirmasi Perjalanan';
+  String get confirmRequest => 'Konfirmasi Anjem';
 
   @override
   String welcomeDriver(String name) {
@@ -348,14 +346,14 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get statusOnlineWithRide => 'Anda memiliki perjalanan aktif';
+  String get statusOnlineWithRide => 'Anda memiliki anjem aktif';
 
   @override
-  String get statusOnlineIdle => 'Menunggu permintaan perjalanan...';
+  String get statusOnlineIdle => 'Menunggu permintaan anjem...';
 
   @override
   String get statusOfflineMessage =>
-      'Aktifkan online untuk mulai menerima permintaan perjalanan';
+      'Klik \"Mulai Anjem\" untuk mulai menerima permintaan anjem';
 
   @override
   String get joiningQueue => 'Bergabung ke antrian...';
@@ -370,7 +368,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get nextRideComing =>
-      'Permintaan perjalanan berikutnya akan datang kepada Anda';
+      'Permintaan anjem berikutnya akan datang kepada Anda';
 
   @override
   String driversAheadOfYou(int count) {
@@ -382,14 +380,14 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String ridesCompletedToday(int count) {
-    return '$count perjalanan selesai hari ini';
+    return '$count anjem selesai hari ini';
   }
 
   @override
   String get ratingLabel => 'Rating';
 
   @override
-  String get totalRidesLabel => 'Total Perjalanan';
+  String get totalRidesLabel => 'Total Anjem';
 
   @override
   String get statusLabel => 'Status';
@@ -404,10 +402,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get statusUnverified => 'Belum Terverifikasi';
 
   @override
-  String get youHaveActiveRide => 'Anda memiliki perjalanan aktif';
+  String get youHaveActiveRide => 'Anda memiliki anjem aktif';
 
   @override
-  String get viewActiveRide => 'Lihat Perjalanan Aktif';
+  String get viewActiveRide => 'Lihat Anjem Aktif';
 
   @override
   String get accountSuspendedContactAdmin =>
@@ -444,10 +442,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get loadingProfile => 'Memuat Profil...';
 
   @override
-  String get goOnlineButton => 'Mulai Online';
+  String get goOnlineButton => 'Mulai Anjem';
 
   @override
-  String get activeRideButton => 'Perjalanan Aktif';
+  String get activeRideButton => 'Anjem Aktif';
 
   @override
   String get goOfflineButton => 'Offline';
@@ -469,22 +467,22 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get noCreditsMessage =>
-      'Anda tidak dapat online atau menerima perjalanan sampai saldo diisi ulang. Hubungi admin Anda.';
+      'Anda tidak dapat online atau menerima anjem sampai saldo diisi ulang. Hubungi admin Anda.';
 
   @override
   String get lowCreditsMessage =>
-      'Saldo Anda hampir habis. Anda masih bisa menerima perjalanan, tapi pertimbangkan menghubungi admin segera.';
+      'Saldo Anda hampir habis. Anda masih bisa menerima anjem, tapi pertimbangkan menghubungi admin segera.';
 
   @override
   String get sufficientCreditsMessage =>
-      'Anda memiliki cukup kredit untuk online dan menerima perjalanan.';
+      'Anda memiliki cukup kredit untuk online dan menerima anjem.';
 
   @override
-  String get howCreditsWork => 'Cara kredit bekerja';
+  String get howCreditsWork => 'Cara kerja Kredit';
 
   @override
   String get creditInfo1 =>
-      '1 kredit dikurangi setiap kali Anda menerima perjalanan';
+      '1 kredit dikurangi setiap kali Anda menerima anjem';
 
   @override
   String get creditInfo2 => 'Anda membutuhkan minimal 1 kredit untuk online';
@@ -502,11 +500,26 @@ class AppLocalizationsId extends AppLocalizations {
   String get driverSettingsTitle => 'Pengaturan Pengemudi';
 
   @override
+  String get riderSettingsTitle => 'Pengaturan';
+
+  @override
+  String get languageSectionTitle => 'Bahasa';
+
+  @override
+  String get languageSectionDesc => 'Bahasa tampilan aplikasi';
+
+  @override
+  String get languageEnglish => 'Inggris';
+
+  @override
+  String get languageIndonesian => 'Bahasa Indonesia';
+
+  @override
   String get maxPickupRadiusTitle => 'Radius Jemput Maksimal';
 
   @override
   String get maxPickupRadiusDesc =>
-      'Hanya terima permintaan perjalanan dengan titik jemput dalam jarak ini dari lokasi Anda saat ini.';
+      'Hanya terima permintaan anjem dengan titik jemput dalam jarak ini dari lokasi Anda saat ini.';
 
   @override
   String get failedToLoadSettings => 'Gagal memuat pengaturan';
@@ -647,7 +660,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Kode verifikasi berlaku selama 10 menit. Periksa folder spam jika Anda tidak melihat emailnya.';
 
   @override
-  String get newRideRequestTitle => 'Permintaan Perjalanan Baru';
+  String get newRideRequestTitle => 'Permintaan Anjem Baru';
 
   @override
   String get acceptWithinLabel => 'Terima dalam';
@@ -656,36 +669,35 @@ class AppLocalizationsId extends AppLocalizations {
   String get requestTimedOut => 'Waktu permintaan habis';
 
   @override
-  String get rideAccepted => 'Perjalanan diterima!';
+  String get rideAccepted => 'Anjem diterima!';
 
   @override
-  String get rideDeclined => 'Perjalanan ditolak';
+  String get rideDeclined => 'Anjem ditolak';
 
   @override
-  String get rideCancelledByRider => 'Permintaan perjalanan dibatalkan';
+  String get rideCancelledByRider => 'Permintaan anjem dibatalkan';
 
   @override
   String get errorRideCancelledByRider =>
-      'Permintaan perjalanan ini dibatalkan oleh penumpang';
+      'Permintaan anjem ini dibatalkan oleh penumpang';
 
   @override
   String get errorRideAlreadyAccepted =>
-      'Perjalanan ini sudah diterima oleh pengemudi lain';
+      'Anjem ini sudah diterima oleh pengemudi lain';
 
   @override
   String get errorInsufficientCredits =>
-      'Kredit tidak cukup untuk menerima perjalanan ini';
+      'Kredit tidak cukup untuk menerima anjem ini';
 
   @override
-  String get errorAlreadyActiveRide => 'Anda sudah memiliki perjalanan aktif';
+  String get errorAlreadyActiveRide => 'Anda sudah memiliki anjem aktif';
 
   @override
   String get errorRideNoLongerAvailable =>
-      'Permintaan perjalanan tidak lagi tersedia';
+      'Permintaan anjem tidak lagi tersedia';
 
   @override
-  String get errorFailedToAccept =>
-      'Gagal menerima perjalanan. Silakan coba lagi.';
+  String get errorFailedToAccept => 'Gagal menerima anjem. Silakan coba lagi.';
 
   @override
   String get destinationLabel => 'Tujuan';
@@ -700,13 +712,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get specialRequestsTitle => 'Permintaan Khusus';
 
   @override
-  String get acceptRideButton => 'Terima Perjalanan';
+  String get acceptRideButton => 'Terima Anjem';
 
   @override
   String get declineButton => 'Tolak';
 
   @override
-  String get acceptingRide => 'Menerima perjalanan...';
+  String get acceptingRide => 'Menerima anjem...';
 
   @override
   String get locationPermissionTitle => 'Izin Lokasi Diperlukan';
@@ -716,23 +728,22 @@ class AppLocalizationsId extends AppLocalizations {
       'Aplikasi ini membutuhkan izin lokasi untuk melacak perjalanan dan memperbarui posisi Anda. Harap aktifkan akses lokasi di Pengaturan.';
 
   @override
-  String get rideCompletedSnackbar => 'Perjalanan selesai! 🎉';
+  String get rideCompletedSnackbar => 'Anjem selesai! 🎉';
 
   @override
-  String get rideCancelledSnackbar => 'Perjalanan dibatalkan';
+  String get rideCancelledSnackbar => 'Anjem dibatalkan';
 
   @override
-  String get rideCancelledByRiderSnackbar =>
-      'Perjalanan dibatalkan oleh penumpang';
+  String get rideCancelledByRiderSnackbar => 'Anjem dibatalkan oleh penumpang';
 
   @override
-  String get activeRideTitle => 'Perjalanan Aktif';
+  String get activeRideTitle => 'Anjem Aktif';
 
   @override
   String get goBackButton => 'Kembali';
 
   @override
-  String get failedToLoadRide => 'Gagal memuat perjalanan';
+  String get failedToLoadRide => 'Gagal memuat anjem';
 
   @override
   String statusUpdatedTo(String status) {
@@ -748,17 +759,17 @@ class AppLocalizationsId extends AppLocalizations {
   String get markAsArrivedFab => 'Tandai Sudah Tiba';
 
   @override
-  String get startRideFab => 'Mulai Perjalanan';
+  String get startRideFab => 'Mulai Anjem';
 
   @override
-  String get completeRideFab => 'Selesaikan Perjalanan';
+  String get completeRideFab => 'Selesaikan Anjem';
 
   @override
-  String get cancelRideActiveTitle => 'Batalkan Perjalanan';
+  String get cancelRideActiveTitle => 'Batalkan Anjem';
 
   @override
   String get cancelRideActiveConfirmMessage =>
-      'Apakah Anda yakin ingin membatalkan perjalanan ini? Ini mungkin mempengaruhi rating Anda.';
+      'Apakah Anda yakin ingin membatalkan anjem ini? Ini mungkin mempengaruhi rating Anda.';
 
   @override
   String get noContinueButton => 'Tidak, Lanjutkan';
@@ -778,19 +789,19 @@ class AppLocalizationsId extends AppLocalizations {
   String get driverStatusArrivedAtPickup => 'Tiba di titik jemput';
 
   @override
-  String get driverStatusRideInProgress => 'Perjalanan berlangsung';
+  String get driverStatusRideInProgress => 'Anjem berlangsung';
 
   @override
-  String get driverStatusRideCompleted => 'Perjalanan selesai';
+  String get driverStatusRideCompleted => 'Anjem selesai';
 
   @override
-  String get driverStatusRideCancelled => 'Perjalanan dibatalkan';
+  String get driverStatusRideCancelled => 'Anjem dibatalkan';
 
   @override
   String get logoutTooltip => 'Keluar';
 
   @override
-  String get cancelRideTooltip => 'Batalkan perjalanan';
+  String get cancelRideTooltip => 'Batalkan anjem';
 
   @override
   String get statusOnlineLabel => 'ONLINE';
@@ -810,7 +821,17 @@ class AppLocalizationsId extends AppLocalizations {
   String get radiusMinLabel => '0,5 km';
 
   @override
-  String get radiusMaxLabel => '20 km';
+  String get radiusMaxLabel => '5 km';
+
+  @override
+  String get noMaxRadiusLabel => 'Tanpa batas radius jemput';
+
+  @override
+  String get noMaxRadiusDesc =>
+      'Terima semua permintaan anjem tanpa batasan jarak';
+
+  @override
+  String get recenterMap => 'Pusatkan peta';
 
   @override
   String get dateLabel => 'Tanggal';
@@ -877,5 +898,5 @@ class AppLocalizationsId extends AppLocalizations {
   String get licensePlateFormat => 'Format: XX - 1234 - XXX';
 
   @override
-  String get motorcycleOnlyNote => 'Perjalanan motor — maksimal 1 penumpang';
+  String get motorcycleOnlyNote => 'Anjem motor — maksimal 1 penumpang';
 }

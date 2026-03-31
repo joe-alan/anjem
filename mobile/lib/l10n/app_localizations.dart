@@ -986,6 +986,36 @@ abstract class AppLocalizations {
   /// **'Driver Settings'**
   String get driverSettingsTitle;
 
+  /// No description provided for @riderSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get riderSettingsTitle;
+
+  /// No description provided for @languageSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get languageSectionTitle;
+
+  /// No description provided for @languageSectionDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'App display language'**
+  String get languageSectionDesc;
+
+  /// No description provided for @languageEnglish.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get languageEnglish;
+
+  /// No description provided for @languageIndonesian.
+  ///
+  /// In en, this message translates to:
+  /// **'Bahasa Indonesia'**
+  String get languageIndonesian;
+
   /// No description provided for @maxPickupRadiusTitle.
   ///
   /// In en, this message translates to:
@@ -1547,8 +1577,26 @@ abstract class AppLocalizations {
   /// No description provided for @radiusMaxLabel.
   ///
   /// In en, this message translates to:
-  /// **'20 km'**
+  /// **'5 km'**
   String get radiusMaxLabel;
+
+  /// No description provided for @noMaxRadiusLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'No max pickup radius'**
+  String get noMaxRadiusLabel;
+
+  /// No description provided for @noMaxRadiusDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept all ride requests regardless of distance'**
+  String get noMaxRadiusDesc;
+
+  /// No description provided for @recenterMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Recenter map'**
+  String get recenterMap;
 
   /// No description provided for @dateLabel.
   ///
