@@ -125,6 +125,7 @@ class AuthController extends Controller
                 'email' => $googleUser->getEmail(),
                 'name' => $googleUser->getName(),
                 'email_verified' => true,
+                'picture' => $googleUser->getAvatar(),
             ], $request->query('device_type', 'rider'));
 
             // Create token with role-based abilities (no expiration)
