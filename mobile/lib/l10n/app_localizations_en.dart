@@ -1000,4 +1000,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get goToSettings => 'Go to Settings';
+
+  @override
+  String get openWhatsAppTitle => 'Open WhatsApp';
+
+  @override
+  String openWhatsAppMessage(String name) {
+    return 'Chat with $name on WhatsApp?';
+  }
+
+  @override
+  String get whatsAppUnavailable =>
+      'WhatsApp number not available for this user';
 }

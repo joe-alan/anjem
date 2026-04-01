@@ -1002,4 +1002,16 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get goToSettings => 'Buka Pengaturan';
+
+  @override
+  String get openWhatsAppTitle => 'Buka WhatsApp';
+
+  @override
+  String openWhatsAppMessage(String name) {
+    return 'Chat dengan $name di WhatsApp?';
+  }
+
+  @override
+  String get whatsAppUnavailable =>
+      'Nomor WhatsApp tidak tersedia untuk pengguna ini';
 }

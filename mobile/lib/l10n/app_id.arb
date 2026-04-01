@@ -327,5 +327,15 @@
 
   "phoneRequiredTitle": "Nomor WhatsApp diperlukan",
   "phoneRequiredMessage": "Silakan tambahkan nomor WhatsApp Anda di Pengaturan sebelum memesan. Pengemudi akan menghubungi Anda via WhatsApp.",
-  "goToSettings": "Buka Pengaturan"
+  "goToSettings": "Buka Pengaturan",
+
+  "openWhatsAppTitle": "Buka WhatsApp",
+  "openWhatsAppMessage": "Chat dengan {name} di WhatsApp?",
+  "@openWhatsAppMessage": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+
+  "whatsAppUnavailable": "Nomor WhatsApp tidak tersedia untuk pengguna ini"
 }

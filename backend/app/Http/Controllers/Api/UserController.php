@@ -20,6 +20,16 @@ class UserController extends Controller
             'phone_number' => 'nullable|string|max:20',
         ]);
 
+        // Normalize phone to international format (62xxx) for WhatsApp deep links
+        if (!empty($validated['phone_number'])) {
+            $phone = preg_replace('/[\s\-\.\(\)]/', '', $validated['phone_number']);
+            $phone = ltrim($phone, '+');
+            if (str_starts_with($phone, '0')) {
+                $phone = '62' . substr($phone, 1);
+            }
+            $validated['phone_number'] = $phone;
+        }
+
         $user = $request->user();
         $user->update($validated);
 

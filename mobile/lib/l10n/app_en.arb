@@ -437,5 +437,15 @@
 
   "phoneRequiredTitle": "WhatsApp number required",
   "phoneRequiredMessage": "Please add your WhatsApp number in Settings before requesting a ride. Drivers will contact you via WhatsApp.",
-  "goToSettings": "Go to Settings"
+  "goToSettings": "Go to Settings",
+
+  "openWhatsAppTitle": "Open WhatsApp",
+  "openWhatsAppMessage": "Chat with {name} on WhatsApp?",
+  "@openWhatsAppMessage": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+
+  "whatsAppUnavailable": "WhatsApp number not available for this user"
 }

@@ -1921,6 +1921,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Go to Settings'**
   String get goToSettings;
+
+  /// No description provided for @openWhatsAppTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open WhatsApp'**
+  String get openWhatsAppTitle;
+
+  /// No description provided for @openWhatsAppMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat with {name} on WhatsApp?'**
+  String openWhatsAppMessage(String name);
+
+  /// No description provided for @whatsAppUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp number not available for this user'**
+  String get whatsAppUnavailable;
 }
 
 class _AppLocalizationsDelegate
