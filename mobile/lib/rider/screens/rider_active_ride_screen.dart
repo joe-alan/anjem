@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/l10n/app_localizations.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/ride.dart';
 import '../../core/models/lat_lng.dart';
@@ -524,14 +526,10 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
                   ),
                   const SizedBox(width: 4),
                   IconButton(
-                    icon: const Icon(Icons.chat, color: Color(0xFF25D366)),
+                    icon: const FaIcon(FontAwesomeIcons.whatsapp, color: Color(0xFF25D366)),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.callingDriver)),
-                      );
-                    },
+                    onPressed: () => _openWhatsApp(ride.driver?.phone, ride.driver?.name ?? l10n.driverFallback),
                   ),
                 ],
               ),
@@ -598,6 +596,44 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _openWhatsApp(String? phone, String name) async {
+    final l10n = AppLocalizations.of(context);
+    if (phone == null || phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.whatsAppUnavailable), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.openWhatsAppTitle),
+        content: Text(l10n.openWhatsAppMessage(name)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('WhatsApp', style: TextStyle(color: Color(0xFF25D366), fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      try {
+        await launchUrl(Uri.parse('https://wa.me/$phone'), mode: LaunchMode.externalApplication);
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.whatsAppUnavailable), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
   }
 
   String _formatCurrency(double amount) {
