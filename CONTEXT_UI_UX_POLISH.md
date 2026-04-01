@@ -2,20 +2,24 @@
 
 **Branch:** `feat/ui-ux-polish`
 **Base:** `main`
-**Session date:** 2026-03-31
+**Session dates:** 2026-03-31 → 2026-04-01
 **Status:** In progress — ready for testing, not yet merged
 
 ---
 
 ## What This Branch Does
 
-Full UI/UX polish pass on the Anjem Flutter app. Covers five areas:
+Full UI/UX polish pass on the Anjem Flutter app. Covers:
 
 1. **Full i18n implementation** (gen-l10n, all screens)
 2. **Brand colour** set to `#004743`
 3. **Slide-to-confirm** buttons for high-stakes actions
-4. **Language switcher** UI on both driver and rider settings screens
+4. **Language switcher** with SharedPreferences persistence
 5. **Active ride screen** unification (driver ↔ rider layout consistency)
+6. **Full settings screens** (rider: profile edit + account; driver: ride settings + vehicle info + account)
+7. **Distance-based fare pricing** with 20 km cap
+8. **Place search** limited to Semarang (15 km radius + Mapbox bbox)
+9. **Bug fixes** (action slider stale state, setState-after-dispose, driver matching validation)
 
 ---
 
@@ -33,6 +37,9 @@ Full UI/UX polish pass on the Anjem Flutter app. Covers five areas:
 | `394fc23` | feat(ux) | Slide buttons for all driver actions, radius cap + no-max toggle, recenter FAB |
 | `66f5b2d` | chore(l10n) | Regenerate app_localizations with new ARB keys |
 | `5257a45` | fix(ux) | Unify active ride screen layout for driver and rider |
+| `cc2e775` | docs | Add context dump for feat/ui-ux-polish branch |
+| `dbc7a22` | feat(ux) | Settings screens, search radius fix, ride UI improvements |
+| `f24401e` | feat(pricing) | Distance-based fare tiers, 20km cap with haversine pre-check |
 
 ---
 
@@ -42,16 +49,10 @@ Full UI/UX polish pass on the Anjem Flutter app. Covers five areas:
 
 **New files:**
 - `mobile/l10n.yaml` — gen-l10n config (arb-dir, output class, nullable-getter: false)
-- `mobile/lib/l10n/app_en.arb` — English source (~400 keys)
-- `mobile/lib/l10n/app_id.arb` — Bahasa Indonesia (~300 translated keys)
-- `mobile/lib/core/providers/locale_provider.dart` — `StateProvider<Locale>`, default `Locale('id')`
+- `mobile/lib/l10n/app_en.arb` — English source (~430 keys)
+- `mobile/lib/l10n/app_id.arb` — Bahasa Indonesia (~430 translated keys)
+- `mobile/lib/core/providers/locale_provider.dart` — `StateNotifierProvider<LocaleNotifier, Locale>`, persists to SharedPreferences
 - `mobile/lib/l10n/app_localizations.dart` + `_en.dart` + `_id.dart` — generated, do not edit manually
-
-**Modified files (hardcoded strings → l10n):**
-- `login_screen.dart`, `session_check_wrapper.dart`
-- All rider screens: `rider_home`, `location_selection`, `waiting`, `rider_active_ride`, `completed`, `ride_history`, `ride_details`
-- All driver screens: `driver_home`, `driver_settings`, `kyc_form`, `email_verification`, `ride_request`, `active_ride`
-- `core/app.dart` — added `localizationsDelegates`, `supportedLocales`, `locale: ref.watch(localeProvider)`
 
 **ARB workflow:**
 1. Add key to `app_en.arb` and `app_id.arb`
@@ -60,10 +61,10 @@ Full UI/UX polish pass on the Anjem Flutter app. Covers five areas:
 
 **Default locale:** `id` (Bahasa Indonesia). Switch via:
 ```dart
-ref.read(localeProvider.notifier).state = const Locale('en');
+ref.read(localeProvider.notifier).setLocale(const Locale('en'));
 ```
 
-**Known gap:** Locale preference is in-memory only — resets to `id` on cold restart. SharedPreferences persistence is not yet implemented.
+**Locale persistence:** ✅ Implemented — saves to SharedPreferences, survives cold restart.
 
 ---
 
@@ -76,69 +77,124 @@ Set in `AppConfig` for both rider and driver flavours. All primary colour refere
 ### 3. Slide-to-Confirm Buttons (`action_slider: ^0.7.0`)
 
 **Package:** `action_slider: ^0.7.0` added to `pubspec.yaml`.
-(^0.8.0 doesn't exist on pub.dev — use ^0.7.0.)
 
 **Screens with sliders:**
 
 | Screen | Button | Colour |
 |--------|--------|--------|
 | `ride_details_screen.dart` | Confirm Request | brand primary |
-| `ride_request_screen.dart` | Accept Ride | green |
+| `ride_request_screen.dart` | Accept Ride (fixed bottom) | green |
 | `active_ride_screen.dart` | Mark as Arrived | orange |
 | `active_ride_screen.dart` | Start Ride | blue |
 | `active_ride_screen.dart` | Complete Ride | green |
 
-**Pattern used:** `ActionSlider.standard(sliderBehavior: SliderBehavior.stretch)` with inline API calls (not delegated to `_updateRideStatus` to avoid state guard conflicts). `controller.loading()` → API → `controller.success()` or `controller.failure()` + 2s + `controller.reset()`.
+Each `ActionSlider` has a unique `ValueKey` per status to prevent stale widget state on status transitions.
+
+**Ride request screen layout:** Decline button on top, slide-to-accept at bottom — both fixed outside the scrollable area.
 
 ---
 
-### 4. Language Switcher
+### 4. Settings Screens
 
-**Driver:** `_LanguageCard` widget added to `driver_settings_screen.dart` (below radius card). Uses `SegmentedButton<String>` with brand-coloured selected state.
+#### Rider Settings (`rider_settings_screen.dart`)
+- Profile header (Google avatar, name, email — read-only display)
+- Personal info (name + phone TextFields → `PATCH /user`)
+- Language card (shared widget, persistent)
+- Account section (logout + delete account with double confirmation)
+- About (app version via `package_info_plus`)
 
-**Rider:** New file `rider/screens/rider_settings_screen.dart` — `ConsumerWidget` with same `SegmentedButton` layout.
-Settings accessed via `Icons.settings_outlined` `IconButton` in `rider_home_screen.dart` AppBar.
+#### Driver Settings (`driver_settings_screen.dart`)
+- Ride settings (no-max toggle + radius slider 0.5–5 km → `PATCH /driver/settings`)
+- Vehicle info (read-only from KYC: type, color, plate)
+- Language card (shared widget)
+- Account section (shared widget)
+- About (app version)
 
-Both write to `localeProvider`.
+Profile edit (avatar upload, name/phone) deferred to its own separate screen for driver.
+
+#### Shared Widgets
+- `core/widgets/language_card.dart` — `SegmentedButton<String>` with brand-coloured selected state
+- `core/widgets/account_section.dart` — Logout + Delete Account with type-to-confirm dialog (`DELETE`/`HAPUS`)
+
+#### Home Screen Cleanup
+- Logout button removed from both rider and driver home AppBars (now in settings)
+- Rider: settings icon moved to `leading` position (left side)
 
 ---
 
-### 5. Driver Settings: Max Pickup Radius
+### 5. Backend: User Management Endpoints
 
-- **Max reduced from 20 km → 5 km** (slider: 0.5–5.0, 9 divisions)
-- **"No max pickup radius" toggle** (`SwitchListTile`) sends `50.0` as sentinel to API
-- On load: if API returns `>= 50.0` the toggle auto-enables
-- When toggle is on: slider card is greyed out (`Opacity(0.38)`) and `onChanged: null`
-- `_noMaxSentinel = 50.0` (not shown to user)
+**New controller:** `backend/app/Http/Controllers/Api/UserController.php`
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| `PATCH` | `/v1/user` | Update name, phone_number |
+| `POST` | `/v1/user/avatar` | Upload profile picture (stored in `public/avatars`) |
+| `DELETE` | `/v1/user` | Soft-delete account (rejects if active ride, revokes tokens) |
+
+`UserResource` now returns `phone` and `profile_picture` fields.
 
 ---
 
-### 6. Active Ride Screen Unification
+### 6. Distance-Based Fare Pricing
 
-**Unified bottom card structure for both driver and rider:**
+Replaced old base+per-km+time formula with tiered distance pricing:
 
+| Distance | Fare |
+|----------|------|
+| < 1 km | Rp 5,000 |
+| 1–4.9 km | Rp 5,000 + Rp 1,000 × floor(km) |
+| 5–6.9 km | Rp 10,000 + Rp 1,000 × floor((km-5)/0.5) |
+| 7.0 km | Rp 15,000 |
+| 7.1–20 km | Tiered formula rising from Rp 17,000 |
+| > 20 km | **Rejected** — ride not allowed |
+
+**20 km cap enforcement:**
+1. Haversine straight-line pre-check — if > 20 km, rejects immediately without calling Mapbox (saves API cost)
+2. Driving distance check — if Mapbox route > 20 km, fare returns null → API returns 422
+
+---
+
+### 7. Place Search Scoping (Semarang)
+
+- Re-enabled `ST_DWithin` proximity filter in `PlaceSearchService` — local DB results limited to search radius
+- Search radius increased from 5 km → 15 km (covers Semarang, excludes Demak)
+- Fixed Mapbox bbox default from Jakarta coordinates to Semarang: `110.30,-7.15,110.55,-6.90`
+
+---
+
+### 8. Driver Matching Fix
+
+- `DriverController::updateSettings` validation changed from `max:20` → `max:50` to accept "no max radius" sentinel value (50.0)
+- Default pickup radius changed from 5 km → 1 km across mobile app
+
+---
+
+### 9. Active Ride Screen
+
+**Unified bottom card (both driver and rider):**
 ```
-[Avatar] [Name + subtitle]  ...  [Fare badge]  [Phone icon button]
-─────────────────────────────────────────────────────────────────
+[Avatar] [Name + subtitle]  ...  [Fare]  [WhatsApp icon]
+──────────────────────────────────────────────────────────
 ● Pickup location name
 ● Destination location name
-─────────────────────────────────────────────────────────────────
+──────────────────────────────────────────────────────────
 (driver only) Action slider
 ```
 
-**Top card (both):**
-```
-● Status text                              [X cancel — conditional]
-  ETA (rider only, when available)
-```
+- WhatsApp-style chat icon (`Icons.chat`, `#25D366`) on both screens — functionality unchanged (snackbar placeholder)
+- Action sliders keyed by status to prevent blank/stale state after transitions
 
-- Driver cancel X: visible during `accepted` and `driverArrived` only (hidden during `inProgress`)
-- Rider cancel X: visible during `accepted` only (moved here from old bottom card)
-- Phone button: both screens — shows snackbar (`callingDriver` / `callingRider`). Actual dialer not yet wired.
+---
 
-**Recenter FAB positions:**
-- Driver: `bottom: 250, right: 16` (`heroTag: 'recenter_driver'`)
-- Rider: `bottom: 200, right: 16` (`heroTag: 'recenter_rider'`)
+### 10. Bug Fixes
+
+| Bug | Fix |
+|-----|-----|
+| Action slider goes blank after status transition | Added unique `ValueKey` per slider status |
+| `setState()` called after dispose on location selection | Added `mounted` checks around debounced search callbacks |
+| Driver settings rejects "no max radius" (50.0) | Validation `max:20` → `max:50` |
+| Place search returns locations outside Semarang | Re-enabled proximity filter + correct bbox |
 
 ---
 
@@ -146,9 +202,8 @@ Both write to `localeProvider`.
 
 | # | Item | Where |
 |---|------|--------|
-| 1 | **Locale persistence** — save/restore chosen language via SharedPreferences | `locale_provider.dart` |
-| 2 | **Phone dialer** — wire phone button to `url_launcher` `tel:` URI | both active ride screens |
-| 3 | **Rider settings screen** has only the language switcher; may grow before launch | `rider_settings_screen.dart` |
+| 1 | **WhatsApp dialer** — wire chat button to WhatsApp deep link | both active ride screens |
+| 2 | **Driver profile edit** — own screen with avatar upload, name/phone edit | new screen (deferred) |
 
 ---
 
@@ -169,9 +224,10 @@ flutter run --flavor driver -t lib/main_driver.dart
 
 ---
 
-## Files Added This Branch (mobile only)
+## Files Added This Branch
 
 ```
+# Mobile
 mobile/l10n.yaml
 mobile/lib/l10n/app_en.arb
 mobile/lib/l10n/app_id.arb
@@ -179,5 +235,10 @@ mobile/lib/l10n/app_localizations.dart        ← generated
 mobile/lib/l10n/app_localizations_en.dart     ← generated
 mobile/lib/l10n/app_localizations_id.dart     ← generated
 mobile/lib/core/providers/locale_provider.dart
+mobile/lib/core/widgets/language_card.dart
+mobile/lib/core/widgets/account_section.dart
 mobile/lib/rider/screens/rider_settings_screen.dart
+
+# Backend
+backend/app/Http/Controllers/Api/UserController.php
 ```

@@ -293,7 +293,7 @@
   "profileSectionTitle": "Profil",
   "personalInfoSectionTitle": "Informasi Pribadi",
   "nameLabel": "Nama",
-  "phoneNumberLabel": "Nomor Telepon",
+  "phoneNumberLabel": "Nomor WhatsApp",
   "phoneNumberHint": "mis., 08123456789",
   "emailReadOnlyHint": "Dari akun Google",
   "saveProfileButton": "Simpan Profil",
@@ -323,5 +323,9 @@
   "aboutSectionTitle": "Tentang",
   "appVersionLabel": "Versi Aplikasi",
 
-  "rideSettingsSectionTitle": "Pengaturan Anjem"
+  "rideSettingsSectionTitle": "Pengaturan Anjem",
+
+  "phoneRequiredTitle": "Nomor WhatsApp diperlukan",
+  "phoneRequiredMessage": "Silakan tambahkan nomor WhatsApp Anda di Pengaturan sebelum memesan. Pengemudi akan menghubungi Anda via WhatsApp.",
+  "goToSettings": "Buka Pengaturan"
 }

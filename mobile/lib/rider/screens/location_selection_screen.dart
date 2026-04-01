@@ -346,89 +346,88 @@ class _LocationSelectionScreenState
           // Continue button
           if (_pickupLocation != null && _destinationLocation != null)
             Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoadingEstimate
-                      ? null
-                      : () async {
-                          // Check if both locations have IDs (exist in database)
-                          if (_pickupLocation!.id == null ||
-                              _destinationLocation!.id == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(l10n.locationResolveFailed),
-                                backgroundColor: Colors.orange,
-                              ),
-                            );
-                            return;
-                          }
+      padding: const EdgeInsets.all(16.0),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: _isLoadingEstimate
+              ? null
+              : () async {
+                  if (_pickupLocation!.id == null ||
+                      _destinationLocation!.id == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(l10n.locationResolveFailed),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                    return;
+                  }
 
-                          setState(() {
-                            _isLoadingEstimate = true;
-                          });
+                  setState(() {
+                    _isLoadingEstimate = true;
+                  });
 
-                          try {
-                            final pickupId = _pickupLocation!.id;
-                            final destinationId = _destinationLocation!.id;
+                  try {
+                    final pickupId = _pickupLocation!.id;
+                    final destinationId = _destinationLocation!.id;
 
-                            if (pickupId == null || destinationId == null) {
-                              throw Exception('Location IDs are null. Please select valid beacons.');
-                            }
+                    if (pickupId == null || destinationId == null) {
+                      throw Exception('Location IDs are null. Please select valid beacons.');
+                    }
 
-                            await ref
-                                .read(rideRequestProvider.notifier)
-                                .getEstimate(
-                                  pickupBeaconId: pickupId,
-                                  destinationBeaconId: destinationId,
-                                );
+                    await ref
+                        .read(rideRequestProvider.notifier)
+                        .getEstimate(
+                          pickupBeaconId: pickupId,
+                          destinationBeaconId: destinationId,
+                        );
 
-                            if (!mounted) return;
+                    if (!mounted) return;
 
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => RideDetailsScreen(
-                                  pickupLocation: _pickupLocation!,
-                                  destinationLocation: _destinationLocation!,
-                                ),
-                              ),
-                            );
-                          } catch (e) {
-                            if (!mounted) return;
-                            final l10nErr = AppLocalizations.of(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(l10nErr.estimateFailed(e.toString())),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          } finally {
-                            if (mounted) {
-                              setState(() {
-                                _isLoadingEstimate = false;
-                              });
-                            }
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: config.primaryColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: _isLoadingEstimate
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : Text(
-                          l10n.continueButton,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => RideDetailsScreen(
+                          pickupLocation: _pickupLocation!,
+                          destinationLocation: _destinationLocation!,
                         ),
+                      ),
+                    );
+                  } catch (e) {
+                    if (!mounted) return;
+                    final l10nErr = AppLocalizations.of(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(l10nErr.estimateFailed(e.toString())),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  } finally {
+                    if (mounted) {
+                      setState(() {
+                        _isLoadingEstimate = false;
+                      });
+                    }
+                  }
+                },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: config.primaryColor,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+          ),
+          child: _isLoadingEstimate
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : Text(
+                  l10n.continueButton,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
                 ),
               ),
             ),

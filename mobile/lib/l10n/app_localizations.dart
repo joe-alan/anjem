@@ -1751,7 +1751,7 @@ abstract class AppLocalizations {
   /// No description provided for @phoneNumberLabel.
   ///
   /// In en, this message translates to:
-  /// **'Phone Number'**
+  /// **'WhatsApp Number'**
   String get phoneNumberLabel;
 
   /// No description provided for @phoneNumberHint.
@@ -1903,6 +1903,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ride Settings'**
   String get rideSettingsSectionTitle;
+
+  /// No description provided for @phoneRequiredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp number required'**
+  String get phoneRequiredTitle;
+
+  /// No description provided for @phoneRequiredMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Please add your WhatsApp number in Settings before requesting a ride. Drivers will contact you via WhatsApp.'**
+  String get phoneRequiredMessage;
+
+  /// No description provided for @goToSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Settings'**
+  String get goToSettings;
 }
 
 class _AppLocalizationsDelegate

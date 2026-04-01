@@ -913,7 +913,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get nameLabel => 'Nama';
 
   @override
-  String get phoneNumberLabel => 'Nomor Telepon';
+  String get phoneNumberLabel => 'Nomor WhatsApp';
 
   @override
   String get phoneNumberHint => 'mis., 08123456789';
@@ -992,4 +992,14 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get rideSettingsSectionTitle => 'Pengaturan Anjem';
+
+  @override
+  String get phoneRequiredTitle => 'Nomor WhatsApp diperlukan';
+
+  @override
+  String get phoneRequiredMessage =>
+      'Silakan tambahkan nomor WhatsApp Anda di Pengaturan sebelum memesan. Pengemudi akan menghubungi Anda via WhatsApp.';
+
+  @override
+  String get goToSettings => 'Buka Pengaturan';
 }
