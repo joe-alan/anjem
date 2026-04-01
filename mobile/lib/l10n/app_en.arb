@@ -403,7 +403,7 @@
   "profileSectionTitle": "Profile",
   "personalInfoSectionTitle": "Personal Information",
   "nameLabel": "Name",
-  "phoneNumberLabel": "Phone Number",
+  "phoneNumberLabel": "WhatsApp Number",
   "phoneNumberHint": "e.g., 08123456789",
   "emailReadOnlyHint": "From Google account",
   "saveProfileButton": "Save Profile",
@@ -433,5 +433,9 @@
   "aboutSectionTitle": "About",
   "appVersionLabel": "App Version",
 
-  "rideSettingsSectionTitle": "Ride Settings"
+  "rideSettingsSectionTitle": "Ride Settings",
+
+  "phoneRequiredTitle": "WhatsApp number required",
+  "phoneRequiredMessage": "Please add your WhatsApp number in Settings before requesting a ride. Drivers will contact you via WhatsApp.",
+  "goToSettings": "Go to Settings"
 }

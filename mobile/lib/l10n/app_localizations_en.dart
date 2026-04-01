@@ -912,7 +912,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nameLabel => 'Name';
 
   @override
-  String get phoneNumberLabel => 'Phone Number';
+  String get phoneNumberLabel => 'WhatsApp Number';
 
   @override
   String get phoneNumberHint => 'e.g., 08123456789';
@@ -990,4 +990,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rideSettingsSectionTitle => 'Ride Settings';
+
+  @override
+  String get phoneRequiredTitle => 'WhatsApp number required';
+
+  @override
+  String get phoneRequiredMessage =>
+      'Please add your WhatsApp number in Settings before requesting a ride. Drivers will contact you via WhatsApp.';
+
+  @override
+  String get goToSettings => 'Go to Settings';
 }

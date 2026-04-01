@@ -39,6 +39,7 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
     final authState = ref.watch(authStateProvider);
 
     final isSuspended = !(authState.user?.isActive ?? true);
+    final hasPhone = authState.user?.phone != null && authState.user!.phone!.trim().isNotEmpty;
 
     // Check if there's an active request that should block new requests
     final hasActiveRequest = rideRequestState.request != null &&
@@ -264,6 +265,40 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
               ),
             ),
 
+          // Phone number required info card
+          if (!hasPhone && !isSuspended && !hasActiveRequest)
+            Positioned(
+              bottom: 90,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.orange.shade700, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        l10n.phoneRequiredMessage,
+                        style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => const RiderSettingsScreen()),
+                      ),
+                      child: Text(l10n.goToSettings),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
           // Request Ride button
           Positioned(
             bottom: 24,
@@ -272,7 +307,7 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: (isSuspended || beaconsState.beacons.isEmpty || hasActiveRequest)
+                onPressed: (isSuspended || beaconsState.beacons.isEmpty || hasActiveRequest || !hasPhone)
                     ? null
                     : () {
                         Navigator.of(context).push(
@@ -292,7 +327,7 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: (isSuspended || hasActiveRequest) ? Colors.grey : config.primaryColor,
+                  backgroundColor: (isSuspended || hasActiveRequest || !hasPhone) ? Colors.grey : config.primaryColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
