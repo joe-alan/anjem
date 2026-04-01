@@ -296,11 +296,18 @@ class RequestController extends Controller
         $pickupId = $request->input('pickup_beacon_id') ?? $request->input('pickup_location_id');
         $destinationId = $request->input('destination_beacon_id') ?? $request->input('destination_location_id');
 
-        $estimates = $this->rideService->getRideEstimates(
-            $pickupId,
-            $destinationId,
-            $request->passenger_count
-        );
+        try {
+            $estimates = $this->rideService->getRideEstimates(
+                $pickupId,
+                $destinationId,
+                $request->passenger_count
+            );
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
 
         if (! $estimates) {
             return response()->json([

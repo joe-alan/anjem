@@ -49,21 +49,21 @@ class _LocationSelectionScreenState
       return;
     }
 
-    setState(() {
-      _isSearching = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isSearching = true;
+      });
+    }
 
     _debounceTimer = Timer(const Duration(milliseconds: 500), () {
-      _performSearch();
+      if (mounted) _performSearch();
     });
   }
 
   Future<void> _performSearch() async {
     final query = _searchController.text.trim();
     if (query.length < 2) {
-      setState(() {
-        _isSearching = false;
-      });
+      if (mounted) setState(() => _isSearching = false);
       return;
     }
 
@@ -75,9 +75,7 @@ class _LocationSelectionScreenState
       limit: 20,
     );
 
-    setState(() {
-      _isSearching = false;
-    });
+    if (mounted) setState(() => _isSearching = false);
   }
 
   @override
