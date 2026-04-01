@@ -429,9 +429,33 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
                         ),
                       ),
 
-                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ),
 
-                    // Action Buttons
+            // Fixed bottom buttons
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: _isProcessing ? null : _declineRide,
+                      icon: const Icon(Icons.cancel),
+                      label: Text(l10n.declineButton),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: BorderSide(color: Colors.grey[400]!),
+                        textStyle: const TextStyle(
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     ActionSlider.standard(
                       sliderBehavior: SliderBehavior.stretch,
                       backgroundColor: Colors.green.shade50,
@@ -461,20 +485,6 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
                         // reset only if still mounted (e.g. unexpected path).
                         if (mounted) controller.reset();
                       },
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: _isProcessing ? null : _declineRide,
-                      icon: const Icon(Icons.cancel),
-                      label: Text(l10n.declineButton),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.grey[700],
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        side: BorderSide(color: Colors.grey[400]!),
-                        textStyle: const TextStyle(
-                          fontSize: 16,
-                        ),
-                      ),
                     ),
                   ],
                 ),

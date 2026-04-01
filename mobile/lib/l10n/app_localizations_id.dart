@@ -902,4 +902,94 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get motorcycleOnlyNote => 'Anjem motor — maksimal 1 penumpang';
+
+  @override
+  String get profileSectionTitle => 'Profil';
+
+  @override
+  String get personalInfoSectionTitle => 'Informasi Pribadi';
+
+  @override
+  String get nameLabel => 'Nama';
+
+  @override
+  String get phoneNumberLabel => 'Nomor Telepon';
+
+  @override
+  String get phoneNumberHint => 'mis., 08123456789';
+
+  @override
+  String get emailReadOnlyHint => 'Dari akun Google';
+
+  @override
+  String get saveProfileButton => 'Simpan Profil';
+
+  @override
+  String get profileSavedSuccess => 'Profil berhasil disimpan';
+
+  @override
+  String get failedToSaveProfile =>
+      'Gagal menyimpan profil. Silakan coba lagi.';
+
+  @override
+  String get changeProfilePicture => 'Ubah Foto Profil';
+
+  @override
+  String get takePhotoOption => 'Ambil Foto';
+
+  @override
+  String get chooseFromGalleryOption => 'Pilih dari Galeri';
+
+  @override
+  String get uploadingAvatar => 'Mengunggah foto...';
+
+  @override
+  String get avatarUpdatedSuccess => 'Foto profil diperbarui';
+
+  @override
+  String get failedToUpdateAvatar => 'Gagal memperbarui foto profil';
+
+  @override
+  String get vehicleInfoSectionTitle => 'Informasi Kendaraan';
+
+  @override
+  String get plateNumberLabel => 'Plat Nomor';
+
+  @override
+  String get colorLabel => 'Warna';
+
+  @override
+  String get accountSectionTitle => 'Akun';
+
+  @override
+  String get deleteAccountTitle => 'Hapus Akun';
+
+  @override
+  String get deleteAccountConfirmTitle => 'Hapus Akun Anda?';
+
+  @override
+  String get deleteAccountConfirmMessage =>
+      'Tindakan ini permanen. Semua data Anda akan dihapus. Ketik HAPUS untuk konfirmasi.';
+
+  @override
+  String get deleteAccountButton => 'Hapus Akun';
+
+  @override
+  String get deleteAccountSuccess => 'Akun berhasil dihapus';
+
+  @override
+  String get failedToDeleteAccount =>
+      'Gagal menghapus akun. Silakan coba lagi.';
+
+  @override
+  String get typeDeleteToConfirm => 'Ketik HAPUS untuk konfirmasi';
+
+  @override
+  String get aboutSectionTitle => 'Tentang';
+
+  @override
+  String get appVersionLabel => 'Versi Aplikasi';
+
+  @override
+  String get rideSettingsSectionTitle => 'Pengaturan Anjem';
 }

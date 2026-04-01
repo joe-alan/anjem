@@ -216,6 +216,21 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  void updateUserInState(User user) {
+    state = state.copyWith(user: user);
+  }
+
+  Future<void> deleteAccount() async {
+    await _wsService.disconnect();
+    await _authService.signOut();
+    state = const AuthState(
+      isLoading: false,
+      isAuthenticated: false,
+      user: null,
+      error: null,
+    );
+  }
+
   void clearError() {
     state = state.copyWith(error: null);
   }

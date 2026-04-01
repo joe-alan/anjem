@@ -288,5 +288,40 @@
   "selectColorHint": "Pilih warna kendaraan",
   "licensePlateLabel": "Plat Nomor *",
   "licensePlateFormat": "Format: XX - 1234 - XXX",
-  "motorcycleOnlyNote": "Anjem motor \u2014 maksimal 1 penumpang"
+  "motorcycleOnlyNote": "Anjem motor \u2014 maksimal 1 penumpang",
+
+  "profileSectionTitle": "Profil",
+  "personalInfoSectionTitle": "Informasi Pribadi",
+  "nameLabel": "Nama",
+  "phoneNumberLabel": "Nomor Telepon",
+  "phoneNumberHint": "mis., 08123456789",
+  "emailReadOnlyHint": "Dari akun Google",
+  "saveProfileButton": "Simpan Profil",
+  "profileSavedSuccess": "Profil berhasil disimpan",
+  "failedToSaveProfile": "Gagal menyimpan profil. Silakan coba lagi.",
+
+  "changeProfilePicture": "Ubah Foto Profil",
+  "takePhotoOption": "Ambil Foto",
+  "chooseFromGalleryOption": "Pilih dari Galeri",
+  "uploadingAvatar": "Mengunggah foto...",
+  "avatarUpdatedSuccess": "Foto profil diperbarui",
+  "failedToUpdateAvatar": "Gagal memperbarui foto profil",
+
+  "vehicleInfoSectionTitle": "Informasi Kendaraan",
+  "plateNumberLabel": "Plat Nomor",
+  "colorLabel": "Warna",
+
+  "accountSectionTitle": "Akun",
+  "deleteAccountTitle": "Hapus Akun",
+  "deleteAccountConfirmTitle": "Hapus Akun Anda?",
+  "deleteAccountConfirmMessage": "Tindakan ini permanen. Semua data Anda akan dihapus. Ketik HAPUS untuk konfirmasi.",
+  "deleteAccountButton": "Hapus Akun",
+  "deleteAccountSuccess": "Akun berhasil dihapus",
+  "failedToDeleteAccount": "Gagal menghapus akun. Silakan coba lagi.",
+  "typeDeleteToConfirm": "Ketik HAPUS untuk konfirmasi",
+
+  "aboutSectionTitle": "Tentang",
+  "appVersionLabel": "Versi Aplikasi",
+
+  "rideSettingsSectionTitle": "Pengaturan Anjem"
 }

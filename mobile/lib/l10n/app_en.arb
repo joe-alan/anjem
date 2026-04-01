@@ -398,5 +398,40 @@
   "selectColorHint": "Select vehicle color",
   "licensePlateLabel": "License Plate *",
   "licensePlateFormat": "Format: XX - 1234 - XXX",
-  "motorcycleOnlyNote": "Motorcycle rides — maximum 1 passenger"
+  "motorcycleOnlyNote": "Motorcycle rides — maximum 1 passenger",
+
+  "profileSectionTitle": "Profile",
+  "personalInfoSectionTitle": "Personal Information",
+  "nameLabel": "Name",
+  "phoneNumberLabel": "Phone Number",
+  "phoneNumberHint": "e.g., 08123456789",
+  "emailReadOnlyHint": "From Google account",
+  "saveProfileButton": "Save Profile",
+  "profileSavedSuccess": "Profile saved successfully",
+  "failedToSaveProfile": "Failed to save profile. Please try again.",
+
+  "changeProfilePicture": "Change Profile Picture",
+  "takePhotoOption": "Take Photo",
+  "chooseFromGalleryOption": "Choose from Gallery",
+  "uploadingAvatar": "Uploading photo...",
+  "avatarUpdatedSuccess": "Profile picture updated",
+  "failedToUpdateAvatar": "Failed to update profile picture",
+
+  "vehicleInfoSectionTitle": "Vehicle Information",
+  "plateNumberLabel": "Plate Number",
+  "colorLabel": "Color",
+
+  "accountSectionTitle": "Account",
+  "deleteAccountTitle": "Delete Account",
+  "deleteAccountConfirmTitle": "Delete Your Account?",
+  "deleteAccountConfirmMessage": "This action is permanent. All your data will be deleted. Type DELETE to confirm.",
+  "deleteAccountButton": "Delete Account",
+  "deleteAccountSuccess": "Account deleted successfully",
+  "failedToDeleteAccount": "Failed to delete account. Please try again.",
+  "typeDeleteToConfirm": "Type DELETE to confirm",
+
+  "aboutSectionTitle": "About",
+  "appVersionLabel": "App Version",
+
+  "rideSettingsSectionTitle": "Ride Settings"
 }

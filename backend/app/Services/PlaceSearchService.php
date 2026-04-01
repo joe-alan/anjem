@@ -102,18 +102,14 @@ class PlaceSearchService
     ): Collection {
         $queryBuilder = Location::query()->where('is_active', true);
 
-        // NOTE: Proximity filter disabled for MVP testing
-        // Using proximity for SORTING only, not filtering
-        // This allows emulator (San Jose) to see Indonesia locations
-        //
-        // TODO: Re-enable with larger radius or smarter logic for production
-        // if ($latitude !== null && $longitude !== null) {
-        //     $radiusMeters = $radiusKm * 1000;
-        //     $queryBuilder->whereRaw(
-        //         'ST_DWithin(coordinates::geography, ST_MakePoint(?, ?)::geography, ?)',
-        //         [$longitude, $latitude, $radiusMeters]
-        //     );
-        // }
+        // Filter results to within the search radius when coordinates are provided
+        if ($latitude !== null && $longitude !== null) {
+            $radiusMeters = $radiusKm * 1000;
+            $queryBuilder->whereRaw(
+                'ST_DWithin(coordinates::geography, ST_MakePoint(?, ?)::geography, ?)',
+                [$longitude, $latitude, $radiusMeters]
+            );
+        }
 
         // Apply search only if query is not empty
         if (! empty($query)) {
@@ -167,7 +163,7 @@ class PlaceSearchService
             'q' => $query,
             'language' => 'id', // Indonesian
             'proximity' => "$longitude,$latitude",
-            'bbox' => config('services.mapbox.search_bbox', '106.80,-6.39,106.86,-6.33'),
+            'bbox' => config('services.mapbox.search_bbox', '110.30,-7.15,110.55,-6.90'),
             'limit' => 5,
             'session_token' => $sessionToken,
             'access_token' => $publicToken,

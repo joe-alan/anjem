@@ -71,7 +71,7 @@ class _LocationSelectionScreenState
     await ref.read(placeSearchProvider.notifier).search(
       query: query,
       userLocation: userLocation,
-      radius: 5.0,
+      radius: 15.0,
       limit: 20,
     );
 

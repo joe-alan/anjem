@@ -524,7 +524,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
                   ),
                   const SizedBox(width: 4),
                   IconButton(
-                    icon: Icon(Icons.phone, color: config.primaryColor),
+                    icon: const Icon(Icons.chat, color: Color(0xFF25D366)),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     onPressed: () {

@@ -244,7 +244,7 @@ class DriverController extends Controller
         }
 
         $validated = $request->validate([
-            'max_pickup_radius_km' => 'required|numeric|min:0.5|max:20',
+            'max_pickup_radius_km' => 'required|numeric|min:0.5|max:50',
         ]);
 
         $driverProfile = $driver->driverProfile;

@@ -901,4 +901,93 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get motorcycleOnlyNote => 'Motorcycle rides — maximum 1 passenger';
+
+  @override
+  String get profileSectionTitle => 'Profile';
+
+  @override
+  String get personalInfoSectionTitle => 'Personal Information';
+
+  @override
+  String get nameLabel => 'Name';
+
+  @override
+  String get phoneNumberLabel => 'Phone Number';
+
+  @override
+  String get phoneNumberHint => 'e.g., 08123456789';
+
+  @override
+  String get emailReadOnlyHint => 'From Google account';
+
+  @override
+  String get saveProfileButton => 'Save Profile';
+
+  @override
+  String get profileSavedSuccess => 'Profile saved successfully';
+
+  @override
+  String get failedToSaveProfile => 'Failed to save profile. Please try again.';
+
+  @override
+  String get changeProfilePicture => 'Change Profile Picture';
+
+  @override
+  String get takePhotoOption => 'Take Photo';
+
+  @override
+  String get chooseFromGalleryOption => 'Choose from Gallery';
+
+  @override
+  String get uploadingAvatar => 'Uploading photo...';
+
+  @override
+  String get avatarUpdatedSuccess => 'Profile picture updated';
+
+  @override
+  String get failedToUpdateAvatar => 'Failed to update profile picture';
+
+  @override
+  String get vehicleInfoSectionTitle => 'Vehicle Information';
+
+  @override
+  String get plateNumberLabel => 'Plate Number';
+
+  @override
+  String get colorLabel => 'Color';
+
+  @override
+  String get accountSectionTitle => 'Account';
+
+  @override
+  String get deleteAccountTitle => 'Delete Account';
+
+  @override
+  String get deleteAccountConfirmTitle => 'Delete Your Account?';
+
+  @override
+  String get deleteAccountConfirmMessage =>
+      'This action is permanent. All your data will be deleted. Type DELETE to confirm.';
+
+  @override
+  String get deleteAccountButton => 'Delete Account';
+
+  @override
+  String get deleteAccountSuccess => 'Account deleted successfully';
+
+  @override
+  String get failedToDeleteAccount =>
+      'Failed to delete account. Please try again.';
+
+  @override
+  String get typeDeleteToConfirm => 'Type DELETE to confirm';
+
+  @override
+  String get aboutSectionTitle => 'About';
+
+  @override
+  String get appVersionLabel => 'App Version';
+
+  @override
+  String get rideSettingsSectionTitle => 'Ride Settings';
 }
