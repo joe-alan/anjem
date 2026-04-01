@@ -30,7 +30,7 @@ class DriverStatusState {
     this.isLoading = false,
     this.error,
     this.queuePosition = 0,
-    this.maxPickupRadiusKm = 5.0,
+    this.maxPickupRadiusKm = 1.0,
   });
 
   DriverStatusState copyWith({

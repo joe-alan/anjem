@@ -721,7 +721,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                           ),
                         ),
                         IconButton(
-                          icon: Icon(Icons.phone, color: config.primaryColor),
+                          icon: const Icon(Icons.chat, color: Color(0xFF25D366)),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                           onPressed: () {
@@ -809,6 +809,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
     switch (status) {
       case RideStatus.accepted:
         return ActionSlider.standard(
+          key: const ValueKey('slider_accepted'),
           sliderBehavior: SliderBehavior.stretch,
           backgroundColor: Colors.orange.shade50,
           toggleColor: Colors.orange,
@@ -867,6 +868,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
 
       case RideStatus.driverArrived:
         return ActionSlider.standard(
+          key: const ValueKey('slider_arrived'),
           sliderBehavior: SliderBehavior.stretch,
           backgroundColor: Colors.blue.shade50,
           toggleColor: Colors.blue,
@@ -925,6 +927,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
 
       case RideStatus.inProgress:
         return ActionSlider.standard(
+          key: const ValueKey('slider_in_progress'),
           sliderBehavior: SliderBehavior.stretch,
           backgroundColor: Colors.green.shade50,
           toggleColor: Colors.green,

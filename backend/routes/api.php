@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\PlaceController;
 use App\Http\Controllers\Api\RequestController;
 use App\Http\Controllers\Api\RideController;
 use App\Http\Controllers\Api\SessionController;
+use App\Http\Controllers\Api\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -57,6 +58,10 @@ Route::prefix('v1')->group(function () {
                 'data' => new \App\Http\Resources\UserResource($request->user()->load('driverProfile')),
             ]);
         });
+
+        Route::patch('user', [UserController::class, 'update']);
+        Route::post('user/avatar', [UserController::class, 'updateAvatar']);
+        Route::delete('user', [UserController::class, 'destroy']);
 
         Route::get('session/resume', [SessionController::class, 'resume']);
 

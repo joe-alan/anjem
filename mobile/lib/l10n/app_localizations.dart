@@ -1729,6 +1729,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Motorcycle rides — maximum 1 passenger'**
   String get motorcycleOnlyNote;
+
+  /// No description provided for @profileSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profileSectionTitle;
+
+  /// No description provided for @personalInfoSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal Information'**
+  String get personalInfoSectionTitle;
+
+  /// No description provided for @nameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get nameLabel;
+
+  /// No description provided for @phoneNumberLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone Number'**
+  String get phoneNumberLabel;
+
+  /// No description provided for @phoneNumberHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g., 08123456789'**
+  String get phoneNumberHint;
+
+  /// No description provided for @emailReadOnlyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'From Google account'**
+  String get emailReadOnlyHint;
+
+  /// No description provided for @saveProfileButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Profile'**
+  String get saveProfileButton;
+
+  /// No description provided for @profileSavedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile saved successfully'**
+  String get profileSavedSuccess;
+
+  /// No description provided for @failedToSaveProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save profile. Please try again.'**
+  String get failedToSaveProfile;
+
+  /// No description provided for @changeProfilePicture.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Profile Picture'**
+  String get changeProfilePicture;
+
+  /// No description provided for @takePhotoOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Take Photo'**
+  String get takePhotoOption;
+
+  /// No description provided for @chooseFromGalleryOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from Gallery'**
+  String get chooseFromGalleryOption;
+
+  /// No description provided for @uploadingAvatar.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading photo...'**
+  String get uploadingAvatar;
+
+  /// No description provided for @avatarUpdatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile picture updated'**
+  String get avatarUpdatedSuccess;
+
+  /// No description provided for @failedToUpdateAvatar.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update profile picture'**
+  String get failedToUpdateAvatar;
+
+  /// No description provided for @vehicleInfoSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle Information'**
+  String get vehicleInfoSectionTitle;
+
+  /// No description provided for @plateNumberLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate Number'**
+  String get plateNumberLabel;
+
+  /// No description provided for @colorLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get colorLabel;
+
+  /// No description provided for @accountSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get accountSectionTitle;
+
+  /// No description provided for @deleteAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get deleteAccountTitle;
+
+  /// No description provided for @deleteAccountConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Your Account?'**
+  String get deleteAccountConfirmTitle;
+
+  /// No description provided for @deleteAccountConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This action is permanent. All your data will be deleted. Type DELETE to confirm.'**
+  String get deleteAccountConfirmMessage;
+
+  /// No description provided for @deleteAccountButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get deleteAccountButton;
+
+  /// No description provided for @deleteAccountSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Account deleted successfully'**
+  String get deleteAccountSuccess;
+
+  /// No description provided for @failedToDeleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete account. Please try again.'**
+  String get failedToDeleteAccount;
+
+  /// No description provided for @typeDeleteToConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Type DELETE to confirm'**
+  String get typeDeleteToConfirm;
+
+  /// No description provided for @aboutSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get aboutSectionTitle;
+
+  /// No description provided for @appVersionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'App Version'**
+  String get appVersionLabel;
+
+  /// No description provided for @rideSettingsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ride Settings'**
+  String get rideSettingsSectionTitle;
 }
 
 class _AppLocalizationsDelegate

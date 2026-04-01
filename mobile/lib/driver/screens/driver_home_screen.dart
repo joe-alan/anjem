@@ -12,7 +12,6 @@ import '../../core/providers/driver_status_provider.dart';
 import '../../core/providers/driver_statistics_provider.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/kyc_provider.dart';
-import '../../core/providers/session_provider.dart';
 import 'ride_request_screen.dart';
 import 'active_ride_screen.dart';
 import 'driver_settings_screen.dart';
@@ -348,13 +347,6 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
             ),
           ).value ??
               const SizedBox.shrink(),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              _showLogoutDialog(context);
-            },
-            tooltip: l10n.logoutTooltip,
-          ),
         ],
       ),
       body: RefreshIndicator(
@@ -931,40 +923,6 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     return amount.toStringAsFixed(0);
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        final l10n = AppLocalizations.of(context);
-        return AlertDialog(
-          title: Text(l10n.logoutTitle),
-          content: Text(l10n.logoutConfirmMessage),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text(l10n.cancel),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                // Clear session state first to prevent stale data on re-login
-                ref.read(sessionStateProvider.notifier).clearSession();
-                await ref.read(authStateProvider.notifier).signOut();
-                // No need to navigate - AuthenticationWrapper will automatically
-                // show LoginScreen when isAuthenticated becomes false
-              },
-              child: Text(
-                l10n.logoutTitle,
-                style: const TextStyle(color: Colors.red),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
 }
 
 class _CreditInfoRow extends StatelessWidget {

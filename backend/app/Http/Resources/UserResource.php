@@ -18,6 +18,8 @@ class UserResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
+            'phone' => $this->phone_number,
+            'profile_picture' => $this->profile_picture,
             'firebase_uid' => $this->firebase_uid, // Mobile expects this field
             'user_type' => $this->role, // API backward compatibility: fetch from role
             'is_active' => $this->is_active,

@@ -6,7 +6,6 @@ import '../../core/models/lat_lng.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/beacons_provider.dart';
 import '../../core/providers/ride_request_provider.dart';
-import '../../core/providers/session_provider.dart';
 import '../../core/providers/user_location_provider.dart';
 import '../../core/widgets/mapbox_map_widget.dart';
 import 'location_selection_screen.dart';
@@ -58,20 +57,15 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
         backgroundColor: config.primaryColor,
         foregroundColor: Colors.white,
         leading: IconButton(
-          icon: const Icon(Icons.logout),
-          onPressed: () => _showLogoutDialog(context),
-          tooltip: l10n.logoutTooltip,
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: l10n.settingsButton,
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const RiderSettingsScreen(),
-              ),
+          icon: const Icon(Icons.settings_outlined),
+          tooltip: l10n.settingsButton,
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const RiderSettingsScreen(),
             ),
           ),
+        ),
+        actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
@@ -339,34 +333,4 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(l10n.logoutTitle),
-          content: Text(l10n.logoutConfirmMessage),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(l10n.cancel),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                // Clear session state first to prevent stale data on re-login
-                ref.read(sessionStateProvider.notifier).clearSession();
-                await ref.read(authStateProvider.notifier).signOut();
-              },
-              child: Text(
-                l10n.logoutTitle,
-                style: const TextStyle(color: Colors.red),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
 }
