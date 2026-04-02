@@ -129,13 +129,26 @@ class RequestController extends Controller
 
         $validatedData = $request->validated();
 
-        $rideRequest = $this->rideService->createRideRequest([
+        $requestData = [
             'rider_id' => $rider->id,
-            'pickup_location_id' => $validatedData['pickup_location_id'],
-            'destination_location_id' => $validatedData['destination_location_id'],
             'passenger_count' => $validatedData['passenger_count'],
             'special_requests' => $validatedData['special_requests'] ?? null,
-        ]);
+        ];
+
+        // Coordinate path (P2P) or Location ID path
+        if (isset($validatedData['pickup_latitude'])) {
+            $requestData['pickup_latitude'] = $validatedData['pickup_latitude'];
+            $requestData['pickup_longitude'] = $validatedData['pickup_longitude'];
+            $requestData['pickup_name'] = $validatedData['pickup_name'];
+            $requestData['destination_latitude'] = $validatedData['destination_latitude'];
+            $requestData['destination_longitude'] = $validatedData['destination_longitude'];
+            $requestData['destination_name'] = $validatedData['destination_name'];
+        } else {
+            $requestData['pickup_location_id'] = $validatedData['pickup_location_id'];
+            $requestData['destination_location_id'] = $validatedData['destination_location_id'];
+        }
+
+        $rideRequest = $this->rideService->createRideRequest($requestData);
 
         if (! $rideRequest) {
             return response()->json([
@@ -313,22 +326,71 @@ class RequestController extends Controller
         }
 
         $request->validate([
-            'pickup_beacon_id' => 'required_without:pickup_location_id|integer|exists:locations,id',
-            'pickup_location_id' => 'required_without:pickup_beacon_id|integer|exists:locations,id',
-            'destination_beacon_id' => 'required_without:destination_location_id|integer|exists:locations,id|different:pickup_beacon_id,pickup_location_id',
-            'destination_location_id' => 'required_without:destination_beacon_id|integer|exists:locations,id|different:pickup_beacon_id,pickup_location_id',
+            // Location ID path (existing beacon-based flow)
+            'pickup_beacon_id' => 'required_without_all:pickup_location_id,pickup_latitude|integer|exists:locations,id',
+            'pickup_location_id' => 'required_without_all:pickup_beacon_id,pickup_latitude|integer|exists:locations,id',
+            // Coordinate path (P2P flow)
+            'pickup_latitude' => 'required_without_all:pickup_beacon_id,pickup_location_id|numeric|between:-90,90',
+            'pickup_longitude' => 'required_with:pickup_latitude|numeric|between:-180,180',
+            'destination_beacon_id' => 'required_without_all:destination_location_id,destination_latitude|integer|exists:locations,id',
+            'destination_location_id' => 'required_without_all:destination_beacon_id,destination_latitude|integer|exists:locations,id',
+            'destination_latitude' => 'required_without_all:destination_beacon_id,destination_location_id|numeric|between:-90,90',
+            'destination_longitude' => 'required_with:destination_latitude|numeric|between:-180,180',
             'passenger_count' => 'required|integer|min:1|max:4',
         ]);
 
-        $pickupId = $request->input('pickup_beacon_id') ?? $request->input('pickup_location_id');
-        $destinationId = $request->input('destination_beacon_id') ?? $request->input('destination_location_id');
-
         try {
-            $estimates = $this->rideService->getRideEstimates(
-                $pickupId,
-                $destinationId,
-                $request->passenger_count
-            );
+            $hasPickupCoords = $request->has('pickup_latitude');
+            $hasDestCoords = $request->has('destination_latitude');
+
+            if ($hasPickupCoords && $hasDestCoords) {
+                // Both coordinates — pure P2P
+                $estimates = $this->rideService->calculateRideEstimates(
+                    (float) $request->input('pickup_latitude'),
+                    (float) $request->input('pickup_longitude'),
+                    (float) $request->input('destination_latitude'),
+                    (float) $request->input('destination_longitude'),
+                    (int) $request->input('passenger_count'),
+                );
+            } elseif (! $hasPickupCoords && ! $hasDestCoords) {
+                // Both location IDs — existing beacon flow
+                $pickupId = $request->input('pickup_beacon_id') ?? $request->input('pickup_location_id');
+                $destinationId = $request->input('destination_beacon_id') ?? $request->input('destination_location_id');
+                $estimates = $this->rideService->getRideEstimates(
+                    $pickupId,
+                    $destinationId,
+                    $request->passenger_count
+                );
+            } else {
+                // Mixed mode — resolve the ID side to coordinates, then calculate
+                if ($hasPickupCoords) {
+                    $destId = $request->input('destination_beacon_id') ?? $request->input('destination_location_id');
+                    $destLocation = \App\Models\Location::find($destId);
+                    if (! $destLocation) {
+                        return response()->json(['success' => false, 'message' => 'Invalid destination location'], 422);
+                    }
+                    $estimates = $this->rideService->calculateRideEstimates(
+                        (float) $request->input('pickup_latitude'),
+                        (float) $request->input('pickup_longitude'),
+                        $destLocation->coordinates->latitude,
+                        $destLocation->coordinates->longitude,
+                        (int) $request->input('passenger_count'),
+                    );
+                } else {
+                    $pickupId = $request->input('pickup_beacon_id') ?? $request->input('pickup_location_id');
+                    $pickupLocation = \App\Models\Location::find($pickupId);
+                    if (! $pickupLocation) {
+                        return response()->json(['success' => false, 'message' => 'Invalid pickup location'], 422);
+                    }
+                    $estimates = $this->rideService->calculateRideEstimates(
+                        $pickupLocation->coordinates->latitude,
+                        $pickupLocation->coordinates->longitude,
+                        (float) $request->input('destination_latitude'),
+                        (float) $request->input('destination_longitude'),
+                        (int) $request->input('passenger_count'),
+                    );
+                }
+            }
         } catch (\InvalidArgumentException $e) {
             return response()->json([
                 'success' => false,

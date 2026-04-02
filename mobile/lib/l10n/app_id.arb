@@ -347,5 +347,18 @@
   "notifyingDriverMinutesAway": "Menghubungi pengemudi {minutes} menit dari sini\u2026",
   "legendBeingNotified": "Sedang dihubungi",
   "legendActiveDriver": "Pengemudi aktif",
-  "legendUnavailable": "Tidak tersedia"
+  "legendUnavailable": "Tidak tersedia",
+
+  "whereToTitle": "Mau ke mana?",
+  "pickupFieldHint": "Lokasi jemput",
+  "dropoffFieldHint": "Mau ke mana?",
+  "recentDestinations": "Tujuan Terakhir",
+  "noRecentDestinations": "Belum ada tujuan terakhir",
+  "confirmPickup": "Konfirmasi Jemput",
+  "confirmDropoff": "Konfirmasi Tujuan",
+  "adjustPinPickup": "Geser peta untuk menyesuaikan titik jemput",
+  "adjustPinDropoff": "Geser peta untuk menyesuaikan titik tujuan",
+  "resolvingLocation": "Mencari alamat...",
+  "droppedPin": "Pin Lokasi",
+  "yourLocation": "Lokasi Anda"
 }

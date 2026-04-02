@@ -1993,6 +1993,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unavailable'**
   String get legendUnavailable;
+
+  /// No description provided for @whereToTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Where to?'**
+  String get whereToTitle;
+
+  /// No description provided for @pickupFieldHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pickup location'**
+  String get pickupFieldHint;
+
+  /// No description provided for @dropoffFieldHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Where are you going?'**
+  String get dropoffFieldHint;
+
+  /// No description provided for @recentDestinations.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Destinations'**
+  String get recentDestinations;
+
+  /// No description provided for @noRecentDestinations.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent destinations'**
+  String get noRecentDestinations;
+
+  /// No description provided for @confirmPickup.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Pickup'**
+  String get confirmPickup;
+
+  /// No description provided for @confirmDropoff.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Drop-off'**
+  String get confirmDropoff;
+
+  /// No description provided for @adjustPinPickup.
+  ///
+  /// In en, this message translates to:
+  /// **'Move the map to adjust pickup point'**
+  String get adjustPinPickup;
+
+  /// No description provided for @adjustPinDropoff.
+  ///
+  /// In en, this message translates to:
+  /// **'Move the map to adjust drop-off point'**
+  String get adjustPinDropoff;
+
+  /// No description provided for @resolvingLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding address...'**
+  String get resolvingLocation;
+
+  /// No description provided for @droppedPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Dropped Pin'**
+  String get droppedPin;
+
+  /// No description provided for @yourLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Location'**
+  String get yourLocation;
 }
 
 class _AppLocalizationsDelegate

@@ -1045,4 +1045,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get legendUnavailable => 'Unavailable';
+
+  @override
+  String get whereToTitle => 'Where to?';
+
+  @override
+  String get pickupFieldHint => 'Pickup location';
+
+  @override
+  String get dropoffFieldHint => 'Where are you going?';
+
+  @override
+  String get recentDestinations => 'Recent Destinations';
+
+  @override
+  String get noRecentDestinations => 'No recent destinations';
+
+  @override
+  String get confirmPickup => 'Confirm Pickup';
+
+  @override
+  String get confirmDropoff => 'Confirm Drop-off';
+
+  @override
+  String get adjustPinPickup => 'Move the map to adjust pickup point';
+
+  @override
+  String get adjustPinDropoff => 'Move the map to adjust drop-off point';
+
+  @override
+  String get resolvingLocation => 'Finding address...';
+
+  @override
+  String get droppedPin => 'Dropped Pin';
+
+  @override
+  String get yourLocation => 'Your Location';
 }

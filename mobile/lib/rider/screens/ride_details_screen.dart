@@ -243,34 +243,33 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
                             return;
                           }
 
-                          // Validate IDs before submission
-                          if (widget.pickupLocation.id == null ||
-                              widget.destinationLocation.id == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(l10n.locationResolveFailed),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                            controller.reset();
-                            return;
-                          }
-
                           controller.loading();
 
                           try {
-                            final pickupId = widget.pickupLocation.id!;
-                            final destinationId = widget.destinationLocation.id!;
+                            final notifier = ref.read(rideRequestProvider.notifier);
+                            final specialReqs = _specialRequestsController.text.trim();
 
-                            await ref
-                                .read(rideRequestProvider.notifier)
-                                .createRequest(
-                                  pickupBeaconId: pickupId,
-                                  destinationBeaconId: destinationId,
-                                  passengerCount: 1,
-                                  specialRequests:
-                                      _specialRequestsController.text.trim(),
-                                );
+                            // Use coordinate path if either location lacks an ID (P2P)
+                            if (widget.pickupLocation.id == null ||
+                                widget.destinationLocation.id == null) {
+                              await notifier.createRequestByCoordinates(
+                                pickupLat: widget.pickupLocation.coordinates.latitude,
+                                pickupLng: widget.pickupLocation.coordinates.longitude,
+                                pickupName: widget.pickupLocation.name,
+                                destLat: widget.destinationLocation.coordinates.latitude,
+                                destLng: widget.destinationLocation.coordinates.longitude,
+                                destName: widget.destinationLocation.name,
+                                passengerCount: 1,
+                                specialRequests: specialReqs,
+                              );
+                            } else {
+                              await notifier.createRequest(
+                                pickupBeaconId: widget.pickupLocation.id!,
+                                destinationBeaconId: widget.destinationLocation.id!,
+                                passengerCount: 1,
+                                specialRequests: specialReqs,
+                              );
+                            }
 
                             final updatedState = ref.read(rideRequestProvider);
 

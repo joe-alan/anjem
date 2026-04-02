@@ -1048,4 +1048,40 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get legendUnavailable => 'Tidak tersedia';
+
+  @override
+  String get whereToTitle => 'Mau ke mana?';
+
+  @override
+  String get pickupFieldHint => 'Lokasi jemput';
+
+  @override
+  String get dropoffFieldHint => 'Mau ke mana?';
+
+  @override
+  String get recentDestinations => 'Tujuan Terakhir';
+
+  @override
+  String get noRecentDestinations => 'Belum ada tujuan terakhir';
+
+  @override
+  String get confirmPickup => 'Konfirmasi Jemput';
+
+  @override
+  String get confirmDropoff => 'Konfirmasi Tujuan';
+
+  @override
+  String get adjustPinPickup => 'Geser peta untuk menyesuaikan titik jemput';
+
+  @override
+  String get adjustPinDropoff => 'Geser peta untuk menyesuaikan titik tujuan';
+
+  @override
+  String get resolvingLocation => 'Mencari alamat...';
+
+  @override
+  String get droppedPin => 'Pin Lokasi';
+
+  @override
+  String get yourLocation => 'Lokasi Anda';
 }

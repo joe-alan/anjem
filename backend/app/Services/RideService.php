@@ -839,8 +839,10 @@ class RideService
         }
 
         if (isset($requestData['pickup_latitude'], $requestData['pickup_longitude'])) {
-            // Find the closest beacon for pickup
-            return $this->locationService->getClosestBeacon(
+            // P2P pickup — create or find an arbitrary location (same as destination path)
+            return $this->locationService->findOrCreateDestination(
+                $requestData['pickup_name'] ?? 'Custom Pickup',
+                $requestData['pickup_address'] ?? 'User-provided location',
                 $requestData['pickup_latitude'],
                 $requestData['pickup_longitude']
             );
