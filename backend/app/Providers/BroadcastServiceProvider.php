@@ -12,8 +12,14 @@ class BroadcastServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Use Sanctum authentication for broadcasting (mobile app uses bearer tokens)
+        // Mobile API (bearer token)
         Broadcast::routes(['middleware' => ['auth:sanctum']]);
+
+        // Admin panel (session-based)
+        Broadcast::routes([
+            'prefix' => 'admin',
+            'middleware' => ['web', 'auth'],
+        ]);
 
         require base_path('routes/channels.php');
     }
