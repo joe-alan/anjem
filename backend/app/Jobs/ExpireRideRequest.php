@@ -52,9 +52,9 @@ class ExpireRideRequest implements ShouldQueue
             return;
         }
 
+        // No rider cooldown on system expiry — rider waited it out, not their fault
         $rideRequest->update([
-            'status'              => 'expired',
-            'rider_cooldown_until' => now()->addSeconds(self::RIDER_COOLDOWN_SECONDS),
+            'status' => 'expired',
         ]);
 
         // Broadcast to rider to kick them off the waiting screen

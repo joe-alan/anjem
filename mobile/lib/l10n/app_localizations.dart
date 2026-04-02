@@ -1955,14 +1955,14 @@ abstract class AppLocalizations {
   /// No description provided for @noDriversAcceptedRound.
   ///
   /// In en, this message translates to:
-  /// **'No drivers accepted this round.'**
+  /// **'No nearby drivers accepted yet.'**
   String get noDriversAcceptedRound;
 
-  /// No description provided for @retryingWithAttempt.
+  /// No description provided for @retryingCountdown.
   ///
   /// In en, this message translates to:
-  /// **'Retrying in {seconds} seconds… (attempt {current} of {max})'**
-  String retryingWithAttempt(int seconds, int current, int max);
+  /// **'Still searching… new drivers may join. {seconds}s remaining.'**
+  String retryingCountdown(int seconds);
 
   /// No description provided for @driverUnavailableTryingNext.
   ///

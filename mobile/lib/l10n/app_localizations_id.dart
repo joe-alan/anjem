@@ -1024,11 +1024,11 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get noDriversAcceptedRound =>
-      'Tidak ada pengemudi menerima ronde ini.';
+      'Belum ada pengemudi terdekat yang menerima.';
 
   @override
-  String retryingWithAttempt(int seconds, int current, int max) {
-    return 'Mencoba ulang dalam $seconds detik… (percobaan $current dari $max)';
+  String retryingCountdown(int seconds) {
+    return 'Masih mencari… pengemudi baru bisa bergabung. $seconds detik tersisa.';
   }
 
   @override

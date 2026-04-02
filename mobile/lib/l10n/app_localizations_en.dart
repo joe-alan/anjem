@@ -1021,11 +1021,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'You can wait or cancel — we won’t hold you.';
 
   @override
-  String get noDriversAcceptedRound => 'No drivers accepted this round.';
+  String get noDriversAcceptedRound => 'No nearby drivers accepted yet.';
 
   @override
-  String retryingWithAttempt(int seconds, int current, int max) {
-    return 'Retrying in $seconds seconds… (attempt $current of $max)';
+  String retryingCountdown(int seconds) {
+    return 'Still searching… new drivers may join. ${seconds}s remaining.';
   }
 
   @override

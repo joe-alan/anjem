@@ -11,6 +11,7 @@ use App\Jobs\ExpireRideRequest;
 use App\Jobs\HandleRequestTimeout;
 use App\Models\DriverProfile;
 use App\Models\RideRequest;
+use App\Models\Ride;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -54,8 +55,8 @@ class MatchingQueueService
     // Rider cooldown after cancel/expire
     private const RIDER_COOLDOWN_SECONDS = 60;
 
-    // Safety-net timeout job delay (slightly longer than the mobile 30s UI timer)
-    private const TIMEOUT_JOB_DELAY_SECONDS = 35;
+    // Safety-net timeout job delay (slightly longer than the mobile 15s UI timer)
+    private const TIMEOUT_JOB_DELAY_SECONDS = 18;
 
     // Countdown shown to rider when no drivers are available before expiry
     private const NO_DRIVERS_COUNTDOWN_SECONDS = 60;
@@ -230,7 +231,7 @@ class MatchingQueueService
             ]);
         }
 
-        // Safety-net: if driver doesn't respond within 35s, auto-handle timeout
+        // Safety-net: if driver doesn't respond within 18s, auto-handle timeout
         HandleRequestTimeout::dispatch($rideRequest->id, $driver->user_id)
             ->delay(now()->addSeconds(self::TIMEOUT_JOB_DELAY_SECONDS));
 
@@ -557,5 +558,77 @@ class MatchingQueueService
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Return anonymous nearby driver pins for the rider waiting screen.
+     *
+     * Each pin has a jittered lat/lng (~100 m offset) and a state:
+     *   - notified:    currently being offered this request
+     *   - unavailable: online but busy (active ride) or in cooldown
+     *   - active:      available to accept rides
+     *
+     * @return array<int, array{lat: float, lng: float, state: string}>
+     */
+    public function getNearbyDriversForRider(RideRequest $rideRequest, float $radiusKm = 5.0): array
+    {
+        $rideRequest->loadMissing('pickupLocation');
+        $pickup = $rideRequest->pickupLocation;
+
+        if (! $pickup || ! $pickup->coordinates) {
+            return [];
+        }
+
+        $pickupLat = $pickup->coordinates->latitude;
+        $pickupLng = $pickup->coordinates->longitude;
+        $radiusMeters = $radiusKm * 1000;
+
+        $drivers = DriverProfile::online()
+            ->verified()
+            ->whereNotNull('current_location')
+            ->whereRaw(
+                'ST_DWithin(
+                    current_location::geography,
+                    ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography,
+                    ?
+                )',
+                [$pickupLng, $pickupLat, $radiusMeters]
+            )
+            ->get();
+
+        if ($drivers->isEmpty()) {
+            return [];
+        }
+
+        // Batch-fetch driver IDs that currently have an active ride
+        $busyDriverIds = Ride::whereIn('driver_id', $drivers->pluck('user_id'))
+            ->whereIn('status', Ride::ACTIVE_STATUSES)
+            ->pluck('driver_id')
+            ->toArray();
+
+        // Drivers who already declined/timed out for this request
+        $triedDriverIds = $this->getTriedDriverIds($rideRequest);
+
+        $currentDriverId = $rideRequest->current_driver_id;
+
+        return $drivers->map(function (DriverProfile $driver) use ($currentDriverId, $busyDriverIds, $triedDriverIds) {
+            if ($driver->user_id === $currentDriverId) {
+                $state = 'notified';
+            } elseif (
+                in_array($driver->user_id, $busyDriverIds, true)
+                || in_array($driver->user_id, $triedDriverIds, true)
+                || $driver->isInCooldown()
+            ) {
+                $state = 'unavailable';
+            } else {
+                $state = 'active';
+            }
+
+            return [
+                'lat' => round($driver->current_location->latitude, 6),
+                'lng' => round($driver->current_location->longitude, 6),
+                'state' => $state,
+            ];
+        })->values()->toArray();
     }
 }

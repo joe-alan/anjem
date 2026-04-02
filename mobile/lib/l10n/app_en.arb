@@ -451,13 +451,11 @@
 
   "noActiveDriversMessage": "No active drivers available right now.",
   "waitOrCancelMessage": "You can wait or cancel \u2014 we won\u2019t hold you.",
-  "noDriversAcceptedRound": "No drivers accepted this round.",
-  "retryingWithAttempt": "Retrying in {seconds} seconds\u2026 (attempt {current} of {max})",
-  "@retryingWithAttempt": {
+  "noDriversAcceptedRound": "No nearby drivers accepted yet.",
+  "retryingCountdown": "Still searching\u2026 new drivers may join. {seconds}s remaining.",
+  "@retryingCountdown": {
     "placeholders": {
-      "seconds": {"type": "int"},
-      "current": {"type": "int"},
-      "max": {"type": "int"}
+      "seconds": {"type": "int"}
     }
   },
   "driverUnavailableTryingNext": "That driver\u2019s unavailable \u2014 trying the next one",

@@ -24,13 +24,17 @@ class RideRequestScreen extends ConsumerStatefulWidget {
   ConsumerState<RideRequestScreen> createState() => _RideRequestScreenState();
 }
 
-class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
-  static const int timeoutSeconds = 30;
+class _RideRequestScreenState extends ConsumerState<RideRequestScreen>
+    with SingleTickerProviderStateMixin {
+  static const int timeoutSeconds = 15;
   late int _secondsRemaining;
   Timer? _timer;
   bool _isProcessing = false;
   bool _isDismissing = false;
   String? _errorMessage;
+
+  // Smooth progress bar animation
+  late AnimationController _progressController;
 
   @override
   void initState() {
@@ -38,12 +42,21 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
     final timerStart = widget.request.dispatchedAt ?? widget.request.createdAt;
     final elapsed = DateTime.now().difference(timerStart).inSeconds;
     _secondsRemaining = (timeoutSeconds - elapsed).clamp(0, timeoutSeconds);
+
+    // Animate from current progress to 0 over remaining seconds
+    _progressController = AnimationController(
+      vsync: this,
+      duration: Duration(seconds: _secondsRemaining),
+      value: _secondsRemaining / timeoutSeconds,
+    )..animateTo(0, curve: Curves.linear);
+
     _startCountdown();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _progressController.dispose();
     super.dispose();
   }
 
@@ -186,7 +199,7 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
     setState(() => _isProcessing = true);
 
     // Notify backend — triggers next driver dispatch.
-    // Errors are non-fatal: the 35s server-side timeout is the safety-net.
+    // Errors are non-fatal: the 18s server-side timeout is the safety-net.
     try {
       final service = ref.read(rideRequestServiceProvider);
       await service.declineRequest(widget.request.id);
@@ -216,8 +229,6 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
     final l10n = AppLocalizations.of(context);
-    final progress = _secondsRemaining / timeoutSeconds;
-
     // Dismiss if the rider/admin cancelled or the backend re-dispatched to another driver.
     // _isDismissing guards against a double-pop when _acceptRide/_declineRide already
     // cleared the provider and initiated their own navigation.
@@ -251,14 +262,17 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
         ),
         body: Column(
           children: [
-            // Countdown Progress Bar
-            LinearProgressIndicator(
-              value: progress,
-              backgroundColor: Colors.grey[200],
-              valueColor: AlwaysStoppedAnimation<Color>(
-                _secondsRemaining <= 10 ? Colors.red : config.primaryColor,
+            // Countdown Progress Bar (smooth)
+            AnimatedBuilder(
+              animation: _progressController,
+              builder: (_, __) => LinearProgressIndicator(
+                value: _progressController.value,
+                backgroundColor: Colors.grey[200],
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  _secondsRemaining <= 5 ? Colors.red : config.primaryColor,
+                ),
+                minHeight: 8,
               ),
-              minHeight: 8,
             ),
 
             Expanded(
@@ -285,12 +299,12 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
                               vertical: 12,
                             ),
                             decoration: BoxDecoration(
-                              color: _secondsRemaining <= 10
+                              color: _secondsRemaining <= 5
                                   ? Colors.red[50]
                                   : Colors.blue[50],
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: _secondsRemaining <= 10
+                                color: _secondsRemaining <= 5
                                     ? Colors.red
                                     : Colors.blue,
                                 width: 2,
@@ -301,7 +315,7 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen> {
                               style: TextStyle(
                                 fontSize: 36,
                                 fontWeight: FontWeight.bold,
-                                color: _secondsRemaining <= 10
+                                color: _secondsRemaining <= 5
                                     ? Colors.red
                                     : Colors.blue,
                               ),
