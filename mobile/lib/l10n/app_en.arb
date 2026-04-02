@@ -447,5 +447,27 @@
     }
   },
 
-  "whatsAppUnavailable": "WhatsApp number not available for this user"
+  "whatsAppUnavailable": "WhatsApp number not available for this user",
+
+  "noActiveDriversMessage": "No active drivers available right now.",
+  "waitOrCancelMessage": "You can wait or cancel \u2014 we won\u2019t hold you.",
+  "noDriversAcceptedRound": "No drivers accepted this round.",
+  "retryingWithAttempt": "Retrying in {seconds} seconds\u2026 (attempt {current} of {max})",
+  "@retryingWithAttempt": {
+    "placeholders": {
+      "seconds": {"type": "int"},
+      "current": {"type": "int"},
+      "max": {"type": "int"}
+    }
+  },
+  "driverUnavailableTryingNext": "That driver\u2019s unavailable \u2014 trying the next one",
+  "notifyingDriverMinutesAway": "Notifying a driver {minutes} minutes away\u2026",
+  "@notifyingDriverMinutesAway": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "legendBeingNotified": "Being notified",
+  "legendActiveDriver": "Active driver",
+  "legendUnavailable": "Unavailable"
 }

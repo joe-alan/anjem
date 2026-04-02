@@ -1012,4 +1012,37 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get whatsAppUnavailable =>
       'WhatsApp number not available for this user';
+
+  @override
+  String get noActiveDriversMessage => 'No active drivers available right now.';
+
+  @override
+  String get waitOrCancelMessage =>
+      'You can wait or cancel — we won’t hold you.';
+
+  @override
+  String get noDriversAcceptedRound => 'No drivers accepted this round.';
+
+  @override
+  String retryingWithAttempt(int seconds, int current, int max) {
+    return 'Retrying in $seconds seconds… (attempt $current of $max)';
+  }
+
+  @override
+  String get driverUnavailableTryingNext =>
+      'That driver’s unavailable — trying the next one';
+
+  @override
+  String notifyingDriverMinutesAway(int minutes) {
+    return 'Notifying a driver $minutes minutes away…';
+  }
+
+  @override
+  String get legendBeingNotified => 'Being notified';
+
+  @override
+  String get legendActiveDriver => 'Active driver';
+
+  @override
+  String get legendUnavailable => 'Unavailable';
 }
