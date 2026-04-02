@@ -75,6 +75,7 @@ class _MapboxMapWidgetState extends State<MapboxMapWidget> {
   PolylineAnnotationManager? _polylineAnnotationManager;
   final Map<String, PointAnnotation> _annotations = {};
   final Map<String, PolylineAnnotation> _polylines = {};
+  Timer? _idleTimer;
 
   @override
   Widget build(BuildContext context) {
@@ -159,12 +160,15 @@ class _MapboxMapWidgetState extends State<MapboxMapWidget> {
       bearing: data.cameraState.bearing.toDouble(),
     );
 
-    // Call appropriate callback based on reason
-    if (data.cameraState.zoom != widget.initialCameraPosition.zoom ||
-        center.coordinates.lat != widget.initialCameraPosition.latitude ||
-        center.coordinates.lng != widget.initialCameraPosition.longitude) {
-      widget.onCameraMove?.call(position);
-    }
+    widget.onCameraMove?.call(position);
+
+    // Debounced idle detection
+    _idleTimer?.cancel();
+    _idleTimer = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        widget.onCameraIdle?.call(position);
+      }
+    });
   }
 
   Future<void> _updateMarkers() async {
@@ -238,6 +242,12 @@ class _MapboxMapWidgetState extends State<MapboxMapWidget> {
     if (widget.polylines != oldWidget.polylines) {
       _updatePolylines();
     }
+  }
+
+  @override
+  void dispose() {
+    _idleTimer?.cancel();
+    super.dispose();
   }
 }
 

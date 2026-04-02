@@ -178,6 +178,82 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
     }
   }
 
+  Future<void> getEstimateByCoordinates({
+    required double pickupLat,
+    required double pickupLng,
+    required double destLat,
+    required double destLng,
+    int passengerCount = 1,
+  }) async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final estimate = await _service.getEstimateByCoordinates(
+        pickupLat: pickupLat,
+        pickupLng: pickupLng,
+        destLat: destLat,
+        destLng: destLng,
+        passengerCount: passengerCount,
+      );
+
+      state = state.copyWith(
+        fareEstimate: estimate,
+        isLoading: false,
+        error: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+
+  Future<void> createRequestByCoordinates({
+    required double pickupLat,
+    required double pickupLng,
+    required String pickupName,
+    required double destLat,
+    required double destLng,
+    required String destName,
+    required int passengerCount,
+    String? specialRequests,
+  }) async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final request = await _service.createRequestByCoordinates(
+        pickupLat: pickupLat,
+        pickupLng: pickupLng,
+        pickupName: pickupName,
+        destLat: destLat,
+        destLng: destLng,
+        destName: destName,
+        passengerCount: passengerCount,
+        specialRequests: specialRequests,
+      );
+
+      state = RideRequestState(
+        request: request,
+        fareEstimate: state.fareEstimate,
+        matchedRide: null,
+        isLoading: false,
+        successMessage: 'Ride request created successfully',
+        error: null,
+      );
+
+      if (_activeUserId != null) {
+        await _subscribeToMatching();
+        _startMatchPolling();
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+
   Future<void> createRequest({
     required int pickupBeaconId,
     required int destinationBeaconId,

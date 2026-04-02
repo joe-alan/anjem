@@ -8,7 +8,7 @@ import '../../core/providers/beacons_provider.dart';
 import '../../core/providers/ride_request_provider.dart';
 import '../../core/providers/user_location_provider.dart';
 import '../../core/widgets/mapbox_map_widget.dart';
-import 'location_selection_screen.dart';
+import 'location_search_screen.dart';
 import 'rider_settings_screen.dart';
 import 'waiting_screen.dart';
 
@@ -307,13 +307,13 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: (isSuspended || beaconsState.beacons.isEmpty || hasActiveRequest || !hasPhone)
+                onPressed: (isSuspended || hasActiveRequest || !hasPhone)
                     ? null
                     : () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (context) =>
-                                const LocationSelectionScreen(),
+                                const LocationSearchScreen(),
                           ),
                         );
                       },

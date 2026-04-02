@@ -467,5 +467,18 @@
   },
   "legendBeingNotified": "Being notified",
   "legendActiveDriver": "Active driver",
-  "legendUnavailable": "Unavailable"
+  "legendUnavailable": "Unavailable",
+
+  "whereToTitle": "Where to?",
+  "pickupFieldHint": "Pickup location",
+  "dropoffFieldHint": "Where are you going?",
+  "recentDestinations": "Recent Destinations",
+  "noRecentDestinations": "No recent destinations",
+  "confirmPickup": "Confirm Pickup",
+  "confirmDropoff": "Confirm Drop-off",
+  "adjustPinPickup": "Move the map to adjust pickup point",
+  "adjustPinDropoff": "Move the map to adjust drop-off point",
+  "resolvingLocation": "Finding address...",
+  "droppedPin": "Dropped Pin",
+  "yourLocation": "Your Location"
 }
