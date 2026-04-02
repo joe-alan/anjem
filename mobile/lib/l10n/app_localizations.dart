@@ -1939,6 +1939,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'WhatsApp number not available for this user'**
   String get whatsAppUnavailable;
+
+  /// No description provided for @noActiveDriversMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No active drivers available right now.'**
+  String get noActiveDriversMessage;
+
+  /// No description provided for @waitOrCancelMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You can wait or cancel — we won’t hold you.'**
+  String get waitOrCancelMessage;
+
+  /// No description provided for @noDriversAcceptedRound.
+  ///
+  /// In en, this message translates to:
+  /// **'No drivers accepted this round.'**
+  String get noDriversAcceptedRound;
+
+  /// No description provided for @retryingWithAttempt.
+  ///
+  /// In en, this message translates to:
+  /// **'Retrying in {seconds} seconds… (attempt {current} of {max})'**
+  String retryingWithAttempt(int seconds, int current, int max);
+
+  /// No description provided for @driverUnavailableTryingNext.
+  ///
+  /// In en, this message translates to:
+  /// **'That driver’s unavailable — trying the next one'**
+  String get driverUnavailableTryingNext;
+
+  /// No description provided for @notifyingDriverMinutesAway.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifying a driver {minutes} minutes away…'**
+  String notifyingDriverMinutesAway(int minutes);
+
+  /// No description provided for @legendBeingNotified.
+  ///
+  /// In en, this message translates to:
+  /// **'Being notified'**
+  String get legendBeingNotified;
+
+  /// No description provided for @legendActiveDriver.
+  ///
+  /// In en, this message translates to:
+  /// **'Active driver'**
+  String get legendActiveDriver;
+
+  /// No description provided for @legendUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable'**
+  String get legendUnavailable;
 }
 
 class _AppLocalizationsDelegate

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 
 import '../../core/config/app_config.dart';
 import '../../core/config/mapbox_config.dart';
@@ -233,22 +234,22 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
   // ---------------------------------------------------------------------------
   Future<void> _showCancelDialog() async {
     if (_isCancelling) return;
+    final l10n = AppLocalizations.of(context);
     final nav = Navigator.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Cancel Request?'),
-        content:
-            const Text('Are you sure you want to cancel this ride request?'),
+        title: Text(l10n.cancelRequestTitle),
+        content: Text(l10n.cancelRequestConfirmMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('No'),
+            child: Text(l10n.no),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             child:
-                const Text('Yes, Cancel', style: TextStyle(color: Colors.red)),
+                Text(l10n.yesCancelButton, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -268,27 +269,27 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
   // ---------------------------------------------------------------------------
   // Status messages
   // ---------------------------------------------------------------------------
-  void _updateStatusMessages(RideRequestState state) {
+  void _updateStatusMessages(RideRequestState state, AppLocalizations l10n) {
     final noDrivers = state.noDriversAvailableUntil != null;
 
     if (noDrivers) {
       if (_retryAttempt >= _maxRetries) {
-        _statusMessage = 'No active drivers available right now.';
-        _statusSubMessage = "You can wait or cancel \u2014 we won\u2019t hold you.";
+        _statusMessage = l10n.noActiveDriversMessage;
+        _statusSubMessage = l10n.waitOrCancelMessage;
       } else {
-        _statusMessage = 'No drivers accepted this round.';
+        _statusMessage = l10n.noDriversAcceptedRound;
         _statusSubMessage =
-            'Retrying in $_countdownSeconds seconds\u2026 (attempt $_retryAttempt of $_maxRetries)';
+            l10n.retryingWithAttempt(_countdownSeconds, _retryAttempt, _maxRetries);
       }
     } else if (_wasNoDrivers && !noDrivers) {
-      _statusMessage = "That driver\u2019s unavailable \u2014 trying the next one";
+      _statusMessage = l10n.driverUnavailableTryingNext;
       _statusSubMessage = '';
     } else {
       final waitMin = state.request?.estimatedWaitTime;
       if (waitMin != null && waitMin > 0) {
-        _statusMessage = 'Notifying a driver $waitMin minutes away\u2026';
+        _statusMessage = l10n.notifyingDriverMinutesAway(waitMin);
       } else {
-        _statusMessage = 'Finding a driver for you\u2026';
+        _statusMessage = l10n.findingDriverMessage;
       }
       _statusSubMessage = '';
     }
@@ -301,6 +302,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
   @override
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
+    final l10n = AppLocalizations.of(context);
     final requestState = ref.watch(rideRequestProvider);
 
     ref.listen<RideRequestState>(rideRequestProvider, (previous, next) {
@@ -344,7 +346,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
       }
     });
 
-    _updateStatusMessages(requestState);
+    _updateStatusMessages(requestState, l10n);
 
     final bool noDrivers = requestState.noDriversAvailableUntil != null;
     final bool poolExhausted = noDrivers && _retryAttempt >= _maxRetries;
@@ -450,8 +452,8 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
                           Expanded(
                             child: Text(
                               requestState.cancelCount >= 2
-                                  ? 'Warning: One more cancellation will suspend your account.'
-                                  : 'Warning: Repeated cancellations may result in a temporary ban.',
+                                  ? l10n.oneMoreCancellationWarning
+                                  : l10n.repeatedCancellationsWarning,
                               style: TextStyle(
                                   color: Colors.orange.shade800, fontSize: 13),
                             ),
@@ -475,6 +477,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
                 ).animate(_sheetSlide),
                 child: _buildBottomSheet(
                   config: config,
+                  l10n: l10n,
                   noDrivers: noDrivers,
                   poolExhausted: poolExhausted,
                   requestState: requestState,
@@ -492,6 +495,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
   // ---------------------------------------------------------------------------
   Widget _buildBottomSheet({
     required AppConfig config,
+    required AppLocalizations l10n,
     required bool noDrivers,
     required bool poolExhausted,
     required RideRequestState requestState,
@@ -606,7 +610,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
                         onPressed:
                             requestState.isLoading ? null : _showCancelDialog,
                         icon: const Icon(Icons.close),
-                        label: const Text('Cancel Request'),
+                        label: Text(l10n.cancelRequestButton),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
                           foregroundColor: Colors.white,
@@ -620,7 +624,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
                         onPressed:
                             requestState.isLoading ? null : _showCancelDialog,
                         icon: const Icon(Icons.close, size: 18),
-                        label: const Text('Cancel Request'),
+                        label: Text(l10n.cancelRequestButton),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.red,
                           side: const BorderSide(color: Colors.red),
@@ -642,14 +646,15 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
   // Color legend
   // ---------------------------------------------------------------------------
   Widget _buildLegend() {
+    final l10n = AppLocalizations.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _legendItem(const Color(0xFF2196F3), 'Being notified'),
+        _legendItem(const Color(0xFF2196F3), l10n.legendBeingNotified),
         const SizedBox(width: 16),
-        _legendItem(const Color(0xFF4CAF50), 'Active driver'),
+        _legendItem(const Color(0xFF4CAF50), l10n.legendActiveDriver),
         const SizedBox(width: 16),
-        _legendItem(const Color(0xFF9E9E9E), 'Unavailable'),
+        _legendItem(const Color(0xFF9E9E9E), l10n.legendUnavailable),
       ],
     );
   }

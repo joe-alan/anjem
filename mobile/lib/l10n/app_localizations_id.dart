@@ -1014,4 +1014,38 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get whatsAppUnavailable =>
       'Nomor WhatsApp tidak tersedia untuk pengguna ini';
+
+  @override
+  String get noActiveDriversMessage => 'Tidak ada pengemudi aktif saat ini.';
+
+  @override
+  String get waitOrCancelMessage =>
+      'Anda bisa menunggu atau membatalkan — kami tidak memaksa.';
+
+  @override
+  String get noDriversAcceptedRound =>
+      'Tidak ada pengemudi menerima ronde ini.';
+
+  @override
+  String retryingWithAttempt(int seconds, int current, int max) {
+    return 'Mencoba ulang dalam $seconds detik… (percobaan $current dari $max)';
+  }
+
+  @override
+  String get driverUnavailableTryingNext =>
+      'Pengemudi tidak tersedia — mencoba yang berikutnya';
+
+  @override
+  String notifyingDriverMinutesAway(int minutes) {
+    return 'Menghubungi pengemudi $minutes menit dari sini…';
+  }
+
+  @override
+  String get legendBeingNotified => 'Sedang dihubungi';
+
+  @override
+  String get legendActiveDriver => 'Pengemudi aktif';
+
+  @override
+  String get legendUnavailable => 'Tidak tersedia';
 }
