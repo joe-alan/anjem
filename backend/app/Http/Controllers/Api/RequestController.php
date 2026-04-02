@@ -272,6 +272,33 @@ class RequestController extends Controller
     }
 
     /**
+     * Return anonymous nearby driver pins for the rider waiting screen map.
+     */
+    public function nearbyDrivers(Request $request, RideRequest $ride_request): JsonResponse
+    {
+        if ($ride_request->rider_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized',
+            ], 403);
+        }
+
+        if ($ride_request->status !== 'pending') {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+            ]);
+        }
+
+        $drivers = $this->matchingQueueService->getNearbyDriversForRider($ride_request);
+
+        return response()->json([
+            'success' => true,
+            'data' => $drivers,
+        ]);
+    }
+
+    /**
      * Get ride request estimates for planning
      */
     public function getEstimates(Request $request): JsonResponse

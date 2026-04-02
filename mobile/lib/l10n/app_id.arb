@@ -341,8 +341,8 @@
 
   "noActiveDriversMessage": "Tidak ada pengemudi aktif saat ini.",
   "waitOrCancelMessage": "Anda bisa menunggu atau membatalkan \u2014 kami tidak memaksa.",
-  "noDriversAcceptedRound": "Tidak ada pengemudi menerima ronde ini.",
-  "retryingWithAttempt": "Mencoba ulang dalam {seconds} detik\u2026 (percobaan {current} dari {max})",
+  "noDriversAcceptedRound": "Belum ada pengemudi terdekat yang menerima.",
+  "retryingCountdown": "Masih mencari\u2026 pengemudi baru bisa bergabung. {seconds} detik tersisa.",
   "driverUnavailableTryingNext": "Pengemudi tidak tersedia \u2014 mencoba yang berikutnya",
   "notifyingDriverMinutesAway": "Menghubungi pengemudi {minutes} menit dari sini\u2026",
   "legendBeingNotified": "Sedang dihubungi",

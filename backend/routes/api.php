@@ -70,6 +70,7 @@ Route::prefix('v1')->group(function () {
             Route::get('estimates', [RequestController::class, 'getEstimates']);
             Route::post('/', [RequestController::class, 'store']);
             Route::get('{ride_request}', [RequestController::class, 'show']);
+            Route::get('{ride_request}/nearby-drivers', [RequestController::class, 'nearbyDrivers']);
             Route::patch('{ride_request}/cancel', [RequestController::class, 'cancel']);
             Route::get('/', [RequestController::class, 'index']);
         });

@@ -8,6 +8,7 @@ import 'package:mobile/l10n/app_localizations.dart';
 import '../../core/config/app_config.dart';
 import '../../core/config/mapbox_config.dart';
 import '../../core/models/lat_lng.dart';
+import '../../core/providers/api_provider.dart';
 import '../../core/providers/ride_request_provider.dart';
 import '../../core/widgets/mapbox_map_widget.dart';
 import '../widgets/retry_progress_arc.dart';
@@ -57,6 +58,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
   // Map
   MapboxMapController? _mapController;
   LatLng? _riderLocation;
+  Offset? _riderScreenPosition;
 
   // Driver pins (populated from backend events when available)
   final List<DriverPin> _driverPins = [];
@@ -64,6 +66,9 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
 
   // Cancel
   bool _isCancelling = false;
+
+  // Driver pin polling
+  Timer? _driverPollTimer;
 
   // Countdown / retry
   Timer? _countdownTimer;
@@ -123,6 +128,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
   // ---------------------------------------------------------------------------
   void _playEntryAnimation() {
     _fitCameraToDrivers();
+    _startDriverPolling();
     _entryController.forward().then((_) {
       if (!mounted) return;
       setState(() => _entryDone = true);
@@ -132,45 +138,55 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
     });
   }
 
-  /// Center camera on rider, zoom out enough to show all driver pins.
+  /// Pan camera to frame rider + the notified (blue) driver pin.
+  /// No blue pin → hold current view. No pins at all → hold current view.
   void _fitCameraToDrivers() {
     if (_mapController == null || _riderLocation == null) return;
 
-    double zoom = 16; // default street-level if no drivers
+    // Find the notified (blue) pin
+    final bluePin = _driverPins.cast<DriverPin?>().firstWhere(
+      (p) => p!.state == DriverPinState.notified,
+      orElse: () => null,
+    );
 
-    if (_driverPins.isNotEmpty) {
-      double maxSpan = 0;
-      for (final d in _driverPins) {
-        final latDiff =
-            (d.location.latitude - _riderLocation!.latitude).abs();
-        final lngDiff =
-            (d.location.longitude - _riderLocation!.longitude).abs();
-        final dist = latDiff > lngDiff ? latDiff : lngDiff;
-        if (dist > maxSpan) maxSpan = dist;
-      }
+    // No blue pin → don't pan
+    if (bluePin == null) return;
 
-      final fullSpan = maxSpan * 2;
-      if (fullSpan < 0.004) {
-        zoom = 16;
-      } else if (fullSpan < 0.008) {
-        zoom = 15;
-      } else if (fullSpan < 0.016) {
-        zoom = 14.5;
-      } else if (fullSpan < 0.03) {
-        zoom = 13.5;
-      } else {
-        zoom = 13;
-      }
+    // Frame rider + blue pin
+    final latDiff = (bluePin.location.latitude - _riderLocation!.latitude).abs();
+    final lngDiff = (bluePin.location.longitude - _riderLocation!.longitude).abs();
+    final span = (latDiff > lngDiff ? latDiff : lngDiff) * 2;
+
+    double zoom;
+    if (span < 0.004) {
+      zoom = 16;
+    } else if (span < 0.008) {
+      zoom = 15;
+    } else if (span < 0.016) {
+      zoom = 14.5;
+    } else if (span < 0.03) {
+      zoom = 13.5;
+    } else {
+      zoom = 13;
     }
+
+    // Center between rider and blue pin
+    final centerLat = (_riderLocation!.latitude + bluePin.location.latitude) / 2;
+    final centerLng = (_riderLocation!.longitude + bluePin.location.longitude) / 2;
 
     _mapController!.animateCamera(
       CameraPosition(
-        latitude: _riderLocation!.latitude,
-        longitude: _riderLocation!.longitude,
+        latitude: centerLat,
+        longitude: centerLng,
         zoom: zoom,
       ),
-      duration: const Duration(milliseconds: 1800),
+      duration: const Duration(milliseconds: 800),
     );
+
+    // Recompute overlay positions after animation completes
+    Future.delayed(const Duration(milliseconds: 850), () {
+      if (mounted) _computePinPositions();
+    });
   }
 
   /// Convert each driver's lat/lng to screen pixel position.
@@ -190,15 +206,91 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
       }
     }
 
-    if (mounted) setState(() => _pinPositions = positions);
+    // Also compute rider's screen position for sonar anchoring
+    Offset? riderPos;
+    if (_riderLocation != null) {
+      try {
+        riderPos = await _mapController!.pixelForCoordinate(
+          _riderLocation!.latitude,
+          _riderLocation!.longitude,
+        );
+      } catch (_) {}
+    }
+
+    if (mounted) {
+      setState(() {
+        _pinPositions = positions;
+        _riderScreenPosition = riderPos;
+      });
+    }
   }
 
   @override
   void dispose() {
+    _driverPollTimer?.cancel();
     _countdownTimer?.cancel();
     _entryController.dispose();
     _mapController?.dispose();
     super.dispose();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Driver pin polling
+  // ---------------------------------------------------------------------------
+  void _startDriverPolling() {
+    _driverPollTimer?.cancel();
+    _fetchNearbyDrivers();
+    _driverPollTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => _fetchNearbyDrivers(),
+    );
+  }
+
+  Future<void> _fetchNearbyDrivers() async {
+    final requestId = ref.read(rideRequestProvider).request?.id;
+    if (requestId == null || !mounted) return;
+
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      final response = await apiService.get('/requests/$requestId/nearby-drivers');
+
+      if (!mounted) return;
+      if (response.data['success'] != true) return;
+
+      final driversData = response.data['data'] as List;
+      final pins = driversData.map((entry) {
+        final json = entry as Map<String, dynamic>;
+        final lat = (json['lat'] as num).toDouble();
+        final lng = (json['lng'] as num).toDouble();
+        return DriverPin(
+          id: '${lat.toStringAsFixed(6)}_${lng.toStringAsFixed(6)}',
+          location: LatLng(lat, lng),
+          state: _parseDriverPinState(json['state'] as String),
+        );
+      }).toList();
+
+      setState(() {
+        _driverPins.clear();
+        _driverPins.addAll(pins);
+      });
+
+      _fitCameraToDrivers();
+      _computePinPositions();
+    } catch (e) {
+      debugPrint('Failed to fetch nearby drivers: $e');
+    }
+  }
+
+  DriverPinState _parseDriverPinState(String state) {
+    switch (state) {
+      case 'notified':
+        return DriverPinState.notified;
+      case 'unavailable':
+        return DriverPinState.unavailable;
+      case 'active':
+      default:
+        return DriverPinState.active;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -278,8 +370,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
         _statusSubMessage = l10n.waitOrCancelMessage;
       } else {
         _statusMessage = l10n.noDriversAcceptedRound;
-        _statusSubMessage =
-            l10n.retryingWithAttempt(_countdownSeconds, _retryAttempt, _maxRetries);
+        _statusSubMessage = l10n.retryingCountdown(_countdownSeconds);
       }
     } else if (_wasNoDrivers && !noDrivers) {
       _statusMessage = l10n.driverUnavailableTryingNext;
@@ -309,6 +400,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
       if (_isCancelling) return;
 
       if (next.isMatched && next.matchedRide != null && mounted) {
+        _driverPollTimer?.cancel();
         _countdownTimer?.cancel();
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
@@ -338,6 +430,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
           next.request == null &&
           !next.isMatched &&
           mounted) {
+        _driverPollTimer?.cancel();
         _countdownTimer?.cancel();
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const RiderHomeScreen()),
@@ -379,6 +472,8 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
                 polylines: const {},
                 onMapCreated: (controller) {
                   _mapController = controller;
+                  // Compute initial rider position for sonar
+                  _computePinPositions();
                   if (_riderLocation != null && !_entryDone) {
                     _playEntryAnimation();
                   }
@@ -390,42 +485,53 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
             for (final pin in _driverPins)
               if (_pinPositions.containsKey(pin.id))
                 Positioned(
+                  key: ValueKey(pin.id),
                   left: _pinPositions[pin.id]!.dx - 20,
                   top: _pinPositions[pin.id]!.dy - 20,
-                  child: _DriverPinWidget(pin: pin),
+                  child: _DriverPinWidget(key: ValueKey('pin_${pin.id}'), pin: pin),
                 ),
 
-            // ===== 3. SONAR PULSE (centered = rider location) =====
-            Center(
-              child: IgnorePointer(
-                child: SonarPulse(
-                  active: !noDrivers,
-                  color: config.primaryColor.withValues(alpha: 0.7),
-                  maxRadius: 100,
+            // ===== 3. SONAR PULSE (anchored to rider map position) =====
+            if (_riderScreenPosition != null)
+              Positioned(
+                left: _riderScreenPosition!.dx - 100,
+                top: _riderScreenPosition!.dy - 100,
+                child: IgnorePointer(
+                  child: SizedBox(
+                    width: 200,
+                    height: 200,
+                    child: SonarPulse(
+                      active: !noDrivers,
+                      color: config.primaryColor.withValues(alpha: 0.7),
+                      maxRadius: 100,
+                    ),
+                  ),
                 ),
               ),
-            ),
 
-            // ===== 4. SEARCH RADIUS INDICATOR =====
-            Center(
-              child: IgnorePointer(
-                child: AnimatedOpacity(
-                  opacity: noDrivers ? 0.15 : 0.25,
-                  duration: const Duration(milliseconds: 600),
-                  child: Container(
-                    width: 240,
-                    height: 240,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: config.primaryColor.withValues(alpha: 0.3),
-                        width: 1.5,
+            // ===== 4. SEARCH RADIUS INDICATOR (anchored to rider) =====
+            if (_riderScreenPosition != null)
+              Positioned(
+                left: _riderScreenPosition!.dx - 120,
+                top: _riderScreenPosition!.dy - 120,
+                child: IgnorePointer(
+                  child: AnimatedOpacity(
+                    opacity: noDrivers ? 0.15 : 0.25,
+                    duration: const Duration(milliseconds: 600),
+                    child: Container(
+                      width: 240,
+                      height: 240,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: config.primaryColor.withValues(alpha: 0.3),
+                          width: 1.5,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
 
             // ===== 5. CANCEL WARNING BANNER =====
             if (requestState.cancelCount >= 1)
@@ -681,7 +787,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
 class _DriverPinWidget extends StatefulWidget {
   final DriverPin pin;
 
-  const _DriverPinWidget({required this.pin});
+  const _DriverPinWidget({super.key, required this.pin});
 
   @override
   State<_DriverPinWidget> createState() => _DriverPinWidgetState();
@@ -694,13 +800,28 @@ class _DriverPinWidgetState extends State<_DriverPinWidget>
   @override
   void initState() {
     super.initState();
+    _syncPulse();
+  }
+
+  @override
+  void didUpdateWidget(covariant _DriverPinWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pin.state != widget.pin.state) {
+      _syncPulse();
+    }
+  }
+
+  void _syncPulse() {
     if (widget.pin.state == DriverPinState.notified) {
-      _pulseController = AnimationController(
+      _pulseController ??= AnimationController(
         vsync: this,
         duration: const Duration(milliseconds: 700),
         lowerBound: 0.8,
         upperBound: 1.3,
       )..repeat(reverse: true);
+    } else {
+      _pulseController?.dispose();
+      _pulseController = null;
     }
   }
 
