@@ -18,6 +18,7 @@ import '../../core/providers/driver_status_provider.dart';
 import '../../core/providers/credits_provider.dart';
 import '../../core/providers/session_provider.dart';
 import '../../core/models/session_state.dart';
+import 'driver_home_screen.dart';
 import '../../core/widgets/mapbox_map_widget.dart';
 import '../../core/services/mapbox/mapbox_directions_service.dart';
 
@@ -397,7 +398,10 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
 
     if (mounted) {
       final l10n = AppLocalizations.of(context);
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const DriverHomeScreen()),
+        (route) => false,
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -443,7 +447,10 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
 
     if (mounted) {
       final l10n = AppLocalizations.of(context);
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const DriverHomeScreen()),
+        (route) => false,
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
