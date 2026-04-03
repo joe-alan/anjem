@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 import 'ride.dart';
 import 'ride_request.dart';
 
@@ -122,14 +123,14 @@ class SessionState extends Equatable {
   }
 
   static RideRole _parseRideRole(String role) {
-    print('DEBUG: Parsing ride_role: "$role" (type: ${role.runtimeType})');
+    if (kDebugMode) print('DEBUG: Parsing ride_role: "$role" (type: ${role.runtimeType})');
     switch (role.toLowerCase().trim()) {
       case 'rider':
         return RideRole.rider;
       case 'driver':
         return RideRole.driver;
       default:
-        print('ERROR: Invalid ride role received: "$role"');
+        if (kDebugMode) print('ERROR: Invalid ride role received: "$role"');
         throw ArgumentError('Invalid ride role: $role');
     }
   }

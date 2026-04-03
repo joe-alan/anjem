@@ -544,7 +544,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      'Rp ${_formatCurrency(ride.fare)}',
+                      l10n.currencyFormat(_formatCurrency(ride.fare)),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,

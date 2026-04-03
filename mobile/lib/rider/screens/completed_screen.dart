@@ -8,10 +8,13 @@ import 'rider_home_screen.dart';
 
 class CompletedScreen extends ConsumerStatefulWidget {
   final Ride ride;
+  /// When true, pops back instead of replacing the entire stack (used from ride history)
+  final bool fromHistory;
 
   const CompletedScreen({
     super.key,
     required this.ride,
+    this.fromHistory = false,
   });
 
   @override
@@ -116,7 +119,7 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
                       children: [
                         Text(l10n.fareLabel),
                         Text(
-                          'Rp ${widget.ride.fare.toStringAsFixed(0)}',
+                          l10n.currencyFormat(widget.ride.fare.toStringAsFixed(0)),
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -270,12 +273,16 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text(l10n.thankYouFeedback)),
                           );
-                          Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(
-                              builder: (context) => const RiderHomeScreen(),
-                            ),
-                            (route) => false,
-                          );
+                          if (widget.fromHistory) {
+                            Navigator.of(context).pop();
+                          } else {
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder: (context) => const RiderHomeScreen(),
+                              ),
+                              (route) => false,
+                            );
+                          }
                         }
                       }
                     : null,
@@ -296,12 +303,16 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
             // Skip button
             TextButton(
               onPressed: () {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(
-                    builder: (context) => const RiderHomeScreen(),
-                  ),
-                  (route) => false,
-                );
+                if (widget.fromHistory) {
+                  Navigator.of(context).pop();
+                } else {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (context) => const RiderHomeScreen(),
+                    ),
+                    (route) => false,
+                  );
+                }
               },
               child: Text(l10n.skipForNow),
             ),

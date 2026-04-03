@@ -33,6 +33,7 @@ class Ride extends Equatable {
   final bool? adminOverride;
   final String? adminReason;
   final List<LatLng>? routeCoordinates;
+  final bool canRate;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -58,6 +59,7 @@ class Ride extends Equatable {
     this.adminOverride,
     this.adminReason,
     this.routeCoordinates,
+    this.canRate = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -106,6 +108,7 @@ class Ride extends Equatable {
       adminOverride: json['admin_override'] as bool?,
       adminReason: json['admin_reason'] as String?,
       routeCoordinates: _parseRouteGeometry(json['route_geometry']),
+      canRate: json['can_rate'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -209,6 +212,7 @@ class Ride extends Equatable {
     bool? adminOverride,
     String? adminReason,
     List<LatLng>? routeCoordinates,
+    bool? canRate,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -234,6 +238,7 @@ class Ride extends Equatable {
       adminOverride: adminOverride ?? this.adminOverride,
       adminReason: adminReason ?? this.adminReason,
       routeCoordinates: routeCoordinates ?? this.routeCoordinates,
+      canRate: canRate ?? this.canRate,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -262,6 +267,7 @@ class Ride extends Equatable {
         adminOverride,
         adminReason,
         routeCoordinates,
+        canRate,
         createdAt,
         updatedAt,
       ];

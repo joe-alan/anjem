@@ -5,6 +5,7 @@ import 'package:mobile/l10n/app_localizations.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/ride.dart';
 import '../../core/providers/ride_history_provider.dart';
+import 'completed_screen.dart';
 
 class RideHistoryScreen extends ConsumerWidget {
   const RideHistoryScreen({super.key});
@@ -50,6 +51,16 @@ class RideHistoryScreen extends ConsumerWidget {
                   onTap: () => ref
                       .read(rideHistoryProvider.notifier)
                       .setFilter('cancelled'),
+                ),
+                const SizedBox(width: 8),
+                _FilterChip(
+                  label: l10n.notRatedYet,
+                  isSelected: historyState.selectedFilter == 'unrated',
+                  highlighted: historyState.selectedFilter != 'unrated' &&
+                      historyState.hasUnrated,
+                  onTap: () => ref
+                      .read(rideHistoryProvider.notifier)
+                      .setFilter('unrated'),
                 ),
               ],
             ),
@@ -106,12 +117,14 @@ class RideHistoryScreen extends ConsumerWidget {
 class _FilterChip extends StatelessWidget {
   final String label;
   final bool isSelected;
+  final bool highlighted;
   final VoidCallback onTap;
 
   const _FilterChip({
     required this.label,
     required this.isSelected,
     required this.onTap,
+    this.highlighted = false,
   });
 
   @override
@@ -123,15 +136,42 @@ class _FilterChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? config.primaryColor : Colors.grey[200],
+          color: isSelected
+              ? config.primaryColor
+              : highlighted
+                  ? Colors.orange.shade50
+                  : Colors.grey[200],
           borderRadius: BorderRadius.circular(20),
+          border: highlighted && !isSelected
+              ? Border.all(color: Colors.orange, width: 1.5)
+              : null,
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black87,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (highlighted && !isSelected) ...[
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: Colors.orange,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected
+                    ? Colors.white
+                    : highlighted
+                        ? Colors.orange.shade800
+                        : Colors.black87,
+                fontWeight: (isSelected || highlighted) ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -146,6 +186,7 @@ class _RideHistoryItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
+    final l10n = AppLocalizations.of(context);
     final dateFormat = DateFormat('MMM dd, yyyy • hh:mm a');
 
     return Card(
@@ -174,7 +215,32 @@ class _RideHistoryItem extends StatelessWidget {
                       color: Colors.grey[600],
                     ),
                   ),
-                  _StatusChip(status: ride.status),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (ride.canRate)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.orange),
+                            ),
+                            child: Text(
+                              l10n.notRatedYet,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.orange,
+                              ),
+                            ),
+                          ),
+                        ),
+                      _StatusChip(status: ride.status),
+                    ],
+                  ),
                 ],
               ),
 
@@ -217,7 +283,7 @@ class _RideHistoryItem extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Rp ${ride.fare.toStringAsFixed(0)}',
+                    l10n.currencyFormat(ride.fare.toStringAsFixed(0)),
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -322,7 +388,7 @@ class _RideDetailsDialog extends StatelessWidget {
             ),
             _DetailRow(
               label: l10n.fareLabel,
-              value: 'Rp ${ride.fare.toStringAsFixed(0)}',
+              value: l10n.currencyFormat(ride.fare.toStringAsFixed(0)),
             ),
             if (ride.driver != null)
               _DetailRow(
@@ -346,6 +412,19 @@ class _RideDetailsDialog extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
           child: Text(l10n.close),
         ),
+        if (ride.canRate)
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => CompletedScreen(ride: ride, fromHistory: true),
+                ),
+              );
+            },
+            icon: const Icon(Icons.star, size: 18),
+            label: Text(l10n.rateButton),
+          ),
       ],
     );
   }

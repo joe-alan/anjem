@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:action_slider/action_slider.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:mobile/l10n/app_localizations.dart';
@@ -11,6 +13,7 @@ import '../../core/models/ride.dart';
 import '../../core/models/lat_lng.dart';
 import '../../core/providers/active_ride_provider.dart';
 import '../../core/providers/api_provider.dart';
+import '../../core/services/api/api_exception.dart';
 import '../../core/providers/driver_status_provider.dart';
 import '../../core/providers/credits_provider.dart';
 import '../../core/providers/session_provider.dart';
@@ -55,7 +58,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
           _buildMarkers(ride);
         });
         _fetchAndDisplayRoute().catchError((e) {
-          print('⚠️ [Driver] Route fetch error handled: $e');
+          if (kDebugMode) print('⚠️ [Driver] Route fetch error handled: $e');
         });
       }
     });
@@ -86,10 +89,10 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
       _currentDriverLocation = LatLng(position.latitude, position.longitude);
       // Fetch route for initial position
       _fetchAndDisplayRoute().catchError((e) {
-        print('⚠️ [Driver] Initial route fetch error handled: $e');
+        if (kDebugMode) print('⚠️ [Driver] Initial route fetch error handled: $e');
       });
     } catch (e) {
-      print('Failed to get initial location: $e');
+      if (kDebugMode) print('Failed to get initial location: $e');
     }
 
     // Start adaptive location update loop
@@ -121,7 +124,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
           final currentStatus = ref.read(activeRideProvider).ride?.status;
           if (currentStatus == RideStatus.accepted) {
             _fetchAndDisplayRoute().catchError((e) {
-              print('⚠️ [Driver] Route update on location change error: $e');
+              if (kDebugMode) print('⚠️ [Driver] Route update on location change error: $e');
             });
           }
         }
@@ -142,14 +145,14 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
           'speed': position.speed,
         });
 
-        print('Driver location updated (${interval.inSeconds}s interval, ${speedKmh.toStringAsFixed(1)} km/h)');
+        if (kDebugMode) print('Driver location updated (${interval.inSeconds}s interval, ${speedKmh.toStringAsFixed(1)} km/h)');
 
         // Schedule next update after the adaptive interval
         if (mounted) {
           _locationUpdateTimer = Timer(interval, _scheduleNextLocationUpdate);
         }
       } catch (e) {
-        print('Failed to update location: $e');
+        if (kDebugMode) print('Failed to update location: $e');
         // Retry after default interval on error
         if (mounted) {
           _locationUpdateTimer = Timer(const Duration(seconds: 10), _scheduleNextLocationUpdate);
@@ -204,12 +207,12 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
     final ride = rideState.ride;
 
     if (ride == null || _currentDriverLocation == null) {
-      print('⚠️  [Driver] Cannot fetch route - ride: ${ride != null}, location: ${_currentDriverLocation != null}');
+      if (kDebugMode) print('⚠️  [Driver] Cannot fetch route - ride: ${ride != null}, location: ${_currentDriverLocation != null}');
       return;
     }
 
     try {
-      print('🗺️  [Driver] Fetching route for ride ${ride.id}, status: ${ride.status}');
+      if (kDebugMode) print('🗺️  [Driver] Fetching route for ride ${ride.id}, status: ${ride.status}');
 
       List<LatLng>? routePoints;
       MapPolyline? polyline;
@@ -226,11 +229,11 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
         );
 
         if (routePoints.isEmpty) {
-          print('⚠️ [Driver] Route to pickup is empty - continuing without route line');
+          if (kDebugMode) print('⚠️ [Driver] Route to pickup is empty - continuing without route line');
           return;
         }
 
-        print('✅ [Driver] Route to pickup fetched: ${routePoints.length} points');
+        if (kDebugMode) print('✅ [Driver] Route to pickup fetched: ${routePoints.length} points');
 
         polyline = MapPolyline(
           id: 'route_to_pickup_${ride.id}',
@@ -252,7 +255,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
         routePoints = ride.routeCoordinates ?? [];
 
         if (routePoints.isEmpty) {
-          print('🗺️  [Driver] No backend geometry, fetching from Mapbox directly');
+          if (kDebugMode) print('🗺️  [Driver] No backend geometry, fetching from Mapbox directly');
           routePoints = await _directionsService.getRoute(
             origin: pickupLatLng,
             destination: destLatLng,
@@ -260,11 +263,11 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
         }
 
         if (routePoints.isEmpty) {
-          print('⚠️ [Driver] Route to destination is empty - continuing without route line');
+          if (kDebugMode) print('⚠️ [Driver] Route to destination is empty - continuing without route line');
           return;
         }
 
-        print('✅ [Driver] Route to destination fetched: ${routePoints.length} points');
+        if (kDebugMode) print('✅ [Driver] Route to destination fetched: ${routePoints.length} points');
 
         polyline = MapPolyline(
           id: 'route_to_destination_${ride.id}',
@@ -278,10 +281,10 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
         setState(() {
           _polylines = {polyline!};
         });
-        print('✅ [Driver] Polylines updated');
+        if (kDebugMode) print('✅ [Driver] Polylines updated');
       }
     } catch (e) {
-      print('❌ [Driver] Failed to fetch route: $e');
+      if (kDebugMode) print('❌ [Driver] Failed to fetch route: $e');
     }
   }
 
@@ -300,7 +303,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
         data: {'status': status},
       );
 
-      print('Ride status updated to: $status');
+      if (kDebugMode) print('Ride status updated to: $status');
 
       if (mounted) {
         final l10n = AppLocalizations.of(context);
@@ -316,11 +319,11 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
         _handleRideCompletion();
       } else if (status != 'cancelled') {
         _fetchAndDisplayRoute().catchError((e) {
-          print('⚠️ [Driver] Status change route fetch error handled: $e');
+          if (kDebugMode) print('⚠️ [Driver] Status change route fetch error handled: $e');
         });
       }
     } catch (e) {
-      print('Failed to update ride status: $e');
+      if (kDebugMode) print('Failed to update ride status: $e');
 
       if (mounted) {
         final l10n = AppLocalizations.of(context);
@@ -496,14 +499,14 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
           _buildMarkers(next.ride!);
         });
         _fetchAndDisplayRoute().catchError((e) {
-          print('⚠️ [Driver] Listen route fetch error handled: $e');
+          if (kDebugMode) print('⚠️ [Driver] Listen route fetch error handled: $e');
         });
       }
     });
 
     final ride = rideState.ride;
 
-    print(
+    if (kDebugMode) print(
         'ActiveRideScreen: build - ride=${ride?.id}, isLoading=${rideState.isLoading}, error=${rideState.error}');
 
     if (ride == null) {
@@ -555,9 +558,9 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
       );
     }
 
-    print('ActiveRideScreen: Rendering map for ride ${ride.id}');
-    print('  Pickup: ${ride.pickupLocation.name}, Coords: ${ride.pickupLocation.coordinates.latitude}, ${ride.pickupLocation.coordinates.longitude}');
-    print('  Dest: ${ride.destinationLocation.name}, Coords: ${ride.destinationLocation.coordinates.latitude}, ${ride.destinationLocation.coordinates.longitude}');
+    if (kDebugMode) print('ActiveRideScreen: Rendering map for ride ${ride.id}');
+    if (kDebugMode) print('  Pickup: ${ride.pickupLocation.name}, Coords: ${ride.pickupLocation.coordinates.latitude}, ${ride.pickupLocation.coordinates.longitude}');
+    if (kDebugMode) print('  Dest: ${ride.destinationLocation.name}, Coords: ${ride.destinationLocation.coordinates.latitude}, ${ride.destinationLocation.coordinates.longitude}');
 
     final pickupCoords = ride.pickupLocation.coordinates;
 
@@ -712,7 +715,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                               Text(
-                                'Rp ${_formatCurrency(ride.fare)}',
+                                l10n.currencyFormat(_formatCurrency(ride.fare)),
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: config.primaryColor,
@@ -723,10 +726,20 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                           ),
                         ),
                         IconButton(
-                          icon: const FaIcon(FontAwesomeIcons.whatsapp, color: Color(0xFF25D366)),
+                          icon: FaIcon(
+                            FontAwesomeIcons.whatsapp,
+                            color: (ride.rider?.phone != null && ride.rider!.phone!.trim().isNotEmpty)
+                                ? const Color(0xFF25D366)
+                                : Colors.grey,
+                          ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
-                          onPressed: () => _openWhatsApp(ride.rider?.phone, ride.rider?.name ?? l10n.riderFallback),
+                          tooltip: (ride.rider?.phone == null || ride.rider!.phone!.trim().isEmpty)
+                              ? l10n.riderNoPhone
+                              : null,
+                          onPressed: (ride.rider?.phone != null && ride.rider!.phone!.trim().isNotEmpty)
+                              ? () => _openWhatsApp(ride.rider?.phone, ride.rider?.name ?? l10n.riderFallback)
+                              : null,
                         ),
                       ],
                     ),
@@ -837,7 +850,8 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                 '/rides/${widget.rideId}/status',
                 data: {'status': 'driver_arrived'},
               );
-              controller.success();
+              try { controller.success(); } catch (_) {}
+              HapticFeedback.mediumImpact();
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -849,13 +863,13 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                 _fetchAndDisplayRoute().catchError((_) {});
               }
             } catch (e) {
-              controller.failure();
+              try { controller.failure(); } catch (_) {}
               await Future.delayed(const Duration(seconds: 2));
               if (mounted) {
-                controller.reset();
+                try { controller.reset(); } catch (_) {}
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(l10n.failedToUpdateStatus(e.toString())),
+                    content: Text(_parseStatusError(e, l10n)),
                     backgroundColor: Colors.red,
                   ),
                 );
@@ -896,7 +910,8 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                 '/rides/${widget.rideId}/status',
                 data: {'status': 'in_progress'},
               );
-              controller.success();
+              try { controller.success(); } catch (_) {}
+              HapticFeedback.mediumImpact();
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -908,13 +923,13 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                 _fetchAndDisplayRoute().catchError((_) {});
               }
             } catch (e) {
-              controller.failure();
+              try { controller.failure(); } catch (_) {}
               await Future.delayed(const Duration(seconds: 2));
               if (mounted) {
-                controller.reset();
+                try { controller.reset(); } catch (_) {}
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(l10n.failedToUpdateStatus(e.toString())),
+                    content: Text(_parseStatusError(e, l10n)),
                     backgroundColor: Colors.red,
                   ),
                 );
@@ -955,7 +970,8 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                 '/rides/${widget.rideId}/status',
                 data: {'status': 'completed'},
               );
-              controller.success();
+              try { controller.success(); } catch (_) {}
+              HapticFeedback.heavyImpact();
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -967,13 +983,13 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                 _handleRideCompletion();
               }
             } catch (e) {
-              controller.failure();
+              try { controller.failure(); } catch (_) {}
               await Future.delayed(const Duration(seconds: 2));
               if (mounted) {
-                controller.reset();
+                try { controller.reset(); } catch (_) {}
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(l10n.failedToUpdateStatus(e.toString())),
+                    content: Text(_parseStatusError(e, l10n)),
                     backgroundColor: Colors.red,
                   ),
                 );
@@ -987,8 +1003,18 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
     }
   }
 
+  String _parseStatusError(Object error, AppLocalizations l10n) {
+    if (error is ApiException) {
+      if (error.statusCode == 400) return l10n.errorUnexpectedRideState;
+      if (error.statusCode == 404) return l10n.errorRideNotFound;
+      if (error.statusCode == 403) return l10n.errorPermissionDenied;
+      return error.message;
+    }
+    return l10n.failedToUpdateStatus(error.toString());
+  }
+
   void _buildMarkers(Ride ride) {
-    print('🎯 [Driver] Building markers for ride ${ride.id}');
+    if (kDebugMode) print('🎯 [Driver] Building markers for ride ${ride.id}');
 
     _markers = {
       // Rider waiting at pickup
@@ -1009,7 +1035,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
       ),
     };
 
-    print('✅ [Driver] Built ${_markers.length} markers');
+    if (kDebugMode) print('✅ [Driver] Built ${_markers.length} markers');
   }
 
   void _fitBounds(Ride ride) {

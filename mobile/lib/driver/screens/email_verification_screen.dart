@@ -11,11 +11,13 @@ class PasteTextInputFormatter extends TextInputFormatter {
   final List<TextEditingController> controllers;
   final List<FocusNode> focusNodes;
   final int currentIndex;
+  final VoidCallback? onAllDigitsFilled;
 
   PasteTextInputFormatter({
     required this.controllers,
     required this.focusNodes,
     required this.currentIndex,
+    this.onAllDigitsFilled,
   });
 
   @override
@@ -46,6 +48,12 @@ class PasteTextInputFormatter extends TextInputFormatter {
         : controllers.length - 1;
     if (nextIndex < focusNodes.length) {
       focusNodes[nextIndex].requestFocus();
+    }
+
+    // Auto-verify if all 6 digits are filled
+    if (digits.length >= controllers.length) {
+      focusNodes.last.unfocus();
+      onAllDigitsFilled?.call();
     }
   }
 }
@@ -404,6 +412,7 @@ class _EmailVerificationScreenState
             controllers: _codeControllers,
             focusNodes: _focusNodes,
             currentIndex: index,
+            onAllDigitsFilled: _verifyCode,
           ),
           FilteringTextInputFormatter.digitsOnly,
         ],
@@ -413,8 +422,12 @@ class _EmailVerificationScreenState
             if (index < 5) {
               _focusNodes[index + 1].requestFocus();
             } else {
-              // Last field, dismiss keyboard
+              // Last field — dismiss keyboard and auto-verify
               _focusNodes[index].unfocus();
+              final code = _getCode();
+              if (code.length == 6) {
+                _verifyCode();
+              }
             }
           } else {
             // Move to previous field on backspace

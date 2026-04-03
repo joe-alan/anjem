@@ -149,7 +149,7 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
                                     style: const TextStyle(fontSize: 14),
                                   ),
                                   Text(
-                                    fareEstimate.formattedFare,
+                                    l10n.currencyFormat(fareEstimate.totalFare.toStringAsFixed(0)),
                                     style: TextStyle(
                                       fontSize: 28,
                                       fontWeight: FontWeight.bold,

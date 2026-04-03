@@ -216,18 +216,33 @@ Replaced old base+per-km+time formula with tiered distance pricing:
 
 ---
 
-## UX Polish TODOs (Medium / Low Priority)
+## UX Polish TODOs — Rider (Completed in Sprint 1 & 2)
 
-| #   | Priority | Item                                                                                      | Where                                                  |
-| --- | -------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| 9   | Medium   | **Swap pickup/dropoff button** — standard ride-sharing feature, quick win                 | `location_search_screen.dart`                          |
-| 10  | Medium   | **Cancellation success toast** — show "Request cancelled" snackbar after cancel completes | `waiting_screen.dart`, `rider_active_ride_screen.dart` |
-| 11  | Medium   | **Special requests character limit** — add maxLength + counter (200 chars)                | `ride_details_screen.dart`                             |
-| 12  | Medium   | **Rating submit success toast** — show "Thanks for your feedback!" after submit           | `completed_screen.dart`                                |
-| 13  | Low      | **Recent destinations for pickup field** — currently only shown for dropoff               | `location_search_screen.dart`                          |
-| 14  | Low      | **Phone number format validation** — validate Indonesian format in settings               | `rider_settings_screen.dart`                           |
-| 15  | Low      | **Haptic feedback on status transitions** — vibrate on driver matched, arrived, etc.      | `rider_active_ride_screen.dart`, `waiting_screen.dart` |
-| 16  | Low      | **Filter chip animation on ride history** — animate list on filter change                 | `ride_history_screen.dart`                             |
+Items 1-16 completed. See commits `dd25e9c` and `324d205`.
+
+## UX Polish TODOs — Driver (Sprint 3: Completed)
+
+| #   | Status | Item                                                                                    | Where                              |
+| --- | ------ | --------------------------------------------------------------------------------------- | ---------------------------------- |
+| D1  | ✅     | **Haptic on incoming ride request** — heavyImpact on open, mediumImpact at 5s warning   | `ride_request_screen.dart`         |
+| D2  | ✅     | **Haptic + toast on status transitions** — arrived/start/complete slider success         | `active_ride_screen.dart`          |
+| D3  | ✅     | **Wrap prints in kDebugMode** — 80+ prints across all driver files + shared services    | multiple files                     |
+| D4  | ✅     | **Distance/ETA on ride request** — Mapbox getRouteInfo() for driver→pickup              | `ride_request_screen.dart`         |
+| D5  | ✅     | **Auto-verify on 6th digit** — email verification auto-submits on last digit or paste   | `email_verification_screen.dart`   |
+| D6  | ✅     | **WhatsApp button guard** — disabled + grey when rider has no phone                     | `active_ride_screen.dart`          |
+| D7  | ✅     | **Better error messages** — parse ApiException for specific status codes (400/403/404)  | `active_ride_screen.dart`          |
+| D8  | ✅     | **i18n strings** — pickupDistanceKm, etaToPickup, riderNoPhone, error messages          | `app_en.arb`, `app_id.arb`        |
+
+## Driver UX TODOs — Next Sprint
+
+| #   | Priority | Item                                                                                    | Where                          |
+| --- | -------- | --------------------------------------------------------------------------------------- | ------------------------------ |
+| D9  | Medium   | **Ride request timeout toast** — show "timed out" toast when 15s expires                | `ride_request_screen.dart`     |
+| D10 | Medium   | **Go online/offline haptic** — subtle haptic on FAB toggle                              | `driver_home_screen.dart`      |
+| D11 | Medium   | **KYC color names i18n** — 13 hardcoded English color names → l10n strings              | `kyc_form_screen.dart`         |
+| D12 | Medium   | **"Rp" currency hardcoded** — use l10n formatter instead of raw "Rp" prefix             | `active_ride_screen.dart:715`, `driver_home_screen.dart:477` |
+| D13 | Low      | **Queue position animation** — AnimatedSwitcher on position change                      | `driver_home_screen.dart`      |
+| D14 | Low      | **KYC submission retry** — save draft state on failed submit, retry from last page       | `kyc_form_screen.dart`         |
 
 ---
 

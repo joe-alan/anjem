@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:mobile/l10n/app_localizations.dart';
@@ -396,52 +397,56 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
 
                 // Queue Position Card (only when online and not in active ride)
                 if (driverStatus.isOnline && !driverStatus.hasActiveRide)
-                  Card(
-                    elevation: 2,
-                    color: driverStatus.queuePosition == 1
-                        ? Colors.green[50]
-                        : Colors.blue[50],
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.queue,
-                            size: 36,
-                            color: driverStatus.queuePosition == 1
-                                ? Colors.green
-                                : config.primaryColor,
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  driverStatus.queuePosition == 0
-                                      ? l10n.joiningQueue
-                                      : driverStatus.queuePosition == 1
-                                          ? l10n.youreNextInQueue
-                                          : l10n.queuePositionNumber(driverStatus.queuePosition),
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  driverStatus.queuePosition <= 1
-                                      ? l10n.nextRideComing
-                                      : l10n.driversAheadOfYou(driverStatus.queuePosition - 1),
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey[700],
-                                  ),
-                                ),
-                              ],
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: Card(
+                      key: ValueKey(driverStatus.queuePosition),
+                      elevation: 2,
+                      color: driverStatus.queuePosition == 1
+                          ? Colors.green[50]
+                          : Colors.blue[50],
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.queue,
+                              size: 36,
+                              color: driverStatus.queuePosition == 1
+                                  ? Colors.green
+                                  : config.primaryColor,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    driverStatus.queuePosition == 0
+                                        ? l10n.joiningQueue
+                                        : driverStatus.queuePosition == 1
+                                            ? l10n.youreNextInQueue
+                                            : l10n.queuePositionNumber(driverStatus.queuePosition),
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    driverStatus.queuePosition <= 1
+                                        ? l10n.nextRideComing
+                                        : l10n.driversAheadOfYou(driverStatus.queuePosition - 1),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey[700],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -474,7 +479,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Rp ${_formatCurrency(stats.todayEarnings)}',
+                                    l10n.currencyFormat(_formatCurrency(stats.todayEarnings)),
                                     style: Theme.of(context)
                                         .textTheme
                                         .headlineMedium
@@ -882,6 +887,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         onPressed: driverStatus.hasActiveRide
             ? null
             : () async {
+                HapticFeedback.mediumImpact();
                 await ref.read(driverStatusProvider.notifier).goOffline();
               },
         icon: const Icon(Icons.stop),
@@ -897,6 +903,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     return FloatingActionButton.extended(
       onPressed: canGoOnline
           ? () async {
+              HapticFeedback.mediumImpact();
               await ref.read(driverStatusProvider.notifier).goOnline();
               final error = ref.read(driverStatusProvider).error;
               if (error != null && error.contains('credit') && mounted) {
