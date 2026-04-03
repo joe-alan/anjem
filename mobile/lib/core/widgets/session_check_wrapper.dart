@@ -73,6 +73,16 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
       if (!mounted) return;
 
       if (sessionState == null || sessionState.isIdle) {
+        // Restore rider cooldown if active (survives app restart)
+        if (sessionState?.riderCooldown != null) {
+          final cd = sessionState!.riderCooldown!;
+          ref.read(rideRequestProvider.notifier).applyCancelPenalty(
+            cancelCount: cd.cancelCount,
+            cooldownUntil: cd.cooldownUntil,
+            isSuspended: false,
+          );
+        }
+
         // No active session, go to default home screen.
         // Sync driver status with backend. On a cold launch the driver may
         // have been left online by a force-quit / crash. Always go offline in

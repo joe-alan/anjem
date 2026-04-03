@@ -1,3 +1,5 @@
+// LEGACY: Replaced by LocationSearchScreen (Gojek-style map-first flow).
+// Kept for reference — do not use in new code.
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

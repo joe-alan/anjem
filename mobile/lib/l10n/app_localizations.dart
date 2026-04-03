@@ -2083,6 +2083,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Drag to adjust'**
   String get dragToAdjustHint;
+
+  /// No description provided for @requestCancelledSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Request cancelled'**
+  String get requestCancelledSuccess;
+
+  /// No description provided for @thankYouFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks for your feedback!'**
+  String get thankYouFeedback;
+
+  /// No description provided for @invalidPhoneFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid phone number (e.g., 08123456789)'**
+  String get invalidPhoneFormat;
 }
 
 class _AppLocalizationsDelegate

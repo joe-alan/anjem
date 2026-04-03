@@ -61,11 +61,13 @@ class PlaceSearchService
             try {
                 $apiResults = $this->searchMapboxAPI($query, $latitude, $longitude);
 
-                // Cache API results to database
+                // Cache API results to database, skip duplicates already in local results
+                $existingIds = $localResults->pluck('id')->filter()->toArray();
                 foreach ($apiResults as $result) {
                     $cached = $this->cacheAPIResult($result);
-                    if ($cached) {
+                    if ($cached && ! in_array($cached->id, $existingIds)) {
                         $localResults->push($cached);
+                        $existingIds[] = $cached->id;
                     }
                 }
 

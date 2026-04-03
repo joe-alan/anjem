@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:mobile/l10n/app_localizations.dart';
@@ -350,6 +351,9 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
       setState(() => _isCancelling = true);
       await ref.read(rideRequestProvider.notifier).cancelRequest();
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.requestCancelledSuccess)),
+        );
         nav.pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const RiderHomeScreen()),
           (route) => false,
@@ -400,6 +404,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
       if (_isCancelling) return;
 
       if (next.isMatched && next.matchedRide != null && mounted) {
+        HapticFeedback.mediumImpact();
         _driverPollTimer?.cancel();
         _countdownTimer?.cancel();
         Navigator.of(context).pushReplacement(

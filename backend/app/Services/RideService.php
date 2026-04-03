@@ -485,7 +485,7 @@ class RideService
             ));
             $suspended = true;
         } elseif ($newCount >= 2) {
-            $cooldownUntil = now()->addMinutes(5);
+            $cooldownUntil = now()->addMinutes(2);
             \Illuminate\Support\Facades\Cache::put($cooldownKey, $cooldownUntil->toIso8601String(), $cooldownUntil);
         }
 

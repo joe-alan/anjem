@@ -1092,4 +1092,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dragToAdjustHint => 'Drag to adjust';
+
+  @override
+  String get requestCancelledSuccess => 'Request cancelled';
+
+  @override
+  String get thankYouFeedback => 'Thanks for your feedback!';
+
+  @override
+  String get invalidPhoneFormat =>
+      'Enter a valid phone number (e.g., 08123456789)';
 }

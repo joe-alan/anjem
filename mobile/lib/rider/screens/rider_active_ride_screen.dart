@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/l10n/app_localizations.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -210,7 +211,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
     // Listen for ride status changes (WebSocket updates)
     ref.listen<ActiveRideState>(activeRideProvider, (previous, next) {
       if (next.ride?.status == RideStatus.completed) {
-        // Stop polling and navigate to completed screen
+        HapticFeedback.mediumImpact();
         _statusPollingTimer?.cancel();
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
@@ -218,6 +219,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
           ),
         );
       } else if (next.ride?.status == RideStatus.cancelled) {
+        HapticFeedback.heavyImpact();
         _statusPollingTimer?.cancel();
         if (_isCancelling) {
           // Rider initiated cancel — skip popup and go home
@@ -229,6 +231,12 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
           // External cancel (driver or admin) — show info first
           _showCancellationInfo(next.ride);
         }
+      }
+
+      // Haptic on driver arrived
+      if (previous?.ride?.status != next.ride?.status &&
+          next.ride?.status == RideStatus.driverArrived) {
+        HapticFeedback.mediumImpact();
       }
 
       // Update route when status changes (but only if it's for the current ride)
