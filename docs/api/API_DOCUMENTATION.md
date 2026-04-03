@@ -1459,7 +1459,7 @@ paths:
                 student_email:
                   type: string
                   format: email
-                  example: "john.doe@ui.ac.id"
+                  example: "john.doe@undip.ac.id"
       responses:
         '200':
           description: Email checked
@@ -1509,8 +1509,8 @@ paths:
                 student_email:
                   type: string
                   format: email
-                  description: Must be from allowed domain (e.g., @ui.ac.id)
-                  example: "john.doe@ui.ac.id"
+                  description: Must be from allowed domain (e.g., @undip.ac.id, @polines.ac.id, @unpand.ac.id)
+                  example: "john.doe@undip.ac.id"
                 student_id:
                   type: string
                   maxLength: 50
@@ -1563,7 +1563,7 @@ paths:
                         example: false
                       student_email:
                         type: string
-                        example: "john.doe@ui.ac.id"
+                        example: "john.doe@undip.ac.id"
         '422':
           $ref: '#/components/responses/ValidationError'
         '500':
@@ -1593,7 +1593,7 @@ paths:
                 student_email:
                   type: string
                   format: email
-                  example: "john.doe@ui.ac.id"
+                  example: "john.doe@undip.ac.id"
       responses:
         '200':
           description: Verification code sent
@@ -1607,7 +1607,7 @@ paths:
                     example: true
                   message:
                     type: string
-                    example: "Verification code sent to john.doe@ui.ac.id"
+                    example: "Verification code sent to john.doe@undip.ac.id"
                   expires_in_minutes:
                     type: integer
                     example: 10
@@ -1633,7 +1633,7 @@ paths:
                 student_email:
                   type: string
                   format: email
-                  example: "john.doe@ui.ac.id"
+                  example: "john.doe@undip.ac.id"
                 code:
                   type: string
                   pattern: '^\d{6}$'
@@ -1715,7 +1715,7 @@ paths:
                       student_email:
                         type: string
                         nullable: true
-                        example: "john.doe@ui.ac.id"
+                        example: "john.doe@undip.ac.id"
                       vehicle_type:
                         type: string
                         nullable: true
@@ -2514,7 +2514,7 @@ components:
           example: "John Driver"
         email:
           type: string
-          example: "john.driver@ui.ac.id"
+          example: "john.driver@undip.ac.id"
         phone:
           type: string
           nullable: true
@@ -2565,7 +2565,7 @@ components:
             student_email:
               type: string
               nullable: true
-              example: "john.driver@ui.ac.id"
+              example: "john.driver@undip.ac.id"
             student_id:
               type: string
               nullable: true

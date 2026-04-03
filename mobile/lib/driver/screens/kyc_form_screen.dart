@@ -274,8 +274,10 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
       return;
     }
 
-    // Check domain
-    if (!email.toLowerCase().endsWith('@students.undip.ac.id')) {
+    // Check domain against whitelisted university domains
+    const allowedDomains = ['undip.ac.id', 'polines.ac.id', 'unpand.ac.id'];
+    final emailLower = email.toLowerCase();
+    if (!allowedDomains.any((d) => emailLower.endsWith('@$d'))) {
       setState(() {
         _emailAvailabilityMessage = null;
         _emailAvailable = null;
@@ -659,8 +661,9 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
               if (!value.contains('@')) {
                 return l10n.validatorInvalidEmailFormat;
               }
-              // Check domain
-              if (!value.toLowerCase().endsWith('@students.undip.ac.id')) {
+              // Check domain against whitelisted university domains
+              const allowedDomains = ['undip.ac.id', 'polines.ac.id', 'unpand.ac.id'];
+              if (!allowedDomains.any((d) => value.toLowerCase().endsWith('@$d'))) {
                 return l10n.validatorEmailDomainInvalid;
               }
               // Check if email is available (this is shown via helperText, but also block submission)

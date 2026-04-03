@@ -104,12 +104,12 @@ class DriverKycController extends Controller
 
             // Validate email domain
             if (! $this->kycService->isValidStudentEmail($email)) {
-                $allowedDomain = config('app.allowed_student_email_domain');
+                $domainsDisplay = $this->kycService->getAllowedDomainsDisplay();
 
                 return response()->json([
                     'success' => false,
                     'available' => false,
-                    'message' => "Email must be from {$allowedDomain}",
+                    'message' => "Email must be from one of: {$domainsDisplay}",
                     'reason' => 'invalid_domain',
                 ], 200);  // Return 200 with available:false instead of error
             }
@@ -157,11 +157,11 @@ class DriverKycController extends Controller
 
             // Validate email domain
             if (! $this->kycService->isValidStudentEmail($email)) {
-                $allowedDomain = config('app.allowed_student_email_domain');
+                $domainsDisplay = $this->kycService->getAllowedDomainsDisplay();
 
                 return response()->json([
                     'success' => false,
-                    'message' => "Email must be from {$allowedDomain}",
+                    'message' => "Email must be from one of: {$domainsDisplay}",
                 ], 400);
             }
 

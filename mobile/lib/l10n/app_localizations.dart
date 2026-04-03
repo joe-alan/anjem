@@ -1649,7 +1649,7 @@ abstract class AppLocalizations {
   /// No description provided for @validatorEmailDomainInvalid.
   ///
   /// In en, this message translates to:
-  /// **'Email must be from students.undip.ac.id domain'**
+  /// **'Email must be from undip.ac.id, polines.ac.id, or unpand.ac.id'**
   String get validatorEmailDomainInvalid;
 
   /// No description provided for @validatorEmailAlreadyRegistered.
@@ -1685,7 +1685,7 @@ abstract class AppLocalizations {
   /// No description provided for @studentEmailHint.
   ///
   /// In en, this message translates to:
-  /// **'your.email@students.undip.ac.id'**
+  /// **'your.email@undip.ac.id'**
   String get studentEmailHint;
 
   /// No description provided for @studentEmailHelper.

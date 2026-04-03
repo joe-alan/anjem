@@ -427,7 +427,7 @@ class ApiService {
 #### 1.5 Driver KYC Verification (Bonus) - ✅ COMPLETED
 - 3-page KYC form (student info, vehicle info, KTM photo upload)
 - Email verification screen with 6-digit OTP input
-- Domain validation (@students.undip.ac.id)
+- Domain validation (@undip.ac.id, @polines.ac.id, @unpand.ac.id)
 - KYC status check and auto-verification flow
 
 **Deliverables:**

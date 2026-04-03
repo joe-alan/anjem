@@ -862,7 +862,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get validatorEmailDomainInvalid =>
-      'Email harus dari domain students.undip.ac.id';
+      'Email harus dari undip.ac.id, polines.ac.id, atau unpand.ac.id';
 
   @override
   String get validatorEmailAlreadyRegistered => 'Email ini sudah terdaftar';
@@ -880,7 +880,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get validatorVehicleColorRequired => 'Warna kendaraan wajib dipilih';
 
   @override
-  String get studentEmailHint => 'email.anda@students.undip.ac.id';
+  String get studentEmailHint => 'email.anda@undip.ac.id';
 
   @override
   String get studentEmailHelper => 'Harus menggunakan email kampus Anda';
