@@ -414,5 +414,52 @@
     "placeholders": {
       "amount": {"type": "String"}
     }
-  }
+  },
+
+  "earningsHistoryTitle": "Riwayat Penghasilan",
+  "earningsToday": "Hari Ini",
+  "earningsThisWeek": "Minggu Ini",
+  "earningsThisMonth": "Bulan Ini",
+  "noEarningsYet": "Belum ada penghasilan",
+  "fareAmount": "Rp {amount}",
+  "@fareAmount": {
+    "placeholders": {
+      "amount": {"type": "String"}
+    }
+  },
+
+  "rideHistoryButton": "Riwayat Anjem",
+
+  "ratingHistoryTitle": "Riwayat Rating",
+  "overallRating": "Rating Keseluruhan",
+  "ratingsReceived": "{count} rating diterima",
+  "@ratingsReceived": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "noRatingsYet": "Belum ada rating",
+
+  "kycStatusTitle": "Status Verifikasi",
+  "kycVerified": "Terverifikasi",
+  "kycPendingApproval": "Menunggu Persetujuan",
+  "kycEmailPending": "Email Belum Diverifikasi",
+  "kycNotSubmitted": "Belum Dikirim",
+  "kycSuspended": "Ditangguhkan",
+  "kycDetailsTitle": "Informasi yang Diajukan",
+  "kycStudentEmail": "Email Mahasiswa",
+  "kycStudentId": "NIM",
+  "kycStudentName": "Nama Mahasiswa",
+  "kycVehicleType": "Jenis Kendaraan",
+  "kycVehiclePlate": "Plat Kendaraan",
+  "kycVehicleColor": "Warna Kendaraan",
+  "kycKtmPhoto": "Foto KTM",
+  "editKycButton": "Edit Data KYC",
+  "editKycConfirmTitle": "Edit Data KYC?",
+  "editKycConfirmMessage": "Mengedit akan mengembalikan Anda ke alur KYC dan perlu diverifikasi ulang. Semua data verifikasi saat ini (NIM, info kendaraan, dokumen) akan dihapus. Riwayat anjem dan rating Anda akan tetap tersimpan.\n\nKetik WARJO untuk konfirmasi.",
+  "editKycSuccess": "Data KYC dihapus — silakan ajukan ulang",
+  "failedToEditKyc": "Gagal mengedit data KYC",
+  "typeWarjoToConfirm": "Ketik WARJO untuk konfirmasi",
+  "mustBeOfflineToEdit": "Anda harus offline sebelum mengedit data KYC",
+  "noKycData": "Belum ada data verifikasi yang diajukan"
 }

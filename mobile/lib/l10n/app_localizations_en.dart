@@ -1183,4 +1183,109 @@ class AppLocalizationsEn extends AppLocalizations {
   String currencyFormat(String amount) {
     return 'Rp $amount';
   }
+
+  @override
+  String get earningsHistoryTitle => 'Earnings History';
+
+  @override
+  String get earningsToday => 'Today';
+
+  @override
+  String get earningsThisWeek => 'This Week';
+
+  @override
+  String get earningsThisMonth => 'This Month';
+
+  @override
+  String get noEarningsYet => 'No earnings yet';
+
+  @override
+  String fareAmount(String amount) {
+    return 'Rp $amount';
+  }
+
+  @override
+  String get rideHistoryButton => 'Ride History';
+
+  @override
+  String get ratingHistoryTitle => 'Rating History';
+
+  @override
+  String get overallRating => 'Overall Rating';
+
+  @override
+  String ratingsReceived(int count) {
+    return '$count ratings received';
+  }
+
+  @override
+  String get noRatingsYet => 'No ratings yet';
+
+  @override
+  String get kycStatusTitle => 'Verification Status';
+
+  @override
+  String get kycVerified => 'Verified';
+
+  @override
+  String get kycPendingApproval => 'Pending Approval';
+
+  @override
+  String get kycEmailPending => 'Email Not Verified';
+
+  @override
+  String get kycNotSubmitted => 'Not Submitted';
+
+  @override
+  String get kycSuspended => 'Suspended';
+
+  @override
+  String get kycDetailsTitle => 'Submitted Information';
+
+  @override
+  String get kycStudentEmail => 'Student Email';
+
+  @override
+  String get kycStudentId => 'Student ID';
+
+  @override
+  String get kycStudentName => 'Student Name';
+
+  @override
+  String get kycVehicleType => 'Vehicle Type';
+
+  @override
+  String get kycVehiclePlate => 'Vehicle Plate';
+
+  @override
+  String get kycVehicleColor => 'Vehicle Color';
+
+  @override
+  String get kycKtmPhoto => 'KTM Photo';
+
+  @override
+  String get editKycButton => 'Edit KYC Data';
+
+  @override
+  String get editKycConfirmTitle => 'Edit KYC Data?';
+
+  @override
+  String get editKycConfirmMessage =>
+      'Editing will send you back to the KYC flow and you will need to be re-verified. All current verification data (student ID, vehicle info, uploaded documents) will be deleted. Your ride history and ratings will be kept.\n\nType WARJO to confirm.';
+
+  @override
+  String get editKycSuccess => 'KYC data cleared — please re-submit';
+
+  @override
+  String get failedToEditKyc => 'Failed to edit KYC data';
+
+  @override
+  String get typeWarjoToConfirm => 'Type WARJO to confirm';
+
+  @override
+  String get mustBeOfflineToEdit =>
+      'You must go offline before editing KYC data';
+
+  @override
+  String get noKycData => 'No verification data submitted yet';
 }

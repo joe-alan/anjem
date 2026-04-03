@@ -234,6 +234,63 @@ class DriverKycController extends Controller
     }
 
     /**
+     * Revoke KYC data — deletes PII, resets to unverified
+     */
+    public function revokeKyc(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            if (! $user->tokenCan('driver:go-online')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized: Driver permissions required',
+                ], 403);
+            }
+
+            // Guard: driver must be offline
+            $profile = \App\Models\DriverProfile::where('user_id', $user->id)->first();
+            if ($profile && $profile->went_online_at !== null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You must go offline before revoking KYC data',
+                ], 409);
+            }
+
+            // Guard: no active ride
+            $hasActiveRide = \App\Models\Ride::where('driver_id', $user->id)
+                ->whereNotIn('status', ['completed', 'cancelled'])
+                ->exists();
+            if ($hasActiveRide) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot revoke KYC while you have an active ride',
+                ], 409);
+            }
+
+            $revoked = $this->kycService->revokeKycData($user->id);
+
+            if (! $revoked) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No KYC data found to revoke',
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'KYC data revoked successfully',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to revoke KYC data',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Get KYC status for current driver
      */
     public function getKycStatus(Request $request): JsonResponse

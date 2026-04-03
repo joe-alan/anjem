@@ -216,6 +216,39 @@ class KycVerificationService
     }
 
     /**
+     * Revoke KYC data for a driver — nullifies PII fields, preserves stats.
+     */
+    public function revokeKycData(int $userId): bool
+    {
+        $profile = DriverProfile::where('user_id', $userId)->first();
+
+        if (! $profile) {
+            return false;
+        }
+
+        // Delete KTM photo from storage
+        if ($profile->ktm_url) {
+            $storagePath = str_replace('/storage/', '', $profile->ktm_url);
+            \Storage::disk('public')->delete($storagePath);
+        }
+
+        // Nullify KYC PII fields, reset verification
+        $profile->update([
+            'student_email'    => null,
+            'student_id'       => null,
+            'student_name'     => null,
+            'vehicle_type'     => null,
+            'vehicle_plate'    => null,
+            'vehicle_color'    => null,
+            'ktm_url'          => null,
+            'email_verified_at' => null,
+            'is_verified'      => false,
+        ]);
+
+        return true;
+    }
+
+    /**
      * Cleanup expired verification codes (can be run as scheduled task)
      */
     public function cleanupExpiredCodes(): int
