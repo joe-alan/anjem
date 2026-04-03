@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\LocationService;
 use App\Services\PlaceSearchService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,9 +16,12 @@ class PlaceController extends Controller
 {
     private PlaceSearchService $placeSearchService;
 
-    public function __construct(PlaceSearchService $placeSearchService)
+    private LocationService $locationService;
+
+    public function __construct(PlaceSearchService $placeSearchService, LocationService $locationService)
     {
         $this->placeSearchService = $placeSearchService;
+        $this->locationService = $locationService;
     }
 
     /**
@@ -88,6 +92,65 @@ class PlaceController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to search places',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error',
+            ], 500);
+        }
+    }
+
+    /**
+     * Resolve (find or create) a location from coordinates + name.
+     * Used to cache Mapbox POI results into the DB.
+     */
+    public function resolve(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'address' => 'nullable|string|max:500',
+            'latitude' => 'required|numeric|between:-90,90',
+            'longitude' => 'required|numeric|between:-180,180',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $location = $this->locationService->findOrCreateDestination(
+                $request->input('name'),
+                $request->input('address', ''),
+                (float) $request->input('latitude'),
+                (float) $request->input('longitude'),
+            );
+
+            if (! $location) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to resolve location',
+                ], 500);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $location->id,
+                    'name' => $location->name,
+                    'address' => $location->address,
+                    'coordinates' => [
+                        'latitude' => $location->coordinates->latitude,
+                        'longitude' => $location->coordinates->longitude,
+                    ],
+                    'type' => $location->is_beacon ? 'beacon' : 'p2p',
+                    'is_active' => $location->is_active,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to resolve location',
                 'error' => config('app.debug') ? $e->getMessage() : 'Internal server error',
             ], 500);
         }

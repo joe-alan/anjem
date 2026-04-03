@@ -233,6 +233,11 @@ class WebSocketService {
         return;
       }
 
+      if (_pusher == null) {
+        await initialize();
+        await connect();
+      }
+
       final channel = _pusher!.private(channelName);
       if (!_isConnected) {
         print(

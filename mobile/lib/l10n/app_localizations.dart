@@ -2065,6 +2065,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your Location'**
   String get yourLocation;
+
+  /// No description provided for @pickThisLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick this location?'**
+  String get pickThisLocation;
 }
 
 class _AppLocalizationsDelegate

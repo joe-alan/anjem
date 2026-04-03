@@ -1084,4 +1084,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get yourLocation => 'Lokasi Anda';
+
+  @override
+  String get pickThisLocation => 'Pilih lokasi ini?';
 }
