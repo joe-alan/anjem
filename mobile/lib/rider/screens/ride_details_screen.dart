@@ -214,6 +214,7 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
                       TextField(
                         controller: _specialRequestsController,
                         maxLines: 2,
+                        maxLength: 200,
                         decoration: InputDecoration(
                           hintText: l10n.specialRequestsPlaceholder,
                           border: OutlineInputBorder(

@@ -84,12 +84,16 @@ class RideHistoryScreen extends ConsumerWidget {
                         onRefresh: () async {
                           ref.read(rideHistoryProvider.notifier).refresh();
                         },
-                        child: ListView.builder(
-                          itemCount: historyState.rides.length,
-                          itemBuilder: (context, index) {
-                            final ride = historyState.rides[index];
-                            return _RideHistoryItem(ride: ride);
-                          },
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: ListView.builder(
+                            key: ValueKey(historyState.selectedFilter),
+                            itemCount: historyState.rides.length,
+                            itemBuilder: (context, index) {
+                              final ride = historyState.rides[index];
+                              return _RideHistoryItem(ride: ride);
+                            },
+                          ),
                         ),
                       ),
           ),

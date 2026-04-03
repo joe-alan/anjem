@@ -1095,4 +1095,14 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get dragToAdjustHint => 'Geser untuk mengatur';
+
+  @override
+  String get requestCancelledSuccess => 'Permintaan dibatalkan';
+
+  @override
+  String get thankYouFeedback => 'Terima kasih atas masukan Anda!';
+
+  @override
+  String get invalidPhoneFormat =>
+      'Masukkan nomor telepon yang valid (mis., 08123456789)';
 }

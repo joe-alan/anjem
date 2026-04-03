@@ -52,12 +52,27 @@ class DriverContext extends Equatable {
   List<Object?> get props => [isDriver, isOnline, wentOnlineAt, activeRideId];
 }
 
+class RiderCooldown {
+  final String cooldownUntil;
+  final int cancelCount;
+
+  const RiderCooldown({required this.cooldownUntil, required this.cancelCount});
+
+  factory RiderCooldown.fromJson(Map<String, dynamic> json) {
+    return RiderCooldown(
+      cooldownUntil: json['cooldown_until'] as String,
+      cancelCount: (json['cancel_count'] as int?) ?? 0,
+    );
+  }
+}
+
 class SessionState extends Equatable {
   final SessionStateType state;
   final RideRole? rideRole;
   final Ride? activeRide;
   final RideRequest? activeRequest;
   final DriverContext driverContext;
+  final RiderCooldown? riderCooldown;
 
   const SessionState({
     required this.state,
@@ -65,6 +80,7 @@ class SessionState extends Equatable {
     this.activeRide,
     this.activeRequest,
     required this.driverContext,
+    this.riderCooldown,
   });
 
   factory SessionState.fromJson(Map<String, dynamic> json) {
@@ -82,6 +98,9 @@ class SessionState extends Equatable {
       driverContext: DriverContext.fromJson(
         json['driver_context'] as Map<String, dynamic>,
       ),
+      riderCooldown: json['rider_cooldown'] != null
+          ? RiderCooldown.fromJson(json['rider_cooldown'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -159,5 +178,5 @@ class SessionState extends Equatable {
 
   @override
   List<Object?> get props =>
-      [state, rideRole, activeRide, activeRequest, driverContext];
+      [state, rideRole, activeRide, activeRequest, driverContext, riderCooldown];
 }

@@ -10,6 +10,7 @@ import '../../core/providers/ride_request_provider.dart';
 import '../../core/providers/user_location_provider.dart';
 import '../../core/widgets/mapbox_map_widget.dart';
 import 'location_search_screen.dart';
+import 'ride_history_screen.dart';
 import 'rider_settings_screen.dart';
 import 'waiting_screen.dart';
 
@@ -105,6 +106,13 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: l10n.rideHistoryTitle,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const RideHistoryScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {

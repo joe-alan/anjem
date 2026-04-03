@@ -85,7 +85,7 @@ class RideRequestState {
     if (!isInCooldown) return 0;
     try {
       final until = DateTime.parse(cooldownUntil!);
-      return until.difference(DateTime.now()).inSeconds.clamp(0, 120);
+      return until.difference(DateTime.now()).inSeconds.clamp(0, 600);
     } catch (_) {
       return 0;
     }

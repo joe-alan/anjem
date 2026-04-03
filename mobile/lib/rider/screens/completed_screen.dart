@@ -267,6 +267,9 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
                             );
 
                         if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(l10n.thankYouFeedback)),
+                          );
                           Navigator.of(context).pushAndRemoveUntil(
                             MaterialPageRoute(
                               builder: (context) => const RiderHomeScreen(),

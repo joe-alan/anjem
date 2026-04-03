@@ -368,5 +368,8 @@
       "seconds": {"type": "int"}
     }
   },
-  "dragToAdjustHint": "Geser untuk mengatur"
+  "dragToAdjustHint": "Geser untuk mengatur",
+  "requestCancelledSuccess": "Permintaan dibatalkan",
+  "thankYouFeedback": "Terima kasih atas masukan Anda!",
+  "invalidPhoneFormat": "Masukkan nomor telepon yang valid (mis., 08123456789)"
 }

@@ -43,8 +43,24 @@ class _RiderSettingsScreenState extends ConsumerState<RiderSettingsScreen> {
     super.dispose();
   }
 
+  String? _validatePhone(String phone) {
+    if (phone.isEmpty) return null; // Optional field
+    // Accept 08xx, +628xx, 628xx formats
+    final cleaned = phone.replaceAll(RegExp(r'[\s\-]'), '');
+    final valid = RegExp(r'^(\+62|62|0)8[1-9][0-9]{6,10}$').hasMatch(cleaned);
+    if (!valid) return AppLocalizations.of(context).invalidPhoneFormat;
+    return null;
+  }
+
   Future<void> _saveProfile() async {
     if (_nameController.text.trim().isEmpty) return;
+    final phoneError = _validatePhone(_phoneController.text.trim());
+    if (phoneError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(phoneError), backgroundColor: Colors.orange),
+      );
+      return;
+    }
 
     setState(() => _isSaving = true);
 

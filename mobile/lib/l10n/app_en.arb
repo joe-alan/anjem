@@ -488,5 +488,8 @@
       "seconds": {"type": "int"}
     }
   },
-  "dragToAdjustHint": "Drag to adjust"
+  "dragToAdjustHint": "Drag to adjust",
+  "requestCancelledSuccess": "Request cancelled",
+  "thankYouFeedback": "Thanks for your feedback!",
+  "invalidPhoneFormat": "Enter a valid phone number (e.g., 08123456789)"
 }

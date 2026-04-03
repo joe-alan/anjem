@@ -37,6 +37,8 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
     super.initState();
     _pickupController.addListener(_onPickupChanged);
     _dropoffController.addListener(_onDropoffChanged);
+    _pickupFocus.addListener(_onFocusChanged);
+    _dropoffFocus.addListener(_onFocusChanged);
 
     // Auto-detect pickup after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -48,11 +50,29 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _pickupFocus.removeListener(_onFocusChanged);
+    _dropoffFocus.removeListener(_onFocusChanged);
     _pickupController.dispose();
     _dropoffController.dispose();
     _pickupFocus.dispose();
     _dropoffFocus.dispose();
     super.dispose();
+  }
+
+  void _onFocusChanged() {
+    if (!mounted) return;
+    // Only act when focus moves between the two text fields
+    _ActiveField? newField;
+    if (_pickupFocus.hasFocus) {
+      newField = _ActiveField.pickup;
+    } else if (_dropoffFocus.hasFocus) {
+      newField = _ActiveField.dropoff;
+    }
+    if (newField != null && newField != _activeField) {
+      _debounce?.cancel();
+      ref.read(placeSearchProvider.notifier).clear();
+      setState(() => _activeField = newField!);
+    }
   }
 
   void _autoDetectPickup() {
@@ -107,6 +127,8 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
   }
 
   void _onPickupChanged() {
+    // Skip cursor/selection-only changes — only act when text actually changes
+    if (_pickup != null && _pickupController.text == _pickup!.name) return;
     setState(() {
       _activeField = _ActiveField.pickup;
       _pickup = null;
@@ -115,6 +137,7 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
   }
 
   void _onDropoffChanged() {
+    if (_dropoff != null && _dropoffController.text == _dropoff!.name) return;
     setState(() {
       _activeField = _ActiveField.dropoff;
       _dropoff = null;
@@ -139,7 +162,8 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
   }
 
   void _onResultTap(PlaceSearchResult result) {
-    // Remove listeners to prevent them from nullifying selections
+    // Kill pending search and remove listeners to prevent nullifying selections
+    _debounce?.cancel();
     _pickupController.removeListener(_onPickupChanged);
     _dropoffController.removeListener(_onDropoffChanged);
 
@@ -168,6 +192,26 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
     }
   }
 
+  void _swapLocations() {
+    _debounce?.cancel();
+    _pickupController.removeListener(_onPickupChanged);
+    _dropoffController.removeListener(_onDropoffChanged);
+
+    final tmpResult = _pickup;
+    _pickup = _dropoff;
+    _dropoff = tmpResult;
+    _pickupController.text = _pickup?.name ?? '';
+    _dropoffController.text = _dropoff?.name ?? '';
+
+    _pickupController.addListener(_onPickupChanged);
+    _dropoffController.addListener(_onDropoffChanged);
+    setState(() {});
+
+    if (_pickup != null && _dropoff != null) {
+      _navigateToMapConfirm();
+    }
+  }
+
   void _navigateToMapConfirm() {
     if (_pickup == null || _dropoff == null) return;
 
@@ -191,9 +235,9 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
     final searchState = ref.watch(placeSearchProvider);
     final recentDestinations = ref.watch(recentDestinationsProvider);
 
-    // Show recent destinations when dropoff field is focused and empty
-    final showRecent = _activeField == _ActiveField.dropoff &&
-        _dropoffController.text.isEmpty &&
+    // Show recent destinations when either field is focused and empty
+    final showRecent = ((_activeField == _ActiveField.dropoff && _dropoffController.text.isEmpty) ||
+        (_activeField == _ActiveField.pickup && _pickupController.text.isEmpty)) &&
         recentDestinations.isNotEmpty;
 
     return Scaffold(
@@ -220,13 +264,27 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Back button
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: IconButton(
-                          icon: const Icon(Icons.arrow_back),
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
+                      // Back button + swap button
+                      Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: IconButton(
+                              icon: const Icon(Icons.arrow_back),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.swap_vert, size: 20,
+                              color: (_pickup != null || _dropoff != null)
+                                  ? config.primaryColor
+                                  : Colors.grey[400],
+                            ),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 48, minHeight: 32),
+                            onPressed: (_pickup != null || _dropoff != null) ? _swapLocations : null,
+                          ),
+                        ],
                       ),
 
                       // Input fields
@@ -240,15 +298,15 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
                               hint: l10n.pickupFieldHint,
                               icon: Icons.trip_origin,
                               iconColor: Colors.green,
-                              onTap: () {
-                                setState(() => _activeField = _ActiveField.pickup);
-                              },
+                              onTap: () {},
                               onClear: () {
                                 _pickupController.removeListener(_onPickupChanged);
                                 _pickup = null;
                                 _pickupController.clear();
                                 _pickupController.addListener(_onPickupChanged);
-                                setState(() {});
+                                ref.read(placeSearchProvider.notifier).clear();
+                                setState(() => _activeField = _ActiveField.pickup);
+                                _pickupFocus.requestFocus();
                               },
                             ),
 
@@ -272,15 +330,15 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
                               hint: l10n.dropoffFieldHint,
                               icon: Icons.location_on,
                               iconColor: config.primaryColor,
-                              onTap: () {
-                                setState(() => _activeField = _ActiveField.dropoff);
-                              },
+                              onTap: () {},
                               onClear: () {
                                 _dropoffController.removeListener(_onDropoffChanged);
                                 _dropoff = null;
                                 _dropoffController.clear();
                                 _dropoffController.addListener(_onDropoffChanged);
-                                setState(() {});
+                                ref.read(placeSearchProvider.notifier).clear();
+                                setState(() => _activeField = _ActiveField.dropoff);
+                                _dropoffFocus.requestFocus();
                               },
                             ),
                           ],
