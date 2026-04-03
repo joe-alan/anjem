@@ -4,9 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/l10n/app_localizations.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/place_search_result.dart';
+import 'dart:math';
+import '../../core/providers/beacons_provider.dart';
 import '../../core/providers/place_search_provider.dart';
 import '../../core/providers/recent_destinations_provider.dart';
-import '../../core/providers/reverse_geocoding_provider.dart';
 import '../../core/providers/user_location_provider.dart';
 import 'map_confirm_screen.dart';
 
@@ -30,8 +31,6 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
 
   PlaceSearchResult? _pickup;
   PlaceSearchResult? _dropoff;
-  bool _pickupAutoDetected = false;
-  bool _dropoffProgrammaticUpdate = false;
 
   @override
   void initState() {
@@ -56,44 +55,58 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
     super.dispose();
   }
 
-  Future<void> _autoDetectPickup() async {
+  void _autoDetectPickup() {
     final location = ref.read(userLocationProvider).location;
     if (location == null) return;
 
+    final beacons = ref.read(beaconsProvider).beacons;
     final l10n = AppLocalizations.of(context);
 
-    try {
-      final service = ref.read(reverseGeocodingServiceProvider);
-      final result = await service.reverseGeocode(
-        latitude: location.latitude,
-        longitude: location.longitude,
+    // Find closest beacon from already-loaded list
+    PlaceSearchResult? closest;
+    double closestDist = double.infinity;
+
+    for (final beacon in beacons) {
+      final dist = _haversineKm(
+        location.latitude, location.longitude,
+        beacon.coordinates.latitude, beacon.coordinates.longitude,
       );
-
-      if (!mounted) return;
-
-      final name = result.name == 'Dropped Pin' ? l10n.yourLocation : result.name;
-
-      setState(() {
-        _pickup = PlaceSearchResult(
-          name: name,
-          address: result.address,
-          coordinates: location,
-          source: 'mapbox',
+      if (dist < closestDist && dist <= 2.0) {
+        closestDist = dist;
+        closest = PlaceSearchResult(
+          id: beacon.id,
+          name: beacon.name,
+          address: beacon.description,
+          coordinates: beacon.coordinates,
+          isBeacon: true,
+          distanceKm: dist,
+          source: 'database',
         );
-        _pickupController.text = name;
-        _pickupAutoDetected = true;
-      });
-    } catch (e) {
-      // Silently fail — user can manually enter pickup
-      debugPrint('Failed to auto-detect pickup: $e');
+      }
     }
+
+    _pickupController.removeListener(_onPickupChanged);
+    _pickup = closest ?? PlaceSearchResult(
+      name: l10n.yourLocation,
+      coordinates: location,
+      source: 'mapbox',
+    );
+    _pickupController.text = _pickup!.name;
+    _pickupController.addListener(_onPickupChanged);
+    setState(() {});
+  }
+
+  static double _haversineKm(double lat1, double lng1, double lat2, double lng2) {
+    const r = 6371.0;
+    final dLat = (lat2 - lat1) * pi / 180;
+    final dLng = (lng2 - lng1) * pi / 180;
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(lat1 * pi / 180) * cos(lat2 * pi / 180) *
+        sin(dLng / 2) * sin(dLng / 2);
+    return r * 2 * atan2(sqrt(a), sqrt(1 - a));
   }
 
   void _onPickupChanged() {
-    if (_pickupAutoDetected) {
-      _pickupAutoDetected = false;
-      return;
-    }
     setState(() {
       _activeField = _ActiveField.pickup;
       _pickup = null;
@@ -102,10 +115,6 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
   }
 
   void _onDropoffChanged() {
-    if (_dropoffProgrammaticUpdate) {
-      _dropoffProgrammaticUpdate = false;
-      return;
-    }
     setState(() {
       _activeField = _ActiveField.dropoff;
       _dropoff = null;
@@ -130,20 +139,25 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
   }
 
   void _onResultTap(PlaceSearchResult result) {
+    // Remove listeners to prevent them from nullifying selections
+    _pickupController.removeListener(_onPickupChanged);
+    _dropoffController.removeListener(_onDropoffChanged);
+
     if (_activeField == _ActiveField.pickup) {
-      setState(() {
-        _pickup = result;
-        _pickupAutoDetected = true;
-        _pickupController.text = result.name;
-      });
-      // Move focus to dropoff
+      _pickup = result;
+      _pickupController.text = result.name;
+      // Re-add listeners then move focus
+      _pickupController.addListener(_onPickupChanged);
+      _dropoffController.addListener(_onDropoffChanged);
       _dropoffFocus.requestFocus();
+      setState(() {});
     } else {
-      setState(() {
-        _dropoff = result;
-        _dropoffProgrammaticUpdate = true;
-        _dropoffController.text = result.name;
-      });
+      _dropoff = result;
+      _dropoffController.text = result.name;
+      // Re-add listeners
+      _pickupController.addListener(_onPickupChanged);
+      _dropoffController.addListener(_onDropoffChanged);
+      setState(() {});
     }
 
     ref.read(placeSearchProvider.notifier).clear();
@@ -163,6 +177,7 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
           mode: MapConfirmMode.pickup,
           initialCenter: _pickup!.coordinates,
           initialName: _pickup!.name,
+          initialLocationId: _pickup!.id,
           confirmedDropoff: _dropoff,
         ),
       ),
@@ -229,11 +244,11 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
                                 setState(() => _activeField = _ActiveField.pickup);
                               },
                               onClear: () {
-                                setState(() {
-                                  _pickup = null;
-                                  _pickupController.clear();
-                                  _pickupAutoDetected = false;
-                                });
+                                _pickupController.removeListener(_onPickupChanged);
+                                _pickup = null;
+                                _pickupController.clear();
+                                _pickupController.addListener(_onPickupChanged);
+                                setState(() {});
                               },
                             ),
 
@@ -261,10 +276,11 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
                                 setState(() => _activeField = _ActiveField.dropoff);
                               },
                               onClear: () {
-                                setState(() {
-                                  _dropoff = null;
-                                  _dropoffController.clear();
-                                });
+                                _dropoffController.removeListener(_onDropoffChanged);
+                                _dropoff = null;
+                                _dropoffController.clear();
+                                _dropoffController.addListener(_onDropoffChanged);
+                                setState(() {});
                               },
                             ),
                           ],

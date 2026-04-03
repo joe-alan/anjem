@@ -1081,4 +1081,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get yourLocation => 'Your Location';
+
+  @override
+  String get pickThisLocation => 'Pick this location?';
 }

@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/l10n/app_localizations.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/lat_lng.dart';
 import '../../core/models/place_search_result.dart';
+import '../../core/providers/beacons_provider.dart';
+import '../../core/providers/place_search_provider.dart';
 import '../../core/providers/reverse_geocoding_provider.dart';
 import '../../core/providers/ride_request_provider.dart';
 import '../../core/widgets/mapbox_map_widget.dart';
@@ -12,15 +15,14 @@ import 'ride_details_screen.dart';
 
 enum MapConfirmMode { pickup, dropoff }
 
+const double _reResolveThresholdMeters = 50.0;
+
 class MapConfirmScreen extends ConsumerStatefulWidget {
   final MapConfirmMode mode;
   final LatLng initialCenter;
   final String initialName;
-
-  /// Already-confirmed pickup (passed when mode == dropoff)
+  final int? initialLocationId;
   final PlaceSearchResult? confirmedPickup;
-
-  /// Already-confirmed dropoff (passed when mode == pickup and we already have dropoff from search)
   final PlaceSearchResult? confirmedDropoff;
 
   const MapConfirmScreen({
@@ -28,6 +30,7 @@ class MapConfirmScreen extends ConsumerStatefulWidget {
     required this.mode,
     required this.initialCenter,
     required this.initialName,
+    this.initialLocationId,
     this.confirmedPickup,
     this.confirmedDropoff,
   });
@@ -37,76 +40,159 @@ class MapConfirmScreen extends ConsumerStatefulWidget {
 }
 
 class _MapConfirmScreenState extends ConsumerState<MapConfirmScreen> {
-  String _resolvedName = '';
-  String? _resolvedAddress;
-  bool _isResolving = false;
-  int _geocodeGeneration = 0;
   LatLng _currentCenter = const LatLng(0, 0);
+  bool _isResolving = false;
+  MapboxMapController? _mapController;
+  bool _isSnapping = false;
+
+  /// true when pin is within 50m of original — direct confirm.
+  bool _withinThreshold = true;
+
+  /// After user taps "Pick this location?" and resolve completes,
+  /// this holds the resolved result. Show name + final confirm button.
+  PlaceSearchResult? _resolvedResult;
 
   @override
   void initState() {
     super.initState();
-    _resolvedName = widget.initialName;
     _currentCenter = widget.initialCenter;
   }
 
   void _onCameraIdle(CameraPosition position) {
-    _currentCenter = LatLng(position.latitude, position.longitude);
-    _reverseGeocode(position.latitude, position.longitude);
-  }
+    if (_isSnapping) {
+      _isSnapping = false;
+      return;
+    }
 
-  Future<void> _reverseGeocode(double lat, double lng) async {
-    final generation = ++_geocodeGeneration;
-    setState(() => _isResolving = true);
+    final newCenter = LatLng(position.latitude, position.longitude);
+    _currentCenter = newCenter;
 
-    try {
-      final service = ref.read(reverseGeocodingServiceProvider);
-      final result = await service.reverseGeocode(
-        latitude: lat,
-        longitude: lng,
-      );
+    final distanceM = _haversineMeters(
+      widget.initialCenter.latitude, widget.initialCenter.longitude,
+      newCenter.latitude, newCenter.longitude,
+    );
 
-      if (generation != _geocodeGeneration || !mounted) return;
-
+    final nowWithin = distanceM <= _reResolveThresholdMeters;
+    if (nowWithin != _withinThreshold || _resolvedResult != null) {
       setState(() {
-        _resolvedName = result.name;
-        _resolvedAddress = result.address;
-        _isResolving = false;
-      });
-    } catch (e) {
-      if (generation != _geocodeGeneration || !mounted) return;
-      final l10n = AppLocalizations.of(context);
-      setState(() {
-        _resolvedName = l10n.droppedPin;
-        _resolvedAddress = null;
-        _isResolving = false;
+        _withinThreshold = nowWithin;
+        // User moved the pin again — reset any previous resolve
+        _resolvedResult = null;
       });
     }
   }
 
-  void _onConfirm() {
-    final confirmed = PlaceSearchResult(
-      name: _resolvedName,
-      address: _resolvedAddress,
-      coordinates: _currentCenter,
-      source: 'mapbox',
+  /// Called when user taps "Pick this location?" — resolves the pin.
+  Future<void> _onPickLocation() async {
+    setState(() => _isResolving = true);
+
+    final resolved = await _resolvePin();
+
+    if (!mounted) return;
+
+    // Recenter pin to the resolved location's actual coordinates
+    _snapMapTo(resolved.coordinates);
+    _currentCenter = resolved.coordinates;
+
+    setState(() {
+      _resolvedResult = resolved;
+      _isResolving = false;
+    });
+  }
+
+  void _snapMapTo(LatLng target) {
+    _isSnapping = true;
+    _mapController?.animateCamera(
+      CameraPosition(
+        latitude: target.latitude,
+        longitude: target.longitude,
+        zoom: 17,
+      ),
+      duration: const Duration(milliseconds: 300),
     );
+  }
+
+  /// Called when user taps the final "Confirm Pickup/Dropoff" button.
+  Future<void> _onConfirm() async {
+    // Within threshold — resolve instantly (no API call, pure math)
+    final confirmed = _withinThreshold
+        ? PlaceSearchResult(
+            id: widget.initialLocationId,
+            name: widget.initialName,
+            coordinates: _currentCenter,
+            isBeacon: widget.initialLocationId != null,
+            source: widget.initialLocationId != null ? 'database' : 'mapbox',
+          )
+        : _resolvedResult!;
 
     if (widget.mode == MapConfirmMode.pickup) {
-      // Go to dropoff confirmation
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) => MapConfirmScreen(
             mode: MapConfirmMode.dropoff,
-            initialCenter: widget.confirmedDropoff?.coordinates ?? _currentCenter,
+            initialCenter: widget.confirmedDropoff?.coordinates ?? confirmed.coordinates,
             initialName: widget.confirmedDropoff?.name ?? '',
+            initialLocationId: widget.confirmedDropoff?.id,
             confirmedPickup: confirmed,
           ),
         ),
       );
     } else {
-      // Dropoff confirmed — get estimate and go to ride details
-      _getEstimateAndNavigate(confirmed);
+      await _getEstimateAndNavigate(confirmed);
+    }
+  }
+
+  /// Resolve pin: DB beacon within 50m, then Mapbox Search Box POI.
+  Future<PlaceSearchResult> _resolvePin() async {
+    final beacons = ref.read(beaconsProvider).beacons;
+    PlaceSearchResult? dbMatch;
+    double closestDist = double.infinity;
+
+    for (final beacon in beacons) {
+      final dist = _haversineMeters(
+        _currentCenter.latitude, _currentCenter.longitude,
+        beacon.coordinates.latitude, beacon.coordinates.longitude,
+      );
+      if (dist < closestDist && dist <= _reResolveThresholdMeters) {
+        closestDist = dist;
+        dbMatch = PlaceSearchResult(
+          id: beacon.id,
+          name: beacon.name,
+          address: beacon.description,
+          coordinates: beacon.coordinates,
+          isBeacon: true,
+          source: 'database',
+        );
+      }
+    }
+
+    if (dbMatch != null) return dbMatch;
+
+    // No DB match — call Mapbox Search Box reverse for POI name
+    final geocoder = ref.read(reverseGeocodingServiceProvider);
+    final result = await geocoder.reverseSearchPOI(
+      latitude: _currentCenter.latitude,
+      longitude: _currentCenter.longitude,
+    );
+
+    // Save to backend DB so future searches find it
+    try {
+      final placeService = ref.read(placeSearchServiceProvider);
+      final saved = await placeService.resolveLocation(
+        name: result.name,
+        address: result.address,
+        latitude: result.coordinates.latitude,
+        longitude: result.coordinates.longitude,
+      );
+      return saved;
+    } catch (_) {
+      // DB save failed — still return the Mapbox result without an ID
+      return PlaceSearchResult(
+        name: result.name,
+        address: result.address,
+        coordinates: result.coordinates,
+        source: 'mapbox',
+      );
     }
   }
 
@@ -118,7 +204,8 @@ class _MapConfirmScreenState extends ConsumerState<MapConfirmScreen> {
     }
     final l10n = AppLocalizations.of(context);
 
-    // If both have IDs, use beacon-based estimate; otherwise coordinates
+    setState(() => _isResolving = true);
+
     if (pickup.id != null && confirmedDropoff.id != null) {
       await ref.read(rideRequestProvider.notifier).getEstimate(
         pickupBeaconId: pickup.id!,
@@ -134,6 +221,7 @@ class _MapConfirmScreenState extends ConsumerState<MapConfirmScreen> {
     }
 
     if (!mounted) return;
+    setState(() => _isResolving = false);
 
     final state = ref.read(rideRequestProvider);
     if (state.error != null) {
@@ -156,17 +244,27 @@ class _MapConfirmScreenState extends ConsumerState<MapConfirmScreen> {
     );
   }
 
+  static double _haversineMeters(double lat1, double lng1, double lat2, double lng2) {
+    const r = 6371000.0;
+    final dLat = (lat2 - lat1) * pi / 180;
+    final dLng = (lng2 - lng1) * pi / 180;
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(lat1 * pi / 180) * cos(lat2 * pi / 180) *
+        sin(dLng / 2) * sin(dLng / 2);
+    return r * 2 * atan2(sqrt(a), sqrt(1 - a));
+  }
+
   @override
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
     final l10n = AppLocalizations.of(context);
     final isPickup = widget.mode == MapConfirmMode.pickup;
     final requestState = ref.watch(rideRequestProvider);
+    final busy = _isResolving || requestState.isLoading;
 
     return Scaffold(
       body: Stack(
         children: [
-          // Full-screen map
           MapboxMapWidget(
             initialCameraPosition: CameraPosition(
               latitude: widget.initialCenter.latitude,
@@ -176,6 +274,7 @@ class _MapConfirmScreenState extends ConsumerState<MapConfirmScreen> {
             myLocationEnabled: true,
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
+            onMapCreated: (controller) => _mapController = controller,
             onCameraIdle: _onCameraIdle,
           ),
 
@@ -191,7 +290,7 @@ class _MapConfirmScreenState extends ConsumerState<MapConfirmScreen> {
             ),
           ),
 
-          // Hint text at top
+          // Top bar
           Positioned(
             top: MediaQuery.of(context).padding.top + 12,
             left: 16,
@@ -228,7 +327,7 @@ class _MapConfirmScreenState extends ConsumerState<MapConfirmScreen> {
             ),
           ),
 
-          // Bottom sheet with resolved name + confirm button
+          // Bottom sheet
           Positioned(
             bottom: 0,
             left: 0,
@@ -268,83 +367,89 @@ class _MapConfirmScreenState extends ConsumerState<MapConfirmScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Resolved name
-                  if (_isResolving)
-                    Row(
-                      children: [
-                        SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: config.primaryColor,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          l10n.resolvingLocation,
-                          style: TextStyle(color: Colors.grey[600]),
-                        ),
-                      ],
-                    )
-                  else ...[
+                  // Location name
+                  Text(
+                    _resolvedResult?.name ?? widget.initialName,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (_resolvedResult?.address != null) ...[
+                    const SizedBox(height: 4),
                     Text(
-                      _resolvedName,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 2,
+                      _resolvedResult!.address!,
+                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (_resolvedAddress != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        _resolvedAddress!,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[600],
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
                   ],
 
                   const SizedBox(height: 16),
 
-                  // Confirm button
+                  // Button logic:
+                  // 1. Within 50m → "Confirm Pickup/Dropoff" (direct)
+                  // 2. Beyond 50m, not resolved yet → "Pick this location?"
+                  // 3. Beyond 50m, resolved → "Confirm Pickup/Dropoff" (final)
                   SizedBox(
                     width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: (_isResolving || requestState.isLoading)
-                          ? null
-                          : _onConfirm,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: config.primaryColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: requestState.isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(
-                              isPickup ? l10n.confirmPickup : l10n.confirmDropoff,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
+                    child: _withinThreshold || _resolvedResult != null
+                        ? ElevatedButton(
+                            onPressed: busy ? null : _onConfirm,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: config.primaryColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                    ),
+                            child: busy
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(
+                                    isPickup ? l10n.confirmPickup : l10n.confirmDropoff,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                          )
+                        : OutlinedButton(
+                            onPressed: busy ? null : _onPickLocation,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: config.primaryColor,
+                              side: BorderSide(color: config.primaryColor),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: busy
+                                ? SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: config.primaryColor,
+                                    ),
+                                  )
+                                : Text(
+                                    l10n.pickThisLocation,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                          ),
                   ),
                 ],
               ),

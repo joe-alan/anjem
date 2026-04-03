@@ -480,5 +480,6 @@
   "adjustPinDropoff": "Move the map to adjust drop-off point",
   "resolvingLocation": "Finding address...",
   "droppedPin": "Dropped Pin",
-  "yourLocation": "Your Location"
+  "yourLocation": "Your Location",
+  "pickThisLocation": "Pick this location?"
 }

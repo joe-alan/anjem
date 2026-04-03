@@ -360,5 +360,6 @@
   "adjustPinDropoff": "Geser peta untuk menyesuaikan titik tujuan",
   "resolvingLocation": "Mencari alamat...",
   "droppedPin": "Pin Lokasi",
-  "yourLocation": "Lokasi Anda"
+  "yourLocation": "Lokasi Anda",
+  "pickThisLocation": "Pilih lokasi ini?"
 }

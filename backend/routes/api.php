@@ -48,6 +48,9 @@ Route::prefix('v1')->group(function () {
     // Public place search endpoint (no auth required)
     Route::get('places/search', [PlaceController::class, 'search'])->middleware('throttle:60,1');
 
+    // Resolve (find or create) a location — requires auth to prevent abuse
+    Route::post('places/resolve', [PlaceController::class, 'resolve'])->middleware(['auth:sanctum', 'throttle:30,1']);
+
     // Protected routes - General rate limiting
     Route::middleware(['auth:sanctum', 'throttle:100,1'])->group(function () {
 
