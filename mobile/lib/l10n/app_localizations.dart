@@ -2101,6 +2101,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter a valid phone number (e.g., 08123456789)'**
   String get invalidPhoneFormat;
+
+  /// No description provided for @pickupDistanceKm.
+  ///
+  /// In en, this message translates to:
+  /// **'{distance} km away'**
+  String pickupDistanceKm(String distance);
+
+  /// No description provided for @etaToPickup.
+  ///
+  /// In en, this message translates to:
+  /// **'~{minutes} min to pickup'**
+  String etaToPickup(int minutes);
+
+  /// No description provided for @riderNoPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Rider has no WhatsApp number'**
+  String get riderNoPhone;
+
+  /// No description provided for @errorUnexpectedRideState.
+  ///
+  /// In en, this message translates to:
+  /// **'Ride is in an unexpected state. Please refresh.'**
+  String get errorUnexpectedRideState;
+
+  /// No description provided for @errorRideNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Ride not found or already completed.'**
+  String get errorRideNotFound;
+
+  /// No description provided for @errorPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'You don’t have permission for this action.'**
+  String get errorPermissionDenied;
+
+  /// No description provided for @requestTimeoutExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Request timed out — passed to next driver'**
+  String get requestTimeoutExpired;
+
+  /// No description provided for @colorBlack.
+  ///
+  /// In en, this message translates to:
+  /// **'Black'**
+  String get colorBlack;
+
+  /// No description provided for @colorWhite.
+  ///
+  /// In en, this message translates to:
+  /// **'White'**
+  String get colorWhite;
+
+  /// No description provided for @colorSilver.
+  ///
+  /// In en, this message translates to:
+  /// **'Silver'**
+  String get colorSilver;
+
+  /// No description provided for @colorGray.
+  ///
+  /// In en, this message translates to:
+  /// **'Gray'**
+  String get colorGray;
+
+  /// No description provided for @colorRed.
+  ///
+  /// In en, this message translates to:
+  /// **'Red'**
+  String get colorRed;
+
+  /// No description provided for @colorBlue.
+  ///
+  /// In en, this message translates to:
+  /// **'Blue'**
+  String get colorBlue;
+
+  /// No description provided for @colorGreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get colorGreen;
+
+  /// No description provided for @colorYellow.
+  ///
+  /// In en, this message translates to:
+  /// **'Yellow'**
+  String get colorYellow;
+
+  /// No description provided for @colorBrown.
+  ///
+  /// In en, this message translates to:
+  /// **'Brown'**
+  String get colorBrown;
+
+  /// No description provided for @colorOrange.
+  ///
+  /// In en, this message translates to:
+  /// **'Orange'**
+  String get colorOrange;
+
+  /// No description provided for @colorPurple.
+  ///
+  /// In en, this message translates to:
+  /// **'Purple'**
+  String get colorPurple;
+
+  /// No description provided for @colorGold.
+  ///
+  /// In en, this message translates to:
+  /// **'Gold'**
+  String get colorGold;
+
+  /// No description provided for @colorOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get colorOther;
+
+  /// No description provided for @notRatedYet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not rated'**
+  String get notRatedYet;
+
+  /// No description provided for @rateButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate'**
+  String get rateButton;
+
+  /// No description provided for @unratedRidesBubble.
+  ///
+  /// In en, this message translates to:
+  /// **'You haven’t rated your driver yet 👋'**
+  String get unratedRidesBubble;
+
+  /// No description provided for @currencyFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Rp {amount}'**
+  String currencyFormat(String amount);
 }
 
 class _AppLocalizationsDelegate

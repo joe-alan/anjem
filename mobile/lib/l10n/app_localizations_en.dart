@@ -1102,4 +1102,85 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get invalidPhoneFormat =>
       'Enter a valid phone number (e.g., 08123456789)';
+
+  @override
+  String pickupDistanceKm(String distance) {
+    return '$distance km away';
+  }
+
+  @override
+  String etaToPickup(int minutes) {
+    return '~$minutes min to pickup';
+  }
+
+  @override
+  String get riderNoPhone => 'Rider has no WhatsApp number';
+
+  @override
+  String get errorUnexpectedRideState =>
+      'Ride is in an unexpected state. Please refresh.';
+
+  @override
+  String get errorRideNotFound => 'Ride not found or already completed.';
+
+  @override
+  String get errorPermissionDenied =>
+      'You don’t have permission for this action.';
+
+  @override
+  String get requestTimeoutExpired =>
+      'Request timed out — passed to next driver';
+
+  @override
+  String get colorBlack => 'Black';
+
+  @override
+  String get colorWhite => 'White';
+
+  @override
+  String get colorSilver => 'Silver';
+
+  @override
+  String get colorGray => 'Gray';
+
+  @override
+  String get colorRed => 'Red';
+
+  @override
+  String get colorBlue => 'Blue';
+
+  @override
+  String get colorGreen => 'Green';
+
+  @override
+  String get colorYellow => 'Yellow';
+
+  @override
+  String get colorBrown => 'Brown';
+
+  @override
+  String get colorOrange => 'Orange';
+
+  @override
+  String get colorPurple => 'Purple';
+
+  @override
+  String get colorGold => 'Gold';
+
+  @override
+  String get colorOther => 'Other';
+
+  @override
+  String get notRatedYet => 'Not rated';
+
+  @override
+  String get rateButton => 'Rate';
+
+  @override
+  String get unratedRidesBubble => 'You haven’t rated your driver yet 👋';
+
+  @override
+  String currencyFormat(String amount) {
+    return 'Rp $amount';
+  }
 }

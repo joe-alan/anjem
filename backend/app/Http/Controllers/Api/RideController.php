@@ -35,13 +35,19 @@ class RideController extends Controller
         $user = $request->user();
         $query = Ride::with(['rider', 'driver', 'pickupLocation', 'destinationLocation']);
 
-        // Filter by user role
-        if ($user->role === 'rider') {
+        // Filter by role — the app sends ?role=rider or ?role=driver so that
+        // users with role 'both' only see rides for the relevant app flavor.
+        $roleFilter = $request->query('role');
+        if ($roleFilter === 'rider') {
+            $query->where('rider_id', $user->id);
+        } elseif ($roleFilter === 'driver') {
+            $query->where('driver_id', $user->id);
+        } elseif ($user->role === 'rider') {
             $query->where('rider_id', $user->id);
         } elseif ($user->role === 'driver') {
             $query->where('driver_id', $user->id);
         } else {
-            // For 'both' and 'admin' roles, show all rides for this user
+            // Fallback for 'both'/'admin' without role param
             $query->where(function ($q) use ($user) {
                 $q->where('rider_id', $user->id)
                     ->orWhere('driver_id', $user->id);

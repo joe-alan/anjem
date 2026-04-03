@@ -1,4 +1,5 @@
 import '../api/api_service.dart';
+import '../../config/app_config.dart';
 import '../../models/ride.dart';
 
 class RideService {
@@ -27,9 +28,14 @@ class RideService {
   /// Get list of user's rides
   Future<List<Ride>> getUserRides({String? status}) async {
     try {
+      final params = <String, String>{
+        'role': AppConfig.instance.flavorName, // 'rider' or 'driver'
+      };
+      if (status != null) params['status'] = status;
+
       final response = await _apiService.get(
         '/rides',
-        queryParameters: status != null ? {'status': status} : null,
+        queryParameters: params,
       );
 
       if (response.data['success'] != true) {

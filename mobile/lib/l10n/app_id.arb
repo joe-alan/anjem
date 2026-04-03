@@ -371,5 +371,48 @@
   "dragToAdjustHint": "Geser untuk mengatur",
   "requestCancelledSuccess": "Permintaan dibatalkan",
   "thankYouFeedback": "Terima kasih atas masukan Anda!",
-  "invalidPhoneFormat": "Masukkan nomor telepon yang valid (mis., 08123456789)"
+  "invalidPhoneFormat": "Masukkan nomor telepon yang valid (mis., 08123456789)",
+
+  "pickupDistanceKm": "{distance} km dari sini",
+  "@pickupDistanceKm": {
+    "placeholders": {
+      "distance": {"type": "String"}
+    }
+  },
+  "etaToPickup": "~{minutes} menit ke titik jemput",
+  "@etaToPickup": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "riderNoPhone": "Penumpang belum memiliki nomor WhatsApp",
+  "errorUnexpectedRideState": "Status anjem tidak sesuai. Silakan refresh.",
+  "errorRideNotFound": "Anjem tidak ditemukan atau sudah selesai.",
+  "errorPermissionDenied": "Anda tidak memiliki izin untuk tindakan ini.",
+  "requestTimeoutExpired": "Waktu permintaan habis — diteruskan ke pengemudi berikutnya",
+
+  "colorBlack": "Hitam",
+  "colorWhite": "Putih",
+  "colorSilver": "Silver",
+  "colorGray": "Abu-abu",
+  "colorRed": "Merah",
+  "colorBlue": "Biru",
+  "colorGreen": "Hijau",
+  "colorYellow": "Kuning",
+  "colorBrown": "Cokelat",
+  "colorOrange": "Oranye",
+  "colorPurple": "Ungu",
+  "colorGold": "Emas",
+  "colorOther": "Lainnya",
+
+  "notRatedYet": "Belum dirate",
+  "rateButton": "Rate",
+  "unratedRidesBubble": "Drivermu belum dirate nih \uD83D\uDC4B",
+
+  "currencyFormat": "Rp {amount}",
+  "@currencyFormat": {
+    "placeholders": {
+      "amount": {"type": "String"}
+    }
+  }
 }

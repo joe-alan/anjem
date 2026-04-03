@@ -7,6 +7,7 @@ import '../../core/models/lat_lng.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/beacons_provider.dart';
 import '../../core/providers/ride_request_provider.dart';
+import '../../core/providers/ride_history_provider.dart';
 import '../../core/providers/user_location_provider.dart';
 import '../../core/widgets/mapbox_map_widget.dart';
 import 'location_search_screen.dart';
@@ -66,6 +67,8 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
     final locationState = ref.watch(userLocationProvider);
     final rideRequestState = ref.watch(rideRequestProvider);
     final authState = ref.watch(authStateProvider);
+    final historyState = ref.watch(rideHistoryProvider);
+    final hasUnratedRides = historyState.hasUnrated;
 
     // Start cooldown timer when cooldown activates
     ref.listen<RideRequestState>(rideRequestProvider, (prev, next) {
@@ -107,7 +110,11 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.history),
+            icon: Badge(
+              isLabelVisible: hasUnratedRides,
+              smallSize: 10,
+              child: const Icon(Icons.history),
+            ),
             tooltip: l10n.rideHistoryTitle,
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const RideHistoryScreen()),
@@ -345,6 +352,20 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
               ),
             ),
 
+          // Unrated rides speech bubble (tail points UP toward clock icon)
+          if (hasUnratedRides && !isSuspended && !hasActiveRequest && !isInCooldown)
+            Positioned(
+              top: 8,
+              right: 50,
+              child: _PulsatingBubble(
+                primaryColor: config.primaryColor,
+                label: l10n.unratedRidesBubble,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const RideHistoryScreen()),
+                ),
+              ),
+            ),
+
           // Request Ride button
           Positioned(
             bottom: 24,
@@ -415,5 +436,132 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
       ),
     );
   }
+}
 
+/// Speech bubble with upward tail and slow pulse animation.
+class _PulsatingBubble extends StatefulWidget {
+  final Color primaryColor;
+  final String label;
+  final VoidCallback onTap;
+
+  const _PulsatingBubble({
+    required this.primaryColor,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  State<_PulsatingBubble> createState() => _PulsatingBubbleState();
+}
+
+class _PulsatingBubbleState extends State<_PulsatingBubble>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat(reverse: true);
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.04).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Upward tail
+            Padding(
+              padding: const EdgeInsets.only(right: 14),
+              child: CustomPaint(
+                size: const Size(14, 8),
+                painter: _UpwardTailPainter(
+                  fillColor: Colors.white,
+                  borderColor: widget.primaryColor,
+                ),
+              ),
+            ),
+            // Bubble body
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: widget.primaryColor, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Text(
+                widget.label,
+                style: TextStyle(
+                  color: widget.primaryColor,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Paints an upward-pointing triangle tail for the speech bubble.
+class _UpwardTailPainter extends CustomPainter {
+  final Color fillColor;
+  final Color borderColor;
+
+  _UpwardTailPainter({required this.fillColor, required this.borderColor});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(0, size.height)
+      ..lineTo(size.width / 2, 0)
+      ..lineTo(size.width, size.height)
+      ..close();
+
+    canvas.drawPath(path, Paint()..color = fillColor);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = borderColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
+    // Cover the bottom border so it blends into the bubble
+    canvas.drawLine(
+      Offset(-1, size.height),
+      Offset(size.width + 1, size.height),
+      Paint()
+        ..color = fillColor
+        ..strokeWidth = 2,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

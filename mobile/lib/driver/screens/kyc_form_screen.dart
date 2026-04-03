@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -74,22 +75,31 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
 
   bool _isSubmitting = false;
 
-  // Predefined vehicle colors
-  final List<String> _vehicleColors = [
-    'Black',
-    'White',
-    'Silver',
-    'Gray',
-    'Red',
-    'Blue',
-    'Green',
-    'Yellow',
-    'Brown',
-    'Orange',
-    'Purple',
-    'Gold',
-    'Other',
+  // Vehicle color keys (English, stored in backend)
+  static const List<String> _vehicleColorKeys = [
+    'Black', 'White', 'Silver', 'Gray', 'Red', 'Blue', 'Green',
+    'Yellow', 'Brown', 'Orange', 'Purple', 'Gold', 'Other',
   ];
+
+  /// Map color key to localized display name
+  String _colorDisplayName(String key, AppLocalizations l10n) {
+    switch (key) {
+      case 'Black': return l10n.colorBlack;
+      case 'White': return l10n.colorWhite;
+      case 'Silver': return l10n.colorSilver;
+      case 'Gray': return l10n.colorGray;
+      case 'Red': return l10n.colorRed;
+      case 'Blue': return l10n.colorBlue;
+      case 'Green': return l10n.colorGreen;
+      case 'Yellow': return l10n.colorYellow;
+      case 'Brown': return l10n.colorBrown;
+      case 'Orange': return l10n.colorOrange;
+      case 'Purple': return l10n.colorPurple;
+      case 'Gold': return l10n.colorGold;
+      case 'Other': return l10n.colorOther;
+      default: return key;
+    }
+  }
 
   // Email availability check state
   bool _checkingEmail = false;
@@ -157,7 +167,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
         }
       }
     } catch (e) {
-      print('Error loading draft: $e');
+      if (kDebugMode) print('Error loading draft: $e');
     }
   }
 
@@ -259,7 +269,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
         currentPage: _currentPage,
       );
     } catch (e) {
-      print('Error saving draft: $e');
+      if (kDebugMode) print('Error saving draft: $e');
     }
   }
 
@@ -894,10 +904,10 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
               border: const OutlineInputBorder(),
             ),
             hint: Text(l10n.selectColorHint),
-            items: _vehicleColors.map((color) {
+            items: _vehicleColorKeys.map((color) {
               return DropdownMenuItem(
                 value: color,
-                child: Text(color),
+                child: Text(_colorDisplayName(color, l10n)),
               );
             }).toList(),
             initialValue: _vehicleColor.isEmpty ? null : _vehicleColor,

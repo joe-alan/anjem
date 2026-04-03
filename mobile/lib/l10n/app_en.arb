@@ -491,5 +491,48 @@
   "dragToAdjustHint": "Drag to adjust",
   "requestCancelledSuccess": "Request cancelled",
   "thankYouFeedback": "Thanks for your feedback!",
-  "invalidPhoneFormat": "Enter a valid phone number (e.g., 08123456789)"
+  "invalidPhoneFormat": "Enter a valid phone number (e.g., 08123456789)",
+
+  "pickupDistanceKm": "{distance} km away",
+  "@pickupDistanceKm": {
+    "placeholders": {
+      "distance": {"type": "String"}
+    }
+  },
+  "etaToPickup": "~{minutes} min to pickup",
+  "@etaToPickup": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "riderNoPhone": "Rider has no WhatsApp number",
+  "errorUnexpectedRideState": "Ride is in an unexpected state. Please refresh.",
+  "errorRideNotFound": "Ride not found or already completed.",
+  "errorPermissionDenied": "You don\u2019t have permission for this action.",
+  "requestTimeoutExpired": "Request timed out — passed to next driver",
+
+  "colorBlack": "Black",
+  "colorWhite": "White",
+  "colorSilver": "Silver",
+  "colorGray": "Gray",
+  "colorRed": "Red",
+  "colorBlue": "Blue",
+  "colorGreen": "Green",
+  "colorYellow": "Yellow",
+  "colorBrown": "Brown",
+  "colorOrange": "Orange",
+  "colorPurple": "Purple",
+  "colorGold": "Gold",
+  "colorOther": "Other",
+
+  "notRatedYet": "Not rated",
+  "rateButton": "Rate",
+  "unratedRidesBubble": "You haven\u2019t rated your driver yet \uD83D\uDC4B",
+
+  "currencyFormat": "Rp {amount}",
+  "@currencyFormat": {
+    "placeholders": {
+      "amount": {"type": "String"}
+    }
+  }
 }

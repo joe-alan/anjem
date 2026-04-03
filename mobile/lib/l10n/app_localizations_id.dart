@@ -1105,4 +1105,85 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get invalidPhoneFormat =>
       'Masukkan nomor telepon yang valid (mis., 08123456789)';
+
+  @override
+  String pickupDistanceKm(String distance) {
+    return '$distance km dari sini';
+  }
+
+  @override
+  String etaToPickup(int minutes) {
+    return '~$minutes menit ke titik jemput';
+  }
+
+  @override
+  String get riderNoPhone => 'Penumpang belum memiliki nomor WhatsApp';
+
+  @override
+  String get errorUnexpectedRideState =>
+      'Status anjem tidak sesuai. Silakan refresh.';
+
+  @override
+  String get errorRideNotFound => 'Anjem tidak ditemukan atau sudah selesai.';
+
+  @override
+  String get errorPermissionDenied =>
+      'Anda tidak memiliki izin untuk tindakan ini.';
+
+  @override
+  String get requestTimeoutExpired =>
+      'Waktu permintaan habis — diteruskan ke pengemudi berikutnya';
+
+  @override
+  String get colorBlack => 'Hitam';
+
+  @override
+  String get colorWhite => 'Putih';
+
+  @override
+  String get colorSilver => 'Silver';
+
+  @override
+  String get colorGray => 'Abu-abu';
+
+  @override
+  String get colorRed => 'Merah';
+
+  @override
+  String get colorBlue => 'Biru';
+
+  @override
+  String get colorGreen => 'Hijau';
+
+  @override
+  String get colorYellow => 'Kuning';
+
+  @override
+  String get colorBrown => 'Cokelat';
+
+  @override
+  String get colorOrange => 'Oranye';
+
+  @override
+  String get colorPurple => 'Ungu';
+
+  @override
+  String get colorGold => 'Emas';
+
+  @override
+  String get colorOther => 'Lainnya';
+
+  @override
+  String get notRatedYet => 'Belum dirate';
+
+  @override
+  String get rateButton => 'Rate';
+
+  @override
+  String get unratedRidesBubble => 'Drivermu belum dirate nih 👋';
+
+  @override
+  String currencyFormat(String amount) {
+    return 'Rp $amount';
+  }
 }
