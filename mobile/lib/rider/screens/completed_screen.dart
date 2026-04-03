@@ -303,6 +303,7 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
             // Skip button
             TextButton(
               onPressed: () {
+                ref.read(rideHistoryProvider.notifier).refresh();
                 if (widget.fromHistory) {
                   Navigator.of(context).pop();
                 } else {

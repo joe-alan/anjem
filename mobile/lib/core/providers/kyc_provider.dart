@@ -229,6 +229,21 @@ class KycStateNotifier extends StateNotifier<KycState> {
     }
   }
 
+  Future<bool> revokeKyc() async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _kycService.revokeKyc();
+      state = const KycState();
+      return true;
+    } on ApiException catch (e) {
+      state = state.copyWith(isLoading: false, error: e.userFriendlyMessage);
+      return false;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: 'Failed to revoke KYC');
+      return false;
+    }
+  }
+
   Future<void> refreshKycStatus() async {
     await _loadKycStatus();
   }

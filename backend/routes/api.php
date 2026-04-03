@@ -87,6 +87,7 @@ Route::prefix('v1')->group(function () {
                 Route::post('send-code', [\App\Http\Controllers\Api\DriverKycController::class, 'sendVerificationCode']);
                 Route::post('verify-email', [\App\Http\Controllers\Api\DriverKycController::class, 'verifyEmail']);
                 Route::get('status', [\App\Http\Controllers\Api\DriverKycController::class, 'getKycStatus']);
+                Route::delete('revoke', [\App\Http\Controllers\Api\DriverKycController::class, 'revokeKyc']);
             });
 
             Route::post('online', [DriverController::class, 'goOnline']);

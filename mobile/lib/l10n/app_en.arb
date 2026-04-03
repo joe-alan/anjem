@@ -534,5 +534,52 @@
     "placeholders": {
       "amount": {"type": "String"}
     }
-  }
+  },
+
+  "earningsHistoryTitle": "Earnings History",
+  "earningsToday": "Today",
+  "earningsThisWeek": "This Week",
+  "earningsThisMonth": "This Month",
+  "noEarningsYet": "No earnings yet",
+  "fareAmount": "Rp {amount}",
+  "@fareAmount": {
+    "placeholders": {
+      "amount": {"type": "String"}
+    }
+  },
+
+  "rideHistoryButton": "Ride History",
+
+  "ratingHistoryTitle": "Rating History",
+  "overallRating": "Overall Rating",
+  "ratingsReceived": "{count} ratings received",
+  "@ratingsReceived": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "noRatingsYet": "No ratings yet",
+
+  "kycStatusTitle": "Verification Status",
+  "kycVerified": "Verified",
+  "kycPendingApproval": "Pending Approval",
+  "kycEmailPending": "Email Not Verified",
+  "kycNotSubmitted": "Not Submitted",
+  "kycSuspended": "Suspended",
+  "kycDetailsTitle": "Submitted Information",
+  "kycStudentEmail": "Student Email",
+  "kycStudentId": "Student ID",
+  "kycStudentName": "Student Name",
+  "kycVehicleType": "Vehicle Type",
+  "kycVehiclePlate": "Vehicle Plate",
+  "kycVehicleColor": "Vehicle Color",
+  "kycKtmPhoto": "KTM Photo",
+  "editKycButton": "Edit KYC Data",
+  "editKycConfirmTitle": "Edit KYC Data?",
+  "editKycConfirmMessage": "Editing will send you back to the KYC flow and you will need to be re-verified. All current verification data (student ID, vehicle info, uploaded documents) will be deleted. Your ride history and ratings will be kept.\n\nType WARJO to confirm.",
+  "editKycSuccess": "KYC data cleared — please re-submit",
+  "failedToEditKyc": "Failed to edit KYC data",
+  "typeWarjoToConfirm": "Type WARJO to confirm",
+  "mustBeOfflineToEdit": "You must go offline before editing KYC data",
+  "noKycData": "No verification data submitted yet"
 }

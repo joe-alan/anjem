@@ -1186,4 +1186,109 @@ class AppLocalizationsId extends AppLocalizations {
   String currencyFormat(String amount) {
     return 'Rp $amount';
   }
+
+  @override
+  String get earningsHistoryTitle => 'Riwayat Penghasilan';
+
+  @override
+  String get earningsToday => 'Hari Ini';
+
+  @override
+  String get earningsThisWeek => 'Minggu Ini';
+
+  @override
+  String get earningsThisMonth => 'Bulan Ini';
+
+  @override
+  String get noEarningsYet => 'Belum ada penghasilan';
+
+  @override
+  String fareAmount(String amount) {
+    return 'Rp $amount';
+  }
+
+  @override
+  String get rideHistoryButton => 'Riwayat Anjem';
+
+  @override
+  String get ratingHistoryTitle => 'Riwayat Rating';
+
+  @override
+  String get overallRating => 'Rating Keseluruhan';
+
+  @override
+  String ratingsReceived(int count) {
+    return '$count rating diterima';
+  }
+
+  @override
+  String get noRatingsYet => 'Belum ada rating';
+
+  @override
+  String get kycStatusTitle => 'Status Verifikasi';
+
+  @override
+  String get kycVerified => 'Terverifikasi';
+
+  @override
+  String get kycPendingApproval => 'Menunggu Persetujuan';
+
+  @override
+  String get kycEmailPending => 'Email Belum Diverifikasi';
+
+  @override
+  String get kycNotSubmitted => 'Belum Dikirim';
+
+  @override
+  String get kycSuspended => 'Ditangguhkan';
+
+  @override
+  String get kycDetailsTitle => 'Informasi yang Diajukan';
+
+  @override
+  String get kycStudentEmail => 'Email Mahasiswa';
+
+  @override
+  String get kycStudentId => 'NIM';
+
+  @override
+  String get kycStudentName => 'Nama Mahasiswa';
+
+  @override
+  String get kycVehicleType => 'Jenis Kendaraan';
+
+  @override
+  String get kycVehiclePlate => 'Plat Kendaraan';
+
+  @override
+  String get kycVehicleColor => 'Warna Kendaraan';
+
+  @override
+  String get kycKtmPhoto => 'Foto KTM';
+
+  @override
+  String get editKycButton => 'Edit Data KYC';
+
+  @override
+  String get editKycConfirmTitle => 'Edit Data KYC?';
+
+  @override
+  String get editKycConfirmMessage =>
+      'Mengedit akan mengembalikan Anda ke alur KYC dan perlu diverifikasi ulang. Semua data verifikasi saat ini (NIM, info kendaraan, dokumen) akan dihapus. Riwayat anjem dan rating Anda akan tetap tersimpan.\n\nKetik WARJO untuk konfirmasi.';
+
+  @override
+  String get editKycSuccess => 'Data KYC dihapus — silakan ajukan ulang';
+
+  @override
+  String get failedToEditKyc => 'Gagal mengedit data KYC';
+
+  @override
+  String get typeWarjoToConfirm => 'Ketik WARJO untuk konfirmasi';
+
+  @override
+  String get mustBeOfflineToEdit =>
+      'Anda harus offline sebelum mengedit data KYC';
+
+  @override
+  String get noKycData => 'Belum ada data verifikasi yang diajukan';
 }

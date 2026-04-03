@@ -16,6 +16,10 @@ import '../../core/providers/kyc_provider.dart';
 import 'ride_request_screen.dart';
 import 'active_ride_screen.dart';
 import 'driver_settings_screen.dart';
+import 'earnings_history_screen.dart';
+import 'driver_ride_history_screen.dart';
+import 'rating_history_screen.dart';
+import 'kyc_status_screen.dart';
 
 class DriverHomeScreen extends ConsumerStatefulWidget {
   const DriverHomeScreen({super.key});
@@ -472,38 +476,43 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                 ),
                           ),
                           const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    l10n.currencyFormat(_formatCurrency(stats.todayEarnings)),
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineMedium
-                                        ?.copyWith(
-                                          color: config.primaryColor,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    l10n.ridesCompletedToday(stats.todayRides),
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey[600],
+                          InkWell(
+                            onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const EarningsHistoryScreen())),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      l10n.currencyFormat(_formatCurrency(stats.todayEarnings)),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .headlineMedium
+                                          ?.copyWith(
+                                            color: config.primaryColor,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              Icon(
-                                Icons.account_balance_wallet,
-                                size: 48,
-                                color: config.primaryColor.withOpacity(0.3),
-                              ),
-                            ],
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      l10n.ridesCompletedToday(stats.todayRides),
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Icon(
+                                  Icons.chevron_right,
+                                  size: 28,
+                                  color: config.primaryColor.withValues(alpha: 0.5),
+                                ),
+                              ],
+                            ),
                           ),
                           const Divider(height: 24),
                           Row(
@@ -514,12 +523,16 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                 Icons.star,
                                 stats.rating.toStringAsFixed(1),
                                 l10n.ratingLabel,
+                                onTap: () => Navigator.push(context,
+                                  MaterialPageRoute(builder: (_) => const RatingHistoryScreen())),
                               ),
                               _buildStatItem(
                                 context,
                                 Icons.directions_car,
                                 stats.totalRides.toString(),
                                 l10n.totalRidesLabel,
+                                onTap: () => Navigator.push(context,
+                                  MaterialPageRoute(builder: (_) => const DriverRideHistoryScreen())),
                               ),
                               _buildStatItem(
                                 context,
@@ -534,6 +547,8 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                         ? l10n.statusVerified
                                         : l10n.statusUnverified,
                                 l10n.statusLabel,
+                                onTap: () => Navigator.push(context,
+                                  MaterialPageRoute(builder: (_) => const KycStatusScreen())),
                               ),
                             ],
                           ),
@@ -775,10 +790,11 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () {
-                          // TODO: Navigate to earnings history
+                          Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const DriverRideHistoryScreen()));
                         },
                         icon: const Icon(Icons.history),
-                        label: Text(l10n.earningsHistoryButton),
+                        label: Text(l10n.rideHistoryButton),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
@@ -818,27 +834,35 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     BuildContext context,
     IconData icon,
     String value,
-    String label,
-  ) {
-    return Column(
-      children: [
-        Icon(icon, size: 24, color: AppConfig.instance.primaryColor),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+    String label, {
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Column(
+          children: [
+            Icon(icon, size: 24, color: AppConfig.instance.primaryColor),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
         ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
+      ),
     );
   }
 

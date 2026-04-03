@@ -31,6 +31,7 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(rideHistoryProvider.notifier).refresh();
       if (ref.read(rideRequestProvider).isInCooldown) {
         _startCooldownTimer();
       }
@@ -126,6 +127,7 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
               ref.read(beaconsProvider.notifier).refresh();
               ref.read(userLocationProvider.notifier).getCurrentLocation();
               ref.read(authStateProvider.notifier).refreshUser();
+              ref.read(rideHistoryProvider.notifier).refresh();
             },
           ),
         ],

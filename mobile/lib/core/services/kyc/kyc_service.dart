@@ -214,6 +214,27 @@ class KycService {
     }
   }
 
+  /// Revoke KYC data
+  Future<void> revokeKyc() async {
+    try {
+      final response = await _apiService.delete('/driver/kyc/revoke');
+
+      if (response.data['success'] != true) {
+        throw ApiException(
+          message: response.data['message'] ?? 'Failed to revoke KYC',
+          statusCode: response.statusCode,
+        );
+      }
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException(
+        message: 'Failed to revoke KYC: ${e.toString()}',
+        statusCode: null,
+      );
+    }
+  }
+
   /// Send verification code to student email
   Future<void> sendVerificationCode(String studentEmail) async {
     try {

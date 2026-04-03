@@ -2245,6 +2245,204 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Rp {amount}'**
   String currencyFormat(String amount);
+
+  /// No description provided for @earningsHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Earnings History'**
+  String get earningsHistoryTitle;
+
+  /// No description provided for @earningsToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get earningsToday;
+
+  /// No description provided for @earningsThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This Week'**
+  String get earningsThisWeek;
+
+  /// No description provided for @earningsThisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'This Month'**
+  String get earningsThisMonth;
+
+  /// No description provided for @noEarningsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No earnings yet'**
+  String get noEarningsYet;
+
+  /// No description provided for @fareAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Rp {amount}'**
+  String fareAmount(String amount);
+
+  /// No description provided for @rideHistoryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Ride History'**
+  String get rideHistoryButton;
+
+  /// No description provided for @ratingHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rating History'**
+  String get ratingHistoryTitle;
+
+  /// No description provided for @overallRating.
+  ///
+  /// In en, this message translates to:
+  /// **'Overall Rating'**
+  String get overallRating;
+
+  /// No description provided for @ratingsReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} ratings received'**
+  String ratingsReceived(int count);
+
+  /// No description provided for @noRatingsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No ratings yet'**
+  String get noRatingsYet;
+
+  /// No description provided for @kycStatusTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification Status'**
+  String get kycStatusTitle;
+
+  /// No description provided for @kycVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified'**
+  String get kycVerified;
+
+  /// No description provided for @kycPendingApproval.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending Approval'**
+  String get kycPendingApproval;
+
+  /// No description provided for @kycEmailPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Email Not Verified'**
+  String get kycEmailPending;
+
+  /// No description provided for @kycNotSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Submitted'**
+  String get kycNotSubmitted;
+
+  /// No description provided for @kycSuspended.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspended'**
+  String get kycSuspended;
+
+  /// No description provided for @kycDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Submitted Information'**
+  String get kycDetailsTitle;
+
+  /// No description provided for @kycStudentEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Student Email'**
+  String get kycStudentEmail;
+
+  /// No description provided for @kycStudentId.
+  ///
+  /// In en, this message translates to:
+  /// **'Student ID'**
+  String get kycStudentId;
+
+  /// No description provided for @kycStudentName.
+  ///
+  /// In en, this message translates to:
+  /// **'Student Name'**
+  String get kycStudentName;
+
+  /// No description provided for @kycVehicleType.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle Type'**
+  String get kycVehicleType;
+
+  /// No description provided for @kycVehiclePlate.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle Plate'**
+  String get kycVehiclePlate;
+
+  /// No description provided for @kycVehicleColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle Color'**
+  String get kycVehicleColor;
+
+  /// No description provided for @kycKtmPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'KTM Photo'**
+  String get kycKtmPhoto;
+
+  /// No description provided for @editKycButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit KYC Data'**
+  String get editKycButton;
+
+  /// No description provided for @editKycConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit KYC Data?'**
+  String get editKycConfirmTitle;
+
+  /// No description provided for @editKycConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Editing will send you back to the KYC flow and you will need to be re-verified. All current verification data (student ID, vehicle info, uploaded documents) will be deleted. Your ride history and ratings will be kept.\n\nType WARJO to confirm.'**
+  String get editKycConfirmMessage;
+
+  /// No description provided for @editKycSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'KYC data cleared — please re-submit'**
+  String get editKycSuccess;
+
+  /// No description provided for @failedToEditKyc.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to edit KYC data'**
+  String get failedToEditKyc;
+
+  /// No description provided for @typeWarjoToConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Type WARJO to confirm'**
+  String get typeWarjoToConfirm;
+
+  /// No description provided for @mustBeOfflineToEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'You must go offline before editing KYC data'**
+  String get mustBeOfflineToEdit;
+
+  /// No description provided for @noKycData.
+  ///
+  /// In en, this message translates to:
+  /// **'No verification data submitted yet'**
+  String get noKycData;
 }
 
 class _AppLocalizationsDelegate

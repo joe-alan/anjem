@@ -33,7 +33,7 @@ class RideController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $query = Ride::with(['rider', 'driver', 'pickupLocation', 'destinationLocation']);
+        $query = Ride::with(['rider', 'driver', 'pickupLocation', 'destinationLocation', 'ratings']);
 
         // Filter by role — the app sends ?role=rider or ?role=driver so that
         // users with role 'both' only see rides for the relevant app flavor.
