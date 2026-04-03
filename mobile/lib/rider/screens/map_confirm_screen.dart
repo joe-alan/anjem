@@ -52,10 +52,16 @@ class _MapConfirmScreenState extends ConsumerState<MapConfirmScreen> {
   /// this holds the resolved result. Show name + final confirm button.
   PlaceSearchResult? _resolvedResult;
 
+  /// Controls visibility of the "drag to adjust" hint.
+  bool _showDragHint = true;
+
   @override
   void initState() {
     super.initState();
     _currentCenter = widget.initialCenter;
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _showDragHint = false);
+    });
   }
 
   void _onCameraIdle(CameraPosition position) {
@@ -73,11 +79,11 @@ class _MapConfirmScreenState extends ConsumerState<MapConfirmScreen> {
     );
 
     final nowWithin = distanceM <= _reResolveThresholdMeters;
-    if (nowWithin != _withinThreshold || _resolvedResult != null) {
+    if (nowWithin != _withinThreshold || _resolvedResult != null || _showDragHint) {
       setState(() {
         _withinThreshold = nowWithin;
-        // User moved the pin again — reset any previous resolve
         _resolvedResult = null;
+        _showDragHint = false;
       });
     }
   }
@@ -229,6 +235,11 @@ class _MapConfirmScreenState extends ConsumerState<MapConfirmScreen> {
         SnackBar(
           content: Text(l10n.estimateFailed(state.error!)),
           backgroundColor: Colors.red,
+          action: SnackBarAction(
+            label: l10n.retry,
+            textColor: Colors.white,
+            onPressed: () => _getEstimateAndNavigate(confirmedDropoff),
+          ),
         ),
       );
       return;
@@ -286,6 +297,30 @@ class _MapConfirmScreenState extends ConsumerState<MapConfirmScreen> {
                 isPickup ? Icons.trip_origin : Icons.location_on,
                 color: config.primaryColor,
                 size: 40,
+              ),
+            ),
+          ),
+
+          // Drag hint (fades out after 3s or on first interaction)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 28),
+              child: IgnorePointer(
+                child: AnimatedOpacity(
+                  opacity: _showDragHint ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 500),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      l10n.dragToAdjustHint,
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),

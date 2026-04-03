@@ -54,9 +54,20 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
               height: MediaQuery.of(context).size.height,
             ),
 
-          // Semi-transparent overlay
+          // Gradient overlay (lighter at top for route visibility, darker at bottom)
           Container(
-            color: Colors.black.withOpacity(0.3),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: const [0.0, 0.4, 1.0],
+                colors: [
+                  Colors.black.withValues(alpha: 0.05),
+                  Colors.black.withValues(alpha: 0.15),
+                  Colors.black.withValues(alpha: 0.5),
+                ],
+              ),
+            ),
           ),
 
           // Content overlay at bottom

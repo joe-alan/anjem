@@ -1084,4 +1084,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pickThisLocation => 'Pick this location?';
+
+  @override
+  String cooldownCountdown(int seconds) {
+    return 'Try again in ${seconds}s';
+  }
+
+  @override
+  String get dragToAdjustHint => 'Drag to adjust';
 }

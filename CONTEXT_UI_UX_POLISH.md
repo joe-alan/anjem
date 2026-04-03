@@ -207,6 +207,21 @@ Replaced old base+per-km+time formula with tiered distance pricing:
 
 ---
 
+## UX Polish TODOs (Medium / Low Priority)
+
+| # | Priority | Item | Where |
+|---|----------|------|-------|
+| 9 | Medium | **Swap pickup/dropoff button** — standard ride-sharing feature, quick win | `location_search_screen.dart` |
+| 10 | Medium | **Cancellation success toast** — show "Request cancelled" snackbar after cancel completes | `waiting_screen.dart`, `rider_active_ride_screen.dart` |
+| 11 | Medium | **Special requests character limit** — add maxLength + counter (200 chars) | `ride_details_screen.dart` |
+| 12 | Medium | **Rating submit success toast** — show "Thanks for your feedback!" after submit | `completed_screen.dart` |
+| 13 | Low | **Recent destinations for pickup field** — currently only shown for dropoff | `location_search_screen.dart` |
+| 14 | Low | **Phone number format validation** — validate Indonesian format in settings | `rider_settings_screen.dart` |
+| 15 | Low | **Haptic feedback on status transitions** — vibrate on driver matched, arrived, etc. | `rider_active_ride_screen.dart`, `waiting_screen.dart` |
+| 16 | Low | **Filter chip animation on ride history** — animate list on filter change | `ride_history_screen.dart` |
+
+---
+
 ## How to Test
 
 ```bash

@@ -1087,4 +1087,12 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get pickThisLocation => 'Pilih lokasi ini?';
+
+  @override
+  String cooldownCountdown(int seconds) {
+    return 'Coba lagi dalam $seconds detik';
+  }
+
+  @override
+  String get dragToAdjustHint => 'Geser untuk mengatur';
 }

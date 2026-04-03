@@ -457,28 +457,26 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
       child: Scaffold(
         body: Stack(
           children: [
-            // ===== 1. MAP (non-interactive) =====
-            AbsorbPointer(
-              child: MapboxMapWidget(
-                initialCameraPosition: CameraPosition(
-                  latitude: loc.latitude,
-                  longitude: loc.longitude,
-                  zoom: 13,
-                ),
-                myLocationEnabled: true,
-                myLocationButtonEnabled: false,
-                zoomControlsEnabled: false,
-                markers: const {},
-                polylines: const {},
-                onMapCreated: (controller) {
-                  _mapController = controller;
-                  // Compute initial rider position for sonar
-                  _computePinPositions();
-                  if (_riderLocation != null && !_entryDone) {
-                    _playEntryAnimation();
-                  }
-                },
+            // ===== 1. MAP (interactive — rider can pan/zoom) =====
+            MapboxMapWidget(
+              initialCameraPosition: CameraPosition(
+                latitude: loc.latitude,
+                longitude: loc.longitude,
+                zoom: 13,
               ),
+              myLocationEnabled: true,
+              myLocationButtonEnabled: false,
+              zoomControlsEnabled: false,
+              markers: const {},
+              polylines: const {},
+              onMapCreated: (controller) {
+                _mapController = controller;
+                _computePinPositions();
+                if (_riderLocation != null && !_entryDone) {
+                  _playEntryAnimation();
+                }
+              },
+              onCameraIdle: (_) => _computePinPositions(),
             ),
 
             // ===== 2. DRIVER PINS (Flutter overlays) =====

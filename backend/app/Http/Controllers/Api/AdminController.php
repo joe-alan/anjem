@@ -289,6 +289,12 @@ class AdminController extends Controller
                 'is_active' => ! $request->suspended,
             ]);
 
+            // On unsuspend, clear the cancel-strike counters so rider starts fresh
+            if (! $request->suspended) {
+                \Illuminate\Support\Facades\Cache::forget("rider_cancel_count:{$rider->id}");
+                \Illuminate\Support\Facades\Cache::forget("rider_cancel_cooldown:{$rider->id}");
+            }
+
             AdminAuditLog::create([
                 'admin_id'    => $request->user()->id,
                 'action_type' => $request->suspended ? 'rider_suspend' : 'rider_unsuspend',

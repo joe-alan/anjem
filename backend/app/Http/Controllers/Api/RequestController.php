@@ -277,10 +277,12 @@ class RequestController extends Controller
             'success' => true,
             'message' => 'Ride request cancelled successfully',
             'data' => new RideRequestResource($ride_request),
-            'meta' => array_merge(
-                ['cooldown_until' => $ride_request->rider_cooldown_until?->toISOString()],
-                $penaltyMeta,
-            ),
+            'meta' => [
+                'cancel_count' => $penaltyMeta['cancel_count'],
+                'cooldown_until' => $penaltyMeta['cooldown_until']
+                    ?? $ride_request->rider_cooldown_until?->toISOString(),
+                'is_suspended' => $penaltyMeta['is_suspended'],
+            ],
         ]);
     }
 

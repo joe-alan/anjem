@@ -2071,6 +2071,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pick this location?'**
   String get pickThisLocation;
+
+  /// No description provided for @cooldownCountdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again in {seconds}s'**
+  String cooldownCountdown(int seconds);
+
+  /// No description provided for @dragToAdjustHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to adjust'**
+  String get dragToAdjustHint;
 }
 
 class _AppLocalizationsDelegate
