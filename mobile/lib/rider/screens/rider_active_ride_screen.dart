@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/l10n/app_localizations.dart';
@@ -37,6 +38,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
   bool _showDriverMatchedPopup = true;
   bool _isCancelling = false;
   Timer? _statusPollingTimer;
+  Timer? _autoDismissTimer;
   static const _pollInterval = Duration(seconds: 5);
 
   @override
@@ -59,6 +61,13 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         // Silently handle - error already logged inside _fetchAndDisplayRoute
         print('⚠️ [Rider] Route fetch error handled: $e');
       });
+    });
+
+    // Auto-dismiss driver matched popup after 5 seconds
+    _autoDismissTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted && _showDriverMatchedPopup) {
+        setState(() => _showDriverMatchedPopup = false);
+      }
     });
 
     // Start polling as fallback for WebSocket (in case WS is disconnected)
@@ -113,7 +122,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
 
   @override
   void dispose() {
-    // ✅ Clean up state when leaving screen
+    _autoDismissTimer?.cancel();
     _statusPollingTimer?.cancel();
     _polylines = {};
     _markers = {};
@@ -250,6 +259,17 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
     final ride = rideState.ride ?? widget.initialRide;
     final driverLocation = rideState.driverLocation;
 
+    // Compute driver ETA (only when driver is heading to pickup)
+    int? etaMinutes;
+    if (driverLocation != null && ride.status == RideStatus.accepted) {
+      final distKm = _haversineKm(
+        driverLocation.latitude, driverLocation.longitude,
+        ride.pickupLocation.coordinates.latitude,
+        ride.pickupLocation.coordinates.longitude,
+      );
+      etaMinutes = (distKm / 25 * 60).ceil().clamp(1, 60);
+    }
+
     // Initial camera position (pickup location)
     final pickupCoords = ride.pickupLocation.coordinates;
 
@@ -279,7 +299,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
             _buildDriverMatchedPopup(context, ride, config, l10n),
 
           // Top status card (always visible)
-          _buildStatusCard(context, ride, rideState, config, l10n),
+          _buildStatusCard(context, ride, rideState, config, l10n, etaMinutes: etaMinutes),
 
           // Recenter button
           Positioned(
@@ -385,7 +405,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
 
   /// Build top status card
   Widget _buildStatusCard(BuildContext context, Ride ride,
-      ActiveRideState rideState, AppConfig config, AppLocalizations l10n) {
+      ActiveRideState rideState, AppConfig config, AppLocalizations l10n, {int? etaMinutes}) {
     return Positioned(
       top: 0,
       left: 16,
@@ -430,7 +450,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
                       ),
                   ],
                 ),
-                if (rideState.estimatedArrivalMinutes != null) ...[
+                if (etaMinutes != null || rideState.estimatedArrivalMinutes != null) ...[
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -438,7 +458,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
                           size: 16, color: config.primaryColor),
                       const SizedBox(width: 4),
                       Text(
-                        l10n.etaMinutes(rideState.estimatedArrivalMinutes!.toStringAsFixed(0)),
+                        l10n.etaMinutes((etaMinutes ?? rideState.estimatedArrivalMinutes!.toInt()).toString()),
                         style: TextStyle(color: Colors.grey[600]),
                       ),
                     ],
@@ -817,6 +837,16 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         zoom: 13,
       ),
     );
+  }
+
+  static double _haversineKm(double lat1, double lng1, double lat2, double lng2) {
+    const r = 6371.0;
+    final dLat = (lat2 - lat1) * pi / 180;
+    final dLng = (lng2 - lng1) * pi / 180;
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(lat1 * pi / 180) * cos(lat2 * pi / 180) *
+        sin(dLng / 2) * sin(dLng / 2);
+    return r * 2 * atan2(sqrt(a), sqrt(1 - a));
   }
 
   Color _getStatusColor(RideStatus status) {

@@ -246,6 +246,12 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
         await _subscribeToMatching();
         _startMatchPolling();
       }
+    } on CooldownException catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.message,
+        cooldownUntil: e.cooldownUntil,
+      );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -290,6 +296,12 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
         print(
             'RideRequestProvider: ⚠️ userId is NULL, cannot subscribe to WebSocket!');
       }
+    } on CooldownException catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.message,
+        cooldownUntil: e.cooldownUntil,
+      );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,

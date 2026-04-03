@@ -2,6 +2,15 @@ import '../api/api_service.dart';
 import '../../models/ride_request.dart';
 import '../../models/fare_estimate.dart';
 
+/// Thrown when the rider is in a cooldown period and cannot create requests.
+class CooldownException implements Exception {
+  final String message;
+  final String? cooldownUntil;
+  CooldownException(this.message, {this.cooldownUntil});
+  @override
+  String toString() => message;
+}
+
 class RideRequestService {
   final ApiService _apiService;
 
@@ -85,6 +94,12 @@ class RideRequestService {
       });
 
       if (response.data['success'] != true) {
+        if (response.statusCode == 429 && response.data['data'] is Map) {
+          throw CooldownException(
+            response.data['message'] ?? 'Please wait before requesting',
+            cooldownUntil: (response.data['data'] as Map)['cooldown_until'] as String?,
+          );
+        }
         throw Exception(
           response.data['message'] ?? 'Failed to create ride request',
         );
@@ -124,6 +139,12 @@ class RideRequestService {
       });
 
       if (response.data['success'] != true) {
+        if (response.statusCode == 429 && response.data['data'] is Map) {
+          throw CooldownException(
+            response.data['message'] ?? 'Please wait before requesting',
+            cooldownUntil: (response.data['data'] as Map)['cooldown_until'] as String?,
+          );
+        }
         throw Exception(
           response.data['message'] ?? 'Failed to create ride request',
         );

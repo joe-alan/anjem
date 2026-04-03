@@ -361,5 +361,12 @@
   "resolvingLocation": "Mencari alamat...",
   "droppedPin": "Pin Lokasi",
   "yourLocation": "Lokasi Anda",
-  "pickThisLocation": "Pilih lokasi ini?"
+  "pickThisLocation": "Pilih lokasi ini?",
+  "cooldownCountdown": "Coba lagi dalam {seconds} detik",
+  "@cooldownCountdown": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "dragToAdjustHint": "Geser untuk mengatur"
 }

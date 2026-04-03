@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/l10n/app_localizations.dart';
@@ -22,9 +23,36 @@ class RiderHomeScreen extends ConsumerStatefulWidget {
 class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
   MapboxMapController? _mapController;
   final Set<MapMarker> _markers = {};
+  Timer? _cooldownTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ref.read(rideRequestProvider).isInCooldown) {
+        _startCooldownTimer();
+      }
+    });
+  }
+
+  void _startCooldownTimer() {
+    _cooldownTimer?.cancel();
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) {
+        _cooldownTimer?.cancel();
+        return;
+      }
+      if (!ref.read(rideRequestProvider).isInCooldown) {
+        _cooldownTimer?.cancel();
+        _cooldownTimer = null;
+      }
+      setState(() {});
+    });
+  }
 
   @override
   void dispose() {
+    _cooldownTimer?.cancel();
     _mapController?.dispose();
     super.dispose();
   }
@@ -37,6 +65,16 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
     final locationState = ref.watch(userLocationProvider);
     final rideRequestState = ref.watch(rideRequestProvider);
     final authState = ref.watch(authStateProvider);
+
+    // Start cooldown timer when cooldown activates
+    ref.listen<RideRequestState>(rideRequestProvider, (prev, next) {
+      if (next.isInCooldown && _cooldownTimer == null) {
+        _startCooldownTimer();
+      }
+    });
+
+    final isInCooldown = rideRequestState.isInCooldown;
+    final cooldownRemaining = rideRequestState.cooldownSecondsRemaining;
 
     final isSuspended = !(authState.user?.isActive ?? true);
     final hasPhone = authState.user?.phone != null && authState.user!.phone!.trim().isNotEmpty;
@@ -307,7 +345,7 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: (isSuspended || hasActiveRequest || !hasPhone)
+                onPressed: (isSuspended || hasActiveRequest || !hasPhone || isInCooldown)
                     ? null
                     : () {
                         Navigator.of(context).push(
@@ -323,11 +361,13 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
                       ? l10n.accountSuspendedButton
                       : hasActiveRequest
                           ? l10n.requestInProgressButton
-                          : l10n.requestRideButton,
+                          : isInCooldown
+                              ? l10n.cooldownCountdown(cooldownRemaining)
+                              : l10n.requestRideButton,
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: (isSuspended || hasActiveRequest || !hasPhone) ? Colors.grey : config.primaryColor,
+                  backgroundColor: (isSuspended || hasActiveRequest || !hasPhone || isInCooldown) ? Colors.grey : config.primaryColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

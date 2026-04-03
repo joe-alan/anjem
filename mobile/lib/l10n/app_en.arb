@@ -481,5 +481,12 @@
   "resolvingLocation": "Finding address...",
   "droppedPin": "Dropped Pin",
   "yourLocation": "Your Location",
-  "pickThisLocation": "Pick this location?"
+  "pickThisLocation": "Pick this location?",
+  "cooldownCountdown": "Try again in {seconds}s",
+  "@cooldownCountdown": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "dragToAdjustHint": "Drag to adjust"
 }
