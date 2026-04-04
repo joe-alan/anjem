@@ -8,6 +8,7 @@ import '../providers/session_provider.dart';
 import '../providers/active_ride_provider.dart';
 import '../providers/driver_status_provider.dart';
 import '../providers/ride_request_provider.dart';
+import '../providers/user_location_provider.dart';
 import '../../rider/screens/rider_active_ride_screen.dart';
 import '../../rider/screens/waiting_screen.dart';
 import '../../driver/screens/active_ride_screen.dart';
@@ -45,6 +46,10 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
     // Delay session check until after the first frame is built
     // This prevents "setState during build" errors
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Eagerly trigger location permission prompt right after sign-in.
+      // The provider's constructor calls checkPermission(), so reading
+      // it forces instantiation before the home screen mounts.
+      ref.read(userLocationProvider);
       _checkSession();
     });
   }

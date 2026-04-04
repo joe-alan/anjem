@@ -16,7 +16,7 @@ class SplashScreen extends StatelessWidget {
           children: [
             // App Logo/Icon
             Icon(
-              config.isRiderApp ? Icons.directions_car : Icons.local_taxi,
+              Icons.two_wheeler,
               size: 120,
               color: Colors.white,
             ),

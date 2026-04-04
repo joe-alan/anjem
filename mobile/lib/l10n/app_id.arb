@@ -289,6 +289,13 @@
   "licensePlateLabel": "Plat Nomor *",
   "licensePlateFormat": "Format: XX - 1234 - XXX",
   "motorcycleOnlyNote": "Anjem motor \u2014 maksimal 1 penumpang",
+  "cashPaymentNote": "Siapkan uang tunai {amount}, pembayaran langsung ke driver.",
+  "@cashPaymentNote": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "altPaymentNote": "Metode pembayaran lain (QRIS, e-wallet) tergantung kesediaan driver.",
 
   "profileSectionTitle": "Profil",
   "personalInfoSectionTitle": "Informasi Pribadi",

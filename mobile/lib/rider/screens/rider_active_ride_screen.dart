@@ -458,6 +458,17 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
                       ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                Center(
+                  child: Text(
+                    l10n.currencyFormat(ride.fare.toStringAsFixed(0)),
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: config.primaryColor,
+                    ),
+                  ),
+                ),
                 if (etaMinutes != null || rideState.estimatedArrivalMinutes != null) ...[
                   const SizedBox(height: 8),
                   Row(
@@ -536,23 +547,6 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
                       ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: config.primaryColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      l10n.currencyFormat(_formatCurrency(ride.fare)),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: config.primaryColor,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
                   IconButton(
                     icon: const FaIcon(FontAwesomeIcons.whatsapp, color: Color(0xFF25D366)),
                     padding: EdgeInsets.zero,
@@ -624,15 +618,6 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         ),
       ),
     );
-  }
-
-  String _formatCurrency(double amount) {
-    if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(1)}M';
-    } else if (amount >= 1000) {
-      return '${(amount / 1000).toStringAsFixed(1)}K';
-    }
-    return amount.toStringAsFixed(0);
   }
 
   Future<void> _showCancellationInfo(Ride? ride) async {
