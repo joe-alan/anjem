@@ -191,6 +191,35 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
                         const SizedBox(height: 20),
                       ],
 
+                      // Cash payment note
+                      if (fareEstimate != null)
+                        Text(
+                          l10n.cashPaymentNote(l10n.currencyFormat(fareEstimate.totalFare.toStringAsFixed(0))),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                      if (fareEstimate != null)
+                        const SizedBox(height: 8),
+
+                      // Alternative payment note
+                      Row(
+                        children: [
+                          Icon(Icons.payment, size: 18, color: Colors.grey[600]),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              l10n.altPaymentNote,
+                              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 8),
+
                       // Motorcycle passenger note
                       Row(
                         children: [

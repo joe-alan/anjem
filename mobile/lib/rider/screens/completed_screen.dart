@@ -81,53 +81,39 @@ class _CompletedScreenState extends ConsumerState<CompletedScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Success icon
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
-                shape: BoxShape.circle,
+            // Success indicator
+            const Icon(Icons.check_circle, size: 32, color: Colors.green),
+            const SizedBox(height: 8),
+
+            Text(
+              l10n.rideCompletedHeading,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[600],
               ),
-              child: const Icon(
-                Icons.check_circle,
-                size: 60,
-                color: Colors.green,
+            ),
+
+            const SizedBox(height: 12),
+
+            // Price as hero
+            Text(
+              l10n.currencyFormat(widget.ride.fare.toStringAsFixed(0)),
+              style: TextStyle(
+                fontSize: 40,
+                fontWeight: FontWeight.bold,
+                color: config.primaryColor,
               ),
             ),
 
             const SizedBox(height: 24),
 
-            Text(
-              l10n.rideCompletedHeading,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 32),
-
-            // Ride summary
+            // Ride summary (from/to only)
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(l10n.fareLabel),
-                        Text(
-                          l10n.currencyFormat(widget.ride.fare.toStringAsFixed(0)),
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [

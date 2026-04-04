@@ -604,33 +604,49 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16.0, vertical: 12.0),
-                    child: Row(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: _getStatusColor(ride.status),
-                            shape: BoxShape.circle,
-                          ),
+                        Row(
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: _getStatusColor(ride.status),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _getStatusText(ride.status, l10n),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            if (ride.status == RideStatus.accepted ||
+                                ride.status == RideStatus.driverArrived)
+                              IconButton(
+                                icon: const Icon(Icons.close),
+                                onPressed: () => _showCancelDialog(l10n),
+                                tooltip: l10n.cancelRideTooltip,
+                              ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
+                        const SizedBox(height: 12),
+                        Center(
                           child: Text(
-                            _getStatusText(ride.status, l10n),
-                            style: const TextStyle(
-                              fontSize: 16,
+                            l10n.currencyFormat(ride.fare.toStringAsFixed(0)),
+                            style: TextStyle(
+                              fontSize: 28,
                               fontWeight: FontWeight.bold,
+                              color: config.primaryColor,
                             ),
                           ),
                         ),
-                        if (ride.status == RideStatus.accepted ||
-                            ride.status == RideStatus.driverArrived)
-                          IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: () => _showCancelDialog(l10n),
-                            tooltip: l10n.cancelRideTooltip,
-                          ),
                       ],
                     ),
                   ),
@@ -720,14 +736,6 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                                   fontWeight: FontWeight.bold,
                                 ),
                                 overflow: TextOverflow.ellipsis,
-                              ),
-                              Text(
-                                l10n.currencyFormat(_formatCurrency(ride.fare)),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: config.primaryColor,
-                                  fontWeight: FontWeight.w600,
-                                ),
                               ),
                             ],
                           ),
@@ -1097,15 +1105,6 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
       case RideStatus.cancelled:
         return l10n.driverStatusRideCancelled;
     }
-  }
-
-  String _formatCurrency(double amount) {
-    if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(1)}M';
-    } else if (amount >= 1000) {
-      return '${(amount / 1000).toStringAsFixed(1)}K';
-    }
-    return amount.toStringAsFixed(0);
   }
 
   void _showCancelDialog(AppLocalizations l10n) {

@@ -550,7 +550,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                               ),
                               _buildStatItem(
                                 context,
-                                Icons.directions_car,
+                                Icons.two_wheeler,
                                 stats.totalRides.toString(),
                                 l10n.totalRidesLabel,
                                 onTap: () => Navigator.push(context,
@@ -626,7 +626,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                       child: Column(
                         children: [
                           const Icon(
-                            Icons.local_taxi,
+                            Icons.two_wheeler,
                             size: 48,
                             color: Colors.blue,
                           ),

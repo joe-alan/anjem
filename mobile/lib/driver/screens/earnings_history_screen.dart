@@ -162,7 +162,7 @@ class _EarningsRideItem extends StatelessWidget {
     final date = ride.completedAt ?? ride.createdAt;
 
     return ListTile(
-      leading: const Icon(Icons.directions_car),
+      leading: const Icon(Icons.two_wheeler),
       title: Text(
         '${ride.pickupLocation.name} → ${ride.destinationLocation.name}',
         maxLines: 1,

@@ -1730,6 +1730,18 @@ abstract class AppLocalizations {
   /// **'Motorcycle rides — maximum 1 passenger'**
   String get motorcycleOnlyNote;
 
+  /// No description provided for @cashPaymentNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Prepare {amount} in cash, pay the driver directly.'**
+  String cashPaymentNote(String amount);
+
+  /// No description provided for @altPaymentNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Other payment methods (QRIS, e-wallet) depend on driver availability.'**
+  String get altPaymentNote;
+
   /// No description provided for @profileSectionTitle.
   ///
   /// In en, this message translates to:

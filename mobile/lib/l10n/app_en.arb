@@ -399,6 +399,13 @@
   "licensePlateLabel": "License Plate *",
   "licensePlateFormat": "Format: XX - 1234 - XXX",
   "motorcycleOnlyNote": "Motorcycle rides — maximum 1 passenger",
+  "cashPaymentNote": "Prepare {amount} in cash, pay the driver directly.",
+  "@cashPaymentNote": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "altPaymentNote": "Other payment methods (QRIS, e-wallet) depend on driver availability.",
 
   "profileSectionTitle": "Profile",
   "personalInfoSectionTitle": "Personal Information",

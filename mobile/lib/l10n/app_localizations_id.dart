@@ -904,6 +904,15 @@ class AppLocalizationsId extends AppLocalizations {
   String get motorcycleOnlyNote => 'Anjem motor — maksimal 1 penumpang';
 
   @override
+  String cashPaymentNote(String amount) {
+    return 'Siapkan uang tunai $amount, pembayaran langsung ke driver.';
+  }
+
+  @override
+  String get altPaymentNote =>
+      'Metode pembayaran lain (QRIS, e-wallet) tergantung kesediaan driver.';
+
+  @override
   String get profileSectionTitle => 'Profil';
 
   @override
