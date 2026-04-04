@@ -8,12 +8,12 @@ Anjem is a campus ride-sharing platform composed of a Laravel 11 backend (`backe
 
 - `backend/app/` (controllers, services, events, models) with API routes in `routes/api.php`, migrations/seeders in `database/`, and integration/unit tests under `tests/`.
 - `mobile/lib/` with shared modules in `core/` (models, services, providers, widgets) and flavor-specific code in `rider/` and `driver/`.
-- Supporting assets: `docker-compose.yml` (Postgres + Redis), `Makefile`, and docs referenced above.
+- Supporting assets: `Makefile` and docs referenced above.
 
 ## First-Time Setup
 
 1. **Backend**
-   - `cd backend && cp .env.example .env`, fill DB/Firebase/Mapbox keys, then `composer install`, `php artisan key:generate`, `docker-compose up -d`, `php artisan migrate --seed`, `php artisan storage:link`.
+   - `cd backend && cp .env.example .env`, fill DB/Firebase/Mapbox keys, then `composer install`, `php artisan key:generate`, `php artisan migrate --seed`, `php artisan storage:link`. Ensure Postgres and Redis are running as native services.
    - Start services: `php artisan serve`, `php artisan reverb:start`, `php artisan queue:work`, `php artisan schedule:work` (Redis-backed queues).
 2. **Mobile**
    - `cd mobile && flutter pub get`.
@@ -24,13 +24,13 @@ Anjem is a campus ride-sharing platform composed of a Laravel 11 backend (`backe
 
 - Backend: `php artisan serve` + `php artisan reverb:start` + `php artisan queue:work` + `php artisan schedule:work` (ensure Redis is running). All four processes must be running — `schedule:work` drives the stale-driver kick and request cleanup jobs.
 - Mobile: `flutter run --flavor rider -t lib/main_rider.dart` or `flutter run --flavor driver -t lib/main_driver.dart`.
-- Keep Docker Postgres/Redis containers running, and rerun `build_runner` whenever annotated files change.
+- Ensure Postgres and Redis are running as native services, and rerun `build_runner` whenever annotated files change.
 
 ## Destructive Commands (Use Carefully)
 
 - `php artisan migrate:fresh --seed` wipes dev data—run only when you intend to reseed.
 - `php artisan test` must target the isolated test DB (see next section) to avoid truncating dev data.
-- Dropping containers/databases affects both backend and Flutter clients; confirm backups or seed scripts first.
+- Dropping databases affects both backend and Flutter clients; confirm backups or seed scripts first.
 
 ## Testing & Test Environment Setup
 
@@ -103,9 +103,9 @@ Builder/helper methods that need l10n should receive it as a parameter (`AppLoca
 
 ## Environment & Operations Notes
 
-- Redis backs queues and broadcasting; ensure `redis-server` (or the Docker container) is running before `queue:work`.
+- Redis backs queues and broadcasting; ensure `redis-server` is running before `queue:work`.
 - WebSockets use Laravel Reverb (`php artisan reverb:start`); mobile clients rely on it for ride updates.
-- Storage: run `php artisan storage:link` whenever cloning or rebuilding the backend container.
+- Storage: run `php artisan storage:link` whenever cloning the backend repo.
 - Keep Firebase, Mapbox, and Google OAuth credentials secure—never commit secrets; use `.env` or CI secrets.
 
 These guidelines keep backend, mobile, and documentation efforts aligned while protecting shared environments.
