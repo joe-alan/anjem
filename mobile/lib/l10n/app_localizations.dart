@@ -2443,6 +2443,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No verification data submitted yet'**
   String get noKycData;
+
+  /// No description provided for @kickedStaleGps.
+  ///
+  /// In en, this message translates to:
+  /// **'You were taken offline because your GPS signal was lost. Please check your location settings.'**
+  String get kickedStaleGps;
+
+  /// No description provided for @kickedZeroCredits.
+  ///
+  /// In en, this message translates to:
+  /// **'You were taken offline because your credit balance reached zero. Contact admin to top up.'**
+  String get kickedZeroCredits;
+
+  /// No description provided for @kickedGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'You were taken offline by the system.'**
+  String get kickedGeneric;
 }
 
 class _AppLocalizationsDelegate

@@ -92,6 +92,28 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
           });
         }
 
+        // Detect online → offline transition (system kick)
+        if (previous != null &&
+            previous.isOnline &&
+            !next.isOnline) {
+          final reason = ref.read(driverStatusProvider.notifier).consumeKickReason();
+          if (reason != null && mounted) {
+            final l10n = AppLocalizations.of(context);
+            final message = switch (reason) {
+              'location_stale' => l10n.kickedStaleGps,
+              'zero_credits' => l10n.kickedZeroCredits,
+              _ => l10n.kickedGeneric,
+            };
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(message),
+                duration: const Duration(seconds: 6),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        }
+
         // Start location updates when online & idle; stop otherwise.
         if (next.isOnline && !next.hasActiveRide) {
           _startIdleLocationUpdates();

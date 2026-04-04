@@ -19,7 +19,8 @@ class DriverOnlineStatusChanged implements ShouldBroadcast
         public User $driver,
         public bool $isOnline,
         public ?Location $beacon = null,
-        public ?int $queuePosition = null
+        public ?int $queuePosition = null,
+        public ?string $reason = null,
     ) {}
 
     /**
@@ -59,6 +60,10 @@ class DriverOnlineStatusChanged implements ShouldBroadcast
                 'name' => $this->beacon->name,
             ];
             $data['queue_position'] = $this->queuePosition;
+        }
+
+        if (! $this->isOnline && $this->reason) {
+            $data['reason'] = $this->reason;
         }
 
         return $data;

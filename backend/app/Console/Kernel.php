@@ -28,6 +28,11 @@ class Kernel extends ConsoleKernel
             ->withoutOverlapping()
             ->runInBackground();
 
+        // Restore queue_joined_at for drivers whose decline cooldown has expired.
+        $schedule->call(function () {
+            app(MatchingQueueService::class)->reactivateCooldownExpiredDrivers();
+        })->everyMinute()->name('reactivate-cooldown-expired-drivers')->withoutOverlapping();
+
         // Delete route cache entries older than 30 days to prevent unbounded table growth.
         $schedule->call(function () {
             app(\App\Services\RouteCacheService::class)->cleanupStaleRoutes(30);

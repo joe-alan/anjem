@@ -101,8 +101,9 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
   int? _activeUserId;
   Timer? _matchPollingTimer;
   int _pollAttempts = 0;
-  static const _maxPollingAttempts = 10;
+  static const _fastPollMaxAttempts = 10;
   static const _pollInterval = Duration(seconds: 3);
+  static const _slowPollInterval = Duration(seconds: 10);
 
   RideRequestNotifier(
     this._service,
@@ -654,14 +655,26 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
 
     _matchPollingTimer?.cancel();
     _pollAttempts = 0;
-    _matchPollingTimer = Timer.periodic(_pollInterval, (_) async {
+    _scheduleNextPoll(_pollInterval);
+  }
+
+  void _scheduleNextPoll(Duration delay) {
+    _matchPollingTimer = Timer(delay, () async {
+      if (_matchPollingTimer == null || !state.isPending) return;
+
       _pollAttempts += 1;
       final foundMatch = await _fetchMatchViaApi();
-      if (foundMatch ||
-          !state.isPending ||
-          _pollAttempts >= _maxPollingAttempts) {
+
+      if (foundMatch || !state.isPending) {
         _stopMatchPolling();
+        return;
       }
+
+      // Phase 1 → Phase 2 transition after _fastPollMaxAttempts
+      final nextDelay = _pollAttempts >= _fastPollMaxAttempts
+          ? _slowPollInterval
+          : _pollInterval;
+      _scheduleNextPoll(nextDelay);
     });
   }
 

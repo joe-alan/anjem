@@ -581,5 +581,9 @@
   "failedToEditKyc": "Failed to edit KYC data",
   "typeWarjoToConfirm": "Type WARJO to confirm",
   "mustBeOfflineToEdit": "You must go offline before editing KYC data",
-  "noKycData": "No verification data submitted yet"
+  "noKycData": "No verification data submitted yet",
+
+  "kickedStaleGps": "You were taken offline because your GPS signal was lost. Please check your location settings.",
+  "kickedZeroCredits": "You were taken offline because your credit balance reached zero. Contact admin to top up.",
+  "kickedGeneric": "You were taken offline by the system."
 }
