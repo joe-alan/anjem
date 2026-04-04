@@ -302,7 +302,7 @@ class RideController extends Controller
                             if ($driverProfile) {
                                 $driverProfile->update(['went_online_at' => null]);
                             }
-                            broadcast(new DriverOnlineStatusChanged($user, false, null));
+                            broadcast(new DriverOnlineStatusChanged($user, false, null, null, 'zero_credits'));
                             \Log::info('Driver auto-kicked offline: zero credits after ride completion', [
                                 'driver_id' => $user->id,
                                 'ride_id'   => $ride->id,
@@ -337,6 +337,18 @@ class RideController extends Controller
                     $this->notificationService->sendRideCancelledNotification($ride, $user->id, $cancelReason);
                     if ($ride->rider_id === $user->id) {
                         $penaltyMeta = $this->rideService->applyRiderCancelPenalty($user);
+                        // Refund driver credit for pre-pickup rider cancellation
+                        if (in_array($previousStatus, ['accepted', 'driver_arrived'])) {
+                            try {
+                                $this->creditService->refundCredit($ride->driver_id, $ride->id);
+                            } catch (\Throwable $e) {
+                                \Log::error('Failed to refund driver credit on rider cancel', [
+                                    'driver_id' => $ride->driver_id,
+                                    'ride_id' => $ride->id,
+                                    'error' => $e->getMessage(),
+                                ]);
+                            }
+                        }
                     }
                 }
                 break;

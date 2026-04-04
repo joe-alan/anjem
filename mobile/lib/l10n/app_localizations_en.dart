@@ -1288,4 +1288,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noKycData => 'No verification data submitted yet';
+
+  @override
+  String get kickedStaleGps =>
+      'You were taken offline because your GPS signal was lost. Please check your location settings.';
+
+  @override
+  String get kickedZeroCredits =>
+      'You were taken offline because your credit balance reached zero. Contact admin to top up.';
+
+  @override
+  String get kickedGeneric => 'You were taken offline by the system.';
 }

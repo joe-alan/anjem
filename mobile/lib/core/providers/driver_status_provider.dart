@@ -65,6 +65,7 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
   final WebSocketService _wsService;
   final Ref _ref;
   int? _driverId;
+  String? _kickReason;
 
   DriverStatusNotifier(
     this._apiService,
@@ -295,7 +296,9 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
       onDriverStatusChanged: (eventData) {
         final isOnline = eventData['is_online'] as bool? ?? true;
         if (!isOnline) {
-          if (kDebugMode) print('DriverStatusProvider: Auto-kicked offline by backend (zero credits)');
+          final reason = eventData['reason'] as String?;
+          if (kDebugMode) print('DriverStatusProvider: Auto-kicked offline by backend (reason: $reason)');
+          _kickReason = reason;
           _ref.read(driverIncomingRequestProvider.notifier).clear();
           state = state.copyWith(
             status: DriverStatusEnum.offline,
@@ -400,6 +403,13 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         activeRideId: null,
       );
     }
+  }
+
+  /// Consume the kick reason (returns it once, then clears).
+  String? consumeKickReason() {
+    final reason = _kickReason;
+    _kickReason = null;
+    return reason;
   }
 
   void clearError() {

@@ -1291,4 +1291,15 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get noKycData => 'Belum ada data verifikasi yang diajukan';
+
+  @override
+  String get kickedStaleGps =>
+      'Anda dibuat offline karena sinyal GPS hilang. Silakan periksa pengaturan lokasi Anda.';
+
+  @override
+  String get kickedZeroCredits =>
+      'Anda dibuat offline karena saldo kredit habis. Hubungi admin untuk isi ulang.';
+
+  @override
+  String get kickedGeneric => 'Anda dibuat offline oleh sistem.';
 }
