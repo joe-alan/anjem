@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:mobile/l10n/app_localizations.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/ride.dart';
 import '../../core/models/lat_lng.dart';
@@ -20,6 +19,7 @@ import '../../core/providers/session_provider.dart';
 import '../../core/models/session_state.dart';
 import 'driver_home_screen.dart';
 import '../../core/widgets/mapbox_map_widget.dart';
+import '../../core/widgets/whatsapp_launcher.dart';
 import '../../core/services/mapbox/mapbox_directions_service.dart';
 
 class ActiveRideScreen extends ConsumerStatefulWidget {
@@ -745,7 +745,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                               ? l10n.riderNoPhone
                               : null,
                           onPressed: (ride.rider?.phone != null && ride.rider!.phone!.trim().isNotEmpty)
-                              ? () => _openWhatsApp(ride.rider?.phone, ride.rider?.name ?? l10n.riderFallback)
+                              ? () => openWhatsApp(context, ride.rider?.phone, ride.rider?.name ?? l10n.riderFallback)
                               : null,
                         ),
                       ],
@@ -1096,44 +1096,6 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
         return l10n.driverStatusRideCompleted;
       case RideStatus.cancelled:
         return l10n.driverStatusRideCancelled;
-    }
-  }
-
-  Future<void> _openWhatsApp(String? phone, String name) async {
-    final l10n = AppLocalizations.of(context);
-    if (phone == null || phone.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.whatsAppUnavailable), backgroundColor: Colors.orange),
-      );
-      return;
-    }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.openWhatsAppTitle),
-        content: Text(l10n.openWhatsAppMessage(name)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('WhatsApp', style: TextStyle(color: Color(0xFF25D366), fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true && mounted) {
-      try {
-        await launchUrl(Uri.parse('https://wa.me/$phone'), mode: LaunchMode.externalApplication);
-      } catch (_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.whatsAppUnavailable), backgroundColor: Colors.red),
-          );
-        }
-      }
     }
   }
 
