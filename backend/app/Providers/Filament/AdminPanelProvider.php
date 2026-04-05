@@ -3,15 +3,21 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Dashboard;
+use App\Filament\Pages\DispatchTimelinePage;
 use App\Filament\Pages\DriverQueuePage;
+use App\Filament\Pages\LiveMapPage;
 use App\Filament\Pages\LiveMonitoringPage;
 use App\Filament\Pages\SystemHealthPage;
 use App\Filament\Resources\AuditLogResource;
-use App\Filament\Resources\FailedJobResource;
+use App\Filament\Resources\DriverProfileResource;
 use App\Filament\Resources\DriverResource;
+use App\Filament\Resources\FailedJobResource;
 use App\Filament\Resources\KycResource;
-use App\Filament\Resources\RiderResource;
+use App\Filament\Resources\LocationResource;
+use App\Filament\Resources\RideRequestResource;
 use App\Filament\Resources\RideResource;
+use App\Filament\Resources\RiderResource;
+use App\Filament\Resources\RouteCacheResource;
 use App\Filament\Widgets\DailyRidesChartWidget;
 use App\Filament\Widgets\KycPendingWidget;
 use App\Filament\Widgets\StatsOverviewWidget;
@@ -50,7 +56,11 @@ class AdminPanelProvider extends PanelProvider
                 DriverResource::class,
                 KycResource::class,
                 RiderResource::class,
+                DriverProfileResource::class,
                 RideResource::class,
+                RideRequestResource::class,
+                LocationResource::class,
+                RouteCacheResource::class,
                 AuditLogResource::class,
                 FailedJobResource::class,
             ])
@@ -58,6 +68,8 @@ class AdminPanelProvider extends PanelProvider
                 Dashboard::class,
                 LiveMonitoringPage::class,
                 DriverQueuePage::class,
+                LiveMapPage::class,
+                DispatchTimelinePage::class,
                 SystemHealthPage::class,
             ])
             ->widgets([

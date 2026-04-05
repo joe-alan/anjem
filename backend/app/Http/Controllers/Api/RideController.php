@@ -187,7 +187,7 @@ class RideController extends Controller
             ], 400);
         }
 
-        $this->matchingQueueService->handleDeclineOrTimeout($driver->id, $rideRequest->id);
+        $this->matchingQueueService->handleDeclineOrTimeout($driver->id, $rideRequest->id, isTimeout: false);
 
         return response()->json([
             'success' => true,
