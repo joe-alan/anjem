@@ -54,10 +54,12 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
     // Build initial markers
     _buildMarkers(widget.initialRide, null);
 
-    // Set initial ride in provider
+    // Set initial ride in provider, then immediately fetch full data from API
+    // (the initial ride from WebSocket may lack driver phone/photo)
     Future.microtask(() {
       print('📝 [Rider] Setting ride ${widget.initialRide.id} in provider');
       ref.read(activeRideProvider.notifier).setRide(widget.initialRide);
+      _refreshFullRide();
       _fetchAndDisplayRoute().catchError((e) {
         // Silently handle - error already logged inside _fetchAndDisplayRoute
         print('⚠️ [Rider] Route fetch error handled: $e');
@@ -73,6 +75,19 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
 
     // Start polling as fallback for WebSocket (in case WS is disconnected)
     _startStatusPolling();
+  }
+
+  /// Fetch full ride data from API to fill in fields missing from WebSocket
+  Future<void> _refreshFullRide() async {
+    try {
+      final rideService = ref.read(rideServiceProvider);
+      final fullRide = await rideService.getRide(widget.initialRide.id);
+      if (mounted) {
+        ref.read(activeRideProvider.notifier).setRide(fullRide);
+      }
+    } catch (e) {
+      print('⚠️ [Rider] Full ride refresh failed: $e');
+    }
   }
 
   void _startStatusPolling() {
