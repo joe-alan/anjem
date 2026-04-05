@@ -37,7 +37,6 @@ class SubmitKycRequest extends FormRequest
 
     public function rules(): array
     {
-        $allowedDomains = config('app.allowed_student_email_domains', []);
         $userId = $this->user()->id;
 
         return [
@@ -45,22 +44,9 @@ class SubmitKycRequest extends FormRequest
                 'required',
                 'email',
                 'max:255',
+                'regex:/^.+@.+\.ac\.id$/i',
                 // Unique email constraint (ignore current user's profile if updating)
                 Rule::unique('driver_profiles', 'student_email')->ignore($userId, 'user_id'),
-                // Domain validation
-                function ($attribute, $value, $fail) use ($allowedDomains) {
-                    $valid = false;
-                    foreach ($allowedDomains as $domain) {
-                        if (str_ends_with($value, '@'.$domain)) {
-                            $valid = true;
-                            break;
-                        }
-                    }
-                    if (! $valid) {
-                        $domainList = implode(', ', array_map(fn ($d) => '@'.$d, $allowedDomains));
-                        $fail('The student email must be from one of: '.$domainList);
-                    }
-                },
             ],
             'student_id' => [
                 'required',
@@ -93,6 +79,7 @@ class SubmitKycRequest extends FormRequest
         return [
             'student_email.required' => 'Student email is required',
             'student_email.email' => 'Student email must be a valid email address',
+            'student_email.regex' => 'Email must be from an academic institution (*.ac.id)',
             'student_email.unique' => 'This student email is already registered',
             'student_id.required' => 'Student ID is required',
             'student_id.unique' => 'This student ID is already registered',

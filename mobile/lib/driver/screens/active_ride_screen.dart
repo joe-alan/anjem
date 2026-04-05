@@ -388,6 +388,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
   }
 
   void _handleRideCancelled() {
+    if (!mounted) return;
     ref.read(driverStatusProvider.notifier).setActiveRide(null);
     ref.read(sessionStateProvider.notifier).updateSessionState(
       SessionState(
@@ -418,7 +419,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
   bool _isHandlingCompletion = false;
 
   Future<void> _handleRideCompletion() async {
-    if (_isHandlingCompletion) return;
+    if (_isHandlingCompletion || !mounted) return;
     _isHandlingCompletion = true;
     try {
       // Fetch fresh balance before clearing active ride state — the credit was

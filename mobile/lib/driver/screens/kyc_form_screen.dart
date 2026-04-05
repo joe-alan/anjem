@@ -318,18 +318,6 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
       return;
     }
 
-    // Check domain against whitelisted university domains
-    const allowedDomains = ['undip.ac.id', 'polines.ac.id', 'unpand.ac.id'];
-    final emailLower = email.toLowerCase();
-    if (!allowedDomains.any((d) => emailLower.endsWith('@$d'))) {
-      setState(() {
-        _emailAvailabilityMessage = null;
-        _emailAvailable = null;
-        _checkingEmail = false;
-      });
-      return;
-    }
-
     // Read l10n before async gap
     final l10n = AppLocalizations.of(context);
 
@@ -463,7 +451,9 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
               label: l10n.dismiss,
               textColor: Colors.white,
               onPressed: () {
-                ref.read(kycStateProvider.notifier).clearError();
+                if (mounted) {
+                  ref.read(kycStateProvider.notifier).clearError();
+                }
               },
             ),
           ),
@@ -717,9 +707,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
               if (!value.contains('@')) {
                 return l10n.validatorInvalidEmailFormat;
               }
-              // Check domain against whitelisted university domains
-              const allowedDomains = ['undip.ac.id', 'polines.ac.id', 'unpand.ac.id'];
-              if (!allowedDomains.any((d) => value.toLowerCase().endsWith('@$d'))) {
+              if (!RegExp(r'^.+@.+\.ac\.id$', caseSensitive: false).hasMatch(value)) {
                 return l10n.validatorEmailDomainInvalid;
               }
               // Check if email is available (this is shown via helperText, but also block submission)

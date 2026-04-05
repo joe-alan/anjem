@@ -113,16 +113,14 @@ class DriverKycController extends Controller
         try {
             $email = $request->student_email;
 
-            // Validate email domain
+            // Must be an academic email (*.ac.id)
             if (! $this->kycService->isValidStudentEmail($email)) {
-                $domainsDisplay = $this->kycService->getAllowedDomainsDisplay();
-
                 return response()->json([
                     'success' => false,
                     'available' => false,
-                    'message' => "Email must be from one of: {$domainsDisplay}",
+                    'message' => 'Email must be from an academic institution (*.ac.id)',
                     'reason' => 'invalid_domain',
-                ], 200);  // Return 200 with available:false instead of error
+                ], 200);
             }
 
             // Check if email is already registered (excluding current user if updating)
@@ -166,13 +164,11 @@ class DriverKycController extends Controller
         try {
             $email = $request->student_email;
 
-            // Validate email domain
+            // Must be an academic email (*.ac.id)
             if (! $this->kycService->isValidStudentEmail($email)) {
-                $domainsDisplay = $this->kycService->getAllowedDomainsDisplay();
-
                 return response()->json([
                     'success' => false,
-                    'message' => "Email must be from one of: {$domainsDisplay}",
+                    'message' => 'Email must be from an academic institution (*.ac.id)',
                 ], 400);
             }
 

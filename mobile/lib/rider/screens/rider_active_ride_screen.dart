@@ -96,6 +96,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
   }
 
   Future<void> _pollRideStatus() async {
+    if (!mounted) return;
     try {
       final rideService = ref.read(rideServiceProvider);
       final updatedRide = await rideService.getRide(widget.initialRide.id);
