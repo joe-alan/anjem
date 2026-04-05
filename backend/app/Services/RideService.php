@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\DispatchAttempt;
 use App\Models\Location;
 use App\Models\Ride;
 use App\Models\RideRequest;
@@ -263,6 +264,17 @@ class RideService
 
             // Update ride request status
             $rideRequest->markAsMatched();
+
+            // Mark the dispatch attempt as accepted
+            DispatchAttempt::where('ride_request_id', $rideRequestId)
+                ->where('driver_id', $driverId)
+                ->where('response', 'pending')
+                ->latest('dispatched_at')
+                ->first()
+                ?->update([
+                    'responded_at' => now(),
+                    'response' => 'accepted',
+                ]);
 
             // Remove from active requests cache
             $this->removeActiveRequestCache($rideRequest->id);
