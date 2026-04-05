@@ -3,7 +3,7 @@
 ## Current State
 
 **Branch:** `fcm-wiring2`
-**Next action:** Device-test FCM using `FCM_TEST_LOG.md`, then open PR → `main`
+**Next action:** Device-test FCM using `docs/test-logs/FCM_TEST_LOG.md`, then open PR → `main`
 
 ---
 
@@ -14,7 +14,7 @@
 #### 1. Completed Mapbox Optimisation (`feat/mapbox-optimisation`)
 - Finished device testing: MB-7 through MB-11 and MB-E2E all ✅ Pass
 - MB-10 (adaptive intervals) ⚠️ Partial — stationary confirmed, speed deferred (emulator only)
-- Updated `MAPBOX_OPTIMISATION_TEST_LOG.md` sign-off
+- Updated `docs/test-logs/MAPBOX_OPTIMISATION_TEST_LOG.md` sign-off
 - Cleaned up `mapbox_config.dart` (removed hardcoded token example from comment)
 - PR #32 opened: `feat/mapbox-optimisation` → `main`
 
@@ -51,9 +51,9 @@ Full implementation complete — Android only. Branch created from `main`.
 - Navigation on tap: `kyc_rejected` → KYC form; all others → `popUntil(isFirst)` (session wrapper handles routing)
 - iOS intentionally skipped — Android-only open beta
 
-**Test log:** `FCM_TEST_LOG.md` (root) — 20 tests: FCM-1 through FCM-E2E
+**Test log:** `docs/test-logs/FCM_TEST_LOG.md` — 20 tests: FCM-1 through FCM-E2E
 
-#### 3. Created `STAGING_LAUNCH_CHECKLIST.md` (root)
+#### 3. Created `docs/STAGING_LAUNCH_CHECKLIST.md`
 Full checklist tracking all remaining work to Android open beta launch (9 sprints, ~60 tasks).
 
 ---
@@ -80,7 +80,7 @@ Full checklist tracking all remaining work to Android open beta launch (9 sprint
 ## What to Do Next
 
 ### Immediate: Device-test FCM
-Run through `FCM_TEST_LOG.md`. Key tests to do first:
+Run through `docs/test-logs/FCM_TEST_LOG.md`. Key tests to do first:
 1. **FCM-1** — permission dialog appears on first launch, token stored in DB
 2. **FCM-4** — foreground driver: WS sheet shows, NO duplicate local notif
 3. **FCM-5/6** — background/terminated driver: system tray push appears
@@ -91,14 +91,14 @@ After tests pass, open PR `feat/fcm-wiring` → `dev`.
 ### After FCM PR: Admin Panel Phase 3
 Branch: `feat/admin-dashboard-phase3` (to be created from `dev`)
 
-Three sub-features (see `STAGING_LAUNCH_CHECKLIST.md` §2):
+Three sub-features (see `docs/STAGING_LAUNCH_CHECKLIST.md` §2):
 - **2a** Enhanced DB viewer — Filament Resources for `Location`, `RouteCache`, `RideRequest`, `DriverProfile`
 - **2b** Live map view — custom Filament page with Mapbox GL JS showing active rides + driver positions
 - **2c** Real-time WS monitor — Livewire/Alpine.js widget showing dispatch events, queue depth, active connections
 
 ### Then: UI/UX Polish → Pre-launch bugs → Sentry → Staging deploy → Android release
 
-Full roadmap in `STAGING_LAUNCH_CHECKLIST.md`.
+Full roadmap in `docs/STAGING_LAUNCH_CHECKLIST.md`.
 
 ---
 
