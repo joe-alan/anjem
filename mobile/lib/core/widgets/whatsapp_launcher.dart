@@ -5,7 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 /// Opens WhatsApp for the given [phone] number after a confirmation dialog.
 /// Shows a snackbar if [phone] is null/empty or launch fails.
 /// Must be called from a widget that is still mounted.
-Future<void> openWhatsApp(BuildContext context, String? phone, String name) async {
+Future<void> openWhatsApp(BuildContext context, String? phone, String name, {String? prefillMessage}) async {
   final l10n = AppLocalizations.of(context);
   if (phone == null || phone.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -32,7 +32,10 @@ Future<void> openWhatsApp(BuildContext context, String? phone, String name) asyn
   );
   if (confirmed == true && context.mounted) {
     try {
-      await launchUrl(Uri.parse('https://wa.me/$phone'), mode: LaunchMode.externalApplication);
+      final uri = prefillMessage != null
+          ? 'https://wa.me/$phone?text=${Uri.encodeComponent(prefillMessage)}'
+          : 'https://wa.me/$phone';
+      await launchUrl(Uri.parse(uri), mode: LaunchMode.externalApplication);
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

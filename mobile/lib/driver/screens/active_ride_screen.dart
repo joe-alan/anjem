@@ -754,7 +754,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
                               ? l10n.riderNoPhone
                               : null,
                           onPressed: (ride.rider?.phone != null && ride.rider!.phone!.trim().isNotEmpty)
-                              ? () => openWhatsApp(context, ride.rider?.phone, ride.rider?.name ?? l10n.riderFallback)
+                              ? () => openWhatsApp(context, ride.rider?.phone, ride.rider?.name ?? l10n.riderFallback, prefillMessage: 'Halo, saya driver Anjem.me. Saya sedang menuju lokasi jemput ya.')
                               : null,
                         ),
                       ],
