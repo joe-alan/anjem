@@ -121,10 +121,12 @@ class KycStateNotifier extends StateNotifier<KycState> {
     required String studentEmail,
     required String studentId,
     required String studentName,
+    required String phoneNumber,
     required String vehicleType,
     required String vehiclePlate,
     required String vehicleColor,
     required File ktmPhoto,
+    required File profilePhoto,
   }) async {
     print('KYC Provider: submitKyc called with file path: ${ktmPhoto.path}');
     state = state.copyWith(isLoading: true, error: null, successMessage: null);
@@ -134,10 +136,12 @@ class KycStateNotifier extends StateNotifier<KycState> {
         studentEmail: studentEmail,
         studentId: studentId,
         studentName: studentName,
+        phoneNumber: phoneNumber,
         vehicleType: vehicleType,
         vehiclePlate: vehiclePlate,
         vehicleColor: vehicleColor,
         ktmPhoto: ktmPhoto,
+        profilePhoto: profilePhoto,
       );
 
       state = state.copyWith(
@@ -268,6 +272,7 @@ class KycStateNotifier extends StateNotifier<KycState> {
     String? studentEmail,
     String? studentId,
     String? studentName,
+    String? phoneNumber,
     String? vehicleType,
     String? vehiclePlate,
     String? vehicleColor,
@@ -279,6 +284,7 @@ class KycStateNotifier extends StateNotifier<KycState> {
       if (studentEmail != null) await prefs.setString('kyc_draft_email', studentEmail);
       if (studentId != null) await prefs.setString('kyc_draft_student_id', studentId);
       if (studentName != null) await prefs.setString('kyc_draft_name', studentName);
+      if (phoneNumber != null) await prefs.setString('kyc_draft_phone', phoneNumber);
       if (vehicleType != null) await prefs.setString('kyc_draft_vehicle_type', vehicleType);
       if (vehiclePlate != null) await prefs.setString('kyc_draft_vehicle_plate', vehiclePlate);
       if (vehicleColor != null) await prefs.setString('kyc_draft_vehicle_color', vehicleColor);
@@ -305,6 +311,7 @@ class KycStateNotifier extends StateNotifier<KycState> {
         'student_email': prefs.getString('kyc_draft_email'),
         'student_id': prefs.getString('kyc_draft_student_id'),
         'student_name': prefs.getString('kyc_draft_name'),
+        'phone_number': prefs.getString('kyc_draft_phone'),
         'vehicle_type': prefs.getString('kyc_draft_vehicle_type'),
         'vehicle_plate': prefs.getString('kyc_draft_vehicle_plate'),
         'vehicle_color': prefs.getString('kyc_draft_vehicle_color'),
@@ -327,6 +334,7 @@ class KycStateNotifier extends StateNotifier<KycState> {
       await prefs.remove('kyc_draft_email');
       await prefs.remove('kyc_draft_student_id');
       await prefs.remove('kyc_draft_name');
+      await prefs.remove('kyc_draft_phone');
       await prefs.remove('kyc_draft_vehicle_type');
       await prefs.remove('kyc_draft_vehicle_plate');
       await prefs.remove('kyc_draft_vehicle_color');

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:path/path.dart' as path;
 import '../api/api_service.dart';
 import '../api/api_exception.dart';
 import '../../models/kyc_submission.dart';
@@ -83,10 +84,12 @@ class KycService {
     required String studentEmail,
     required String studentId,
     required String studentName,
+    required String phoneNumber,
     required String vehicleType,
     required String vehiclePlate,
     required String vehicleColor,
     required File ktmPhoto,
+    required File profilePhoto,
   }) async {
     try {
       print('KYC Service: Preparing form data...');
@@ -96,9 +99,10 @@ class KycService {
       // Create MultipartFile for the KTM photo
       MultipartFile ktmPhotoFile;
       try {
+        final ktmExt = path.extension(ktmPhoto.path);
         ktmPhotoFile = await MultipartFile.fromFile(
           ktmPhoto.path,
-          filename: 'ktm_${DateTime.now().millisecondsSinceEpoch}.jpg',
+          filename: 'ktm_${DateTime.now().millisecondsSinceEpoch}$ktmExt',
         );
         print('KYC Service: MultipartFile created successfully - ${ktmPhotoFile.filename}');
       } catch (e) {
@@ -109,15 +113,34 @@ class KycService {
         );
       }
 
+      // Create MultipartFile for the profile photo
+      MultipartFile profilePhotoFile;
+      try {
+        final profileExt = path.extension(profilePhoto.path);
+        profilePhotoFile = await MultipartFile.fromFile(
+          profilePhoto.path,
+          filename: 'profile_${DateTime.now().millisecondsSinceEpoch}$profileExt',
+        );
+        print('KYC Service: Profile photo MultipartFile created - ${profilePhotoFile.filename}');
+      } catch (e) {
+        print('KYC Service: Error creating profile photo MultipartFile - ${e.toString()}');
+        throw ApiException(
+          message: 'Failed to read profile photo file: ${e.toString()}',
+          statusCode: null,
+        );
+      }
+
       // Create multipart form data
       final formData = FormData.fromMap({
         'student_email': studentEmail,
         'student_id': studentId,
         'student_name': studentName,
+        'phone_number': phoneNumber,
         'vehicle_type': vehicleType,
         'vehicle_plate': vehiclePlate,
         'vehicle_color': vehicleColor,
         'ktm_photo': ktmPhotoFile,
+        'profile_photo': profilePhotoFile,
       });
 
       print('KYC Service: Sending request to /driver/kyc/submit');

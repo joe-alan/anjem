@@ -1118,6 +1118,60 @@ abstract class AppLocalizations {
   /// **'Full Name (as on KTM) *'**
   String get fullNameLabel;
 
+  /// No description provided for @whatsappNumberLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp Number *'**
+  String get whatsappNumberLabel;
+
+  /// No description provided for @whatsappNumberHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g., 08123456789'**
+  String get whatsappNumberHint;
+
+  /// No description provided for @whatsappNumberHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Riders will contact you via this number'**
+  String get whatsappNumberHelper;
+
+  /// No description provided for @validatorWhatsappRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp number is required'**
+  String get validatorWhatsappRequired;
+
+  /// No description provided for @validatorWhatsappInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid phone number (e.g., 08123456789)'**
+  String get validatorWhatsappInvalid;
+
+  /// No description provided for @profilePhotoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile Photo'**
+  String get profilePhotoLabel;
+
+  /// No description provided for @profilePhotoRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please upload your profile photo'**
+  String get profilePhotoRequired;
+
+  /// No description provided for @profilePhotoHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear photo of your face for identity verification'**
+  String get profilePhotoHelper;
+
+  /// No description provided for @ktmPhotoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'KTM Photo'**
+  String get ktmPhotoLabel;
+
   /// No description provided for @vehicleTypeLabel.
   ///
   /// In en, this message translates to:

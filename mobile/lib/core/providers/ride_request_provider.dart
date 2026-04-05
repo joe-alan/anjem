@@ -414,6 +414,8 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
             required int id,
             required String name,
             required String role,
+            String? phone,
+            String? profilePicture,
           }) {
             final nowIso = DateTime.now().toIso8601String();
 
@@ -422,8 +424,8 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
               'firebase_uid': 'ws_${role}_$id',
               'name': name,
               'email': '${role}_$id@placeholder.anjem',
-              'phone': null,
-              'profile_picture': null,
+              'phone': phone,
+              'profile_picture': profilePicture,
               'user_type': role,
               'created_at': eventData['matched_at'] ?? nowIso,
               'updated_at': eventData['timestamp'] ?? nowIso,
@@ -455,6 +457,8 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
               id: eventData['driver_id'] as int,
               name: eventData['driver_name'] as String,
               role: 'driver',
+              phone: eventData['driver_phone'] as String?,
+              profilePicture: eventData['driver_profile_picture'] as String?,
             ),
             'driver_accepted_at': eventData['matched_at'], // ✅ Match Ride.fromJson expectation
             'arrived_at': null,

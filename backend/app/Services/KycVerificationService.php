@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\AdminAuditLog;
 use App\Models\DriverProfile;
+use App\Models\User;
 use App\Models\VerificationCode;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
@@ -139,6 +141,17 @@ class KycVerificationService
     }
 
     /**
+     * Store profile photo and return the path
+     */
+    public function storeProfilePhoto($file, int $userId): string
+    {
+        $filename = 'avatar_'.$userId.'_'.time().'.'.$file->getClientOriginalExtension();
+        $path = $file->storeAs('avatars', $filename, 'public');
+
+        return '/storage/'.$path;
+    }
+
+    /**
      * Create or update driver profile with KYC data
      */
     public function submitKycData(
@@ -149,21 +162,43 @@ class KycVerificationService
         string $vehicleType,
         string $vehiclePlate,
         string $vehicleColor,
-        ?string $ktmUrl = null
+        ?string $ktmUrl = null,
+        ?string $phoneNumber = null,
+        ?string $profilePhotoUrl = null
     ): DriverProfile {
-        return DriverProfile::updateOrCreate(
-            ['user_id' => $userId],
-            [
-                'student_email' => $studentEmail,
-                'student_id' => $studentId,
-                'student_name' => $studentName,
-                'vehicle_type' => $vehicleType,
-                'vehicle_plate' => $vehiclePlate, // Fixed: was license_plate, should be vehicle_plate
-                'vehicle_color' => $vehicleColor,
-                'ktm_url' => $ktmUrl,
-                'is_verified' => false, // Will be verified after email confirmation
-            ]
-        );
+        return DB::transaction(function () use (
+            $userId, $studentEmail, $studentId, $studentName,
+            $vehicleType, $vehiclePlate, $vehicleColor, $ktmUrl,
+            $phoneNumber, $profilePhotoUrl
+        ) {
+            $profile = DriverProfile::updateOrCreate(
+                ['user_id' => $userId],
+                [
+                    'student_email' => $studentEmail,
+                    'student_id' => $studentId,
+                    'student_name' => $studentName,
+                    'vehicle_type' => $vehicleType,
+                    'vehicle_plate' => $vehiclePlate,
+                    'vehicle_color' => $vehicleColor,
+                    'ktm_url' => $ktmUrl,
+                    'is_verified' => false,
+                ]
+            );
+
+            // Store phone and profile photo on the users table
+            $userUpdates = [];
+            if ($phoneNumber !== null) {
+                $userUpdates['phone_number'] = $phoneNumber;
+            }
+            if ($profilePhotoUrl !== null) {
+                $userUpdates['profile_picture'] = $profilePhotoUrl;
+            }
+            if (! empty($userUpdates)) {
+                User::where('id', $userId)->update($userUpdates);
+            }
+
+            return $profile;
+        });
     }
 
     /**
@@ -199,6 +234,8 @@ class KycVerificationService
             ->latest()
             ->value('reason');
 
+        $user = User::find($userId);
+
         return [
             'kyc_submitted'    => $kycSubmitted,
             'email_verified'   => $driverProfile->email_verified_at !== null,
@@ -206,10 +243,12 @@ class KycVerificationService
             'student_email'    => $driverProfile->student_email,
             'student_id'       => $driverProfile->student_id,
             'student_name'     => $driverProfile->student_name,
+            'phone_number'     => $user?->phone_number,
             'vehicle_type'     => $driverProfile->vehicle_type,
             'vehicle_plate'    => $driverProfile->vehicle_plate,
             'vehicle_color'    => $driverProfile->vehicle_color,
             'ktm_url'          => $driverProfile->ktm_url,
+            'profile_photo_url' => $user?->profile_picture,
             'rejection_reason' => $rejectionReason,
             'suspend_reason'   => $suspendReason,
         ];
@@ -232,6 +271,13 @@ class KycVerificationService
             \Storage::disk('public')->delete($storagePath);
         }
 
+        // Delete profile photo from storage
+        $user = User::find($userId);
+        if ($user?->profile_picture && str_starts_with($user->profile_picture, '/storage/')) {
+            $storagePath = str_replace('/storage/', '', $user->profile_picture);
+            \Storage::disk('public')->delete($storagePath);
+        }
+
         // Nullify KYC PII fields, reset verification
         $profile->update([
             'student_email'    => null,
@@ -244,6 +290,14 @@ class KycVerificationService
             'email_verified_at' => null,
             'is_verified'      => false,
         ]);
+
+        // Clear phone and profile picture from user record
+        if ($user) {
+            $user->update([
+                'phone_number'    => null,
+                'profile_picture' => null,
+            ]);
+        }
 
         return true;
     }

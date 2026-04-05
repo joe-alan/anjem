@@ -78,6 +78,18 @@ class _KycStatusScreenState extends ConsumerState<KycStatusScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Profile photo
+                            if (kyc.profilePhotoUrl != null) ...[
+                              Center(
+                                child: CircleAvatar(
+                                  radius: 40,
+                                  backgroundImage:
+                                      NetworkImage(kyc.profilePhotoUrl!),
+                                  onBackgroundImageError: (_, __) {},
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
                             Text(l10n.kycDetailsTitle,
                                 style: const TextStyle(
                                     fontSize: 16,
@@ -92,6 +104,9 @@ class _KycStatusScreenState extends ConsumerState<KycStatusScreen> {
                             _InfoRow(
                                 label: l10n.kycStudentName,
                                 value: kyc.studentName ?? '-'),
+                            _InfoRow(
+                                label: l10n.whatsappNumberLabel.replaceAll(' *', ''),
+                                value: kyc.phoneNumber ?? '-'),
                             const Divider(height: 24),
                             _InfoRow(
                                 label: l10n.kycVehicleType,

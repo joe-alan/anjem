@@ -21,6 +21,20 @@ class SubmitKycRequest extends FormRequest
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
+    /**
+     * Normalize phone number before validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('phone_number')) {
+            $phone = preg_replace('/[\s\-]/', '', $this->phone_number);
+            if (str_starts_with($phone, '0')) {
+                $phone = '62'.substr($phone, 1);
+            }
+            $this->merge(['phone_number' => $phone]);
+        }
+    }
+
     public function rules(): array
     {
         $allowedDomains = config('app.allowed_student_email_domains', []);
@@ -56,6 +70,7 @@ class SubmitKycRequest extends FormRequest
                 Rule::unique('driver_profiles', 'student_id')->ignore($userId, 'user_id'),
             ],
             'student_name' => 'required|string|max:255',
+            'phone_number' => 'required|string|max:20',
             'vehicle_type' => 'required|string|in:motorcycle,car',
             'vehicle_plate' => [
                 'required',
@@ -66,6 +81,7 @@ class SubmitKycRequest extends FormRequest
             ],
             'vehicle_color' => 'required|string|max:50',
             'ktm_photo' => 'required|image|mimes:jpeg,jpg,png|max:5120', // 5MB max
+            'profile_photo' => 'required|image|mimes:jpeg,jpg,png|max:2048', // 2MB max
         ];
     }
 
@@ -90,6 +106,12 @@ class SubmitKycRequest extends FormRequest
             'ktm_photo.image' => 'KTM photo must be an image',
             'ktm_photo.mimes' => 'KTM photo must be in JPEG, JPG, or PNG format',
             'ktm_photo.max' => 'KTM photo size must not exceed 5MB',
+            'phone_number.required' => 'WhatsApp number is required',
+            'phone_number.max' => 'WhatsApp number must not exceed 20 characters',
+            'profile_photo.required' => 'Profile photo is required',
+            'profile_photo.image' => 'Profile photo must be an image',
+            'profile_photo.mimes' => 'Profile photo must be in JPEG, JPG, or PNG format',
+            'profile_photo.max' => 'Profile photo size must not exceed 2MB',
         ];
     }
 }

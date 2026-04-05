@@ -42,6 +42,15 @@ class DriverKycController extends Controller
                 \Log::info('KTM photo stored', ['url' => $ktmUrl]);
             }
 
+            // Store profile photo
+            $profilePhotoUrl = null;
+            if ($request->hasFile('profile_photo')) {
+                $profilePhotoUrl = $this->kycService->storeProfilePhoto(
+                    $request->file('profile_photo'), $user->id
+                );
+                \Log::info('Profile photo stored', ['url' => $profilePhotoUrl]);
+            }
+
             // Submit KYC data
             $driverProfile = $this->kycService->submitKycData(
                 $user->id,
@@ -51,7 +60,9 @@ class DriverKycController extends Controller
                 $request->vehicle_type,
                 $request->vehicle_plate,
                 $request->vehicle_color,
-                $ktmUrl
+                $ktmUrl,
+                $request->phone_number,
+                $profilePhotoUrl
             );
 
             \Log::info('KYC submission successful', ['user_id' => $user->id]);
