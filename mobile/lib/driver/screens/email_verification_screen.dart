@@ -183,7 +183,7 @@ class _EmailVerificationScreenState
               label: l10n.dismiss,
               textColor: Colors.white,
               onPressed: () {
-                ref.read(kycStateProvider.notifier).clearError();
+                if (mounted) ref.read(kycStateProvider.notifier).clearError();
               },
             ),
           ),
@@ -199,7 +199,7 @@ class _EmailVerificationScreenState
               label: l10n.dismiss,
               textColor: Colors.white,
               onPressed: () {
-                ref.read(kycStateProvider.notifier).clearSuccessMessage();
+                if (mounted) ref.read(kycStateProvider.notifier).clearSuccessMessage();
               },
             ),
           ),

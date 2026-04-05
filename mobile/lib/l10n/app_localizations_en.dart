@@ -889,7 +889,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get validatorEmailDomainInvalid =>
-      'Email must be from undip.ac.id, polines.ac.id, or unpand.ac.id';
+      'Email must be from an academic institution (*.ac.id)';
 
   @override
   String get validatorEmailAlreadyRegistered =>
@@ -908,7 +908,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get validatorVehicleColorRequired => 'Vehicle color is required';
 
   @override
-  String get studentEmailHint => 'your.email@undip.ac.id';
+  String get studentEmailHint => 'your.email@university.ac.id';
 
   @override
   String get studentEmailHelper => 'Must be your university email';

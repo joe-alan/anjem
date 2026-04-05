@@ -148,6 +148,7 @@ class _LocationSearchScreenState extends ConsumerState<LocationSearchScreen> {
   void _debouncedSearch(String query) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
       if (query.trim().length >= 2) {
         final location = ref.read(userLocationProvider).location;
         ref.read(placeSearchProvider.notifier).search(

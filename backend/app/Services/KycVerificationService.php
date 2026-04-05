@@ -13,33 +13,11 @@ use Illuminate\Support\Str;
 class KycVerificationService
 {
     /**
-     * Validate student email domain against whitelisted domains
+     * Validate that the email belongs to an academic institution (*.ac.id).
      */
     public function isValidStudentEmail(string $email): bool
     {
-        $allowedDomains = config('app.allowed_student_email_domains', []);
-
-        if (empty($allowedDomains)) {
-            return false;
-        }
-
-        foreach ($allowedDomains as $domain) {
-            if (Str::endsWith($email, '@'.$domain)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Get allowed domains formatted for display in error messages
-     */
-    public function getAllowedDomainsDisplay(): string
-    {
-        $domains = config('app.allowed_student_email_domains', []);
-
-        return implode(', ', array_map(fn ($d) => '@'.$d, $domains));
+        return (bool) preg_match('/@.+\.ac\.id$/i', $email);
     }
 
     /**
