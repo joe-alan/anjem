@@ -63,6 +63,10 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     Future.microtask(() {
       ref.refresh(driverStatisticsProvider);
     });
+    // Prompt for location permission on first boot if not yet granted
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _checkAndRequestLocationPermission(),
+    );
 
     _incomingRequestSub = ref.listenManual<RideRequest?>(
       driverIncomingRequestProvider,
@@ -128,6 +132,44 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     if (status.isOnline && !status.hasActiveRide) {
       _startIdleLocationUpdates();
     }
+  }
+
+  Future<bool> _checkAndRequestLocationPermission() async {
+    final permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.whileInUse ||
+        permission == LocationPermission.always) {
+      return true;
+    }
+    if (permission == LocationPermission.denied) {
+      final result = await Geolocator.requestPermission();
+      return result == LocationPermission.whileInUse ||
+          result == LocationPermission.always;
+    }
+    // deniedForever — system dialog won't appear; direct them to settings
+    if (mounted) {
+      final l10n = AppLocalizations.of(context);
+      await showDialog<void>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: Text(l10n.locationPermissionTitle),
+          content: Text(l10n.locationPermissionMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Geolocator.openAppSettings();
+              },
+              child: Text(l10n.openSettings),
+            ),
+          ],
+        ),
+      );
+    }
+    return false;
   }
 
   void _startIdleLocationUpdates() {
@@ -950,6 +992,8 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
       onPressed: canGoOnline
           ? () async {
               HapticFeedback.mediumImpact();
+              final hasPermission = await _checkAndRequestLocationPermission();
+              if (!hasPermission || !mounted) return;
               await ref.read(driverStatusProvider.notifier).goOnline();
               final error = ref.read(driverStatusProvider).error;
               if (error != null && error.contains('credit') && mounted) {
