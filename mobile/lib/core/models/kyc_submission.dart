@@ -18,6 +18,8 @@ class KycSubmission extends Equatable {
   final String? vehiclePlate;
   final String? vehicleColor;
   final String? ktmUrl;
+  final String? phoneNumber;
+  final String? profilePhotoUrl;
   final String? rejectionReason;
   final String? suspendReason;
 
@@ -32,6 +34,8 @@ class KycSubmission extends Equatable {
     this.vehiclePlate,
     this.vehicleColor,
     this.ktmUrl,
+    this.phoneNumber,
+    this.profilePhotoUrl,
     this.rejectionReason,
     this.suspendReason,
   });
@@ -48,6 +52,8 @@ class KycSubmission extends Equatable {
       vehiclePlate: json['vehicle_plate'] as String?,
       vehicleColor: json['vehicle_color'] as String?,
       ktmUrl: json['ktm_url'] as String?,
+      phoneNumber: json['phone_number'] as String?,
+      profilePhotoUrl: json['profile_photo_url'] as String?,
       rejectionReason: json['rejection_reason'] as String?,
       suspendReason: json['suspend_reason'] as String?,
     );
@@ -65,6 +71,8 @@ class KycSubmission extends Equatable {
       'vehicle_plate': vehiclePlate,
       'vehicle_color': vehicleColor,
       'ktm_url': ktmUrl,
+      'phone_number': phoneNumber,
+      'profile_photo_url': profilePhotoUrl,
       'rejection_reason': rejectionReason,
       'suspend_reason': suspendReason,
     };
@@ -89,6 +97,8 @@ class KycSubmission extends Equatable {
         vehiclePlate,
         vehicleColor,
         ktmUrl,
+        phoneNumber,
+        profilePhotoUrl,
         rejectionReason,
         suspendReason,
       ];

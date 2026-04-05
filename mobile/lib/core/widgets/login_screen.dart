@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mobile/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../config/app_config.dart';
@@ -56,10 +57,14 @@ class LoginScreen extends ConsumerWidget {
                 const Spacer(),
 
                 // App Logo
-                Icon(
-                  Icons.two_wheeler,
-                  size: 120,
-                  color: Colors.white,
+                SvgPicture.asset(
+                  'assets/images/logo.svg',
+                  width: 120,
+                  height: 120,
+                  colorFilter: const ColorFilter.mode(
+                    Colors.white,
+                    BlendMode.srcIn,
+                  ),
                 ),
                 const SizedBox(height: 24),
 

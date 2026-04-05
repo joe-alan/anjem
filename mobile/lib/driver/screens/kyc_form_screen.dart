@@ -59,6 +59,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
   final _studentEmailController = TextEditingController();
   final _studentIdController = TextEditingController();
   final _studentNameController = TextEditingController();
+  final _phoneController = TextEditingController();
 
   // License plate split into 3 parts
   final _plateArea1Controller = TextEditingController(); // e.g., "B" or "AB"
@@ -70,6 +71,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
   String _vehicleType = 'motorcycle';
   String _vehicleColor = '';
   File? _ktmPhoto;
+  File? _profilePhoto;
 
   final _imagePicker = ImagePicker();
 
@@ -122,6 +124,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
         _studentEmailController.text = draft['student_email'] ?? '';
         _studentIdController.text = draft['student_id'] ?? '';
         _studentNameController.text = draft['student_name'] ?? '';
+        _phoneController.text = draft['phone_number'] ?? '';
 
         // Parse license plate if exists
         final plate = draft['vehicle_plate'] as String?;
@@ -192,6 +195,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
     _studentEmailController.dispose();
     _studentIdController.dispose();
     _studentNameController.dispose();
+    _phoneController.dispose();
     _plateArea1Controller.dispose();
     _plateNumberController.dispose();
     _plateArea2Controller.dispose();
@@ -212,6 +216,33 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
       if (pickedFile != null) {
         setState(() {
           _ktmPhoto = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.failedToPickImage(e.toString())),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickProfilePhoto(ImageSource source) async {
+    try {
+      final pickedFile = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          _profilePhoto = File(pickedFile.path);
         });
       }
     } catch (e) {
@@ -262,6 +293,9 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
             : null,
         studentName: _studentNameController.text.trim().isNotEmpty
             ? _studentNameController.text.trim()
+            : null,
+        phoneNumber: _phoneController.text.trim().isNotEmpty
+            ? _phoneController.text.trim()
             : null,
         vehicleType: _vehicleType.isNotEmpty ? _vehicleType : null,
         vehiclePlate: vehiclePlate,
@@ -358,6 +392,16 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
       return;
     }
 
+    if (_profilePhoto == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.profilePhotoRequired),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     if (_vehicleColor.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -381,10 +425,12 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
             studentEmail: _studentEmailController.text.trim(),
             studentId: _studentIdController.text.trim(),
             studentName: _studentNameController.text.trim(),
+            phoneNumber: _phoneController.text.trim(),
             vehicleType: _vehicleType,
             vehiclePlate: licensePlate,
             vehicleColor: _vehicleColor,
             ktmPhoto: _ktmPhoto!,
+            profilePhoto: _profilePhoto!,
           );
 
       if (success && mounted) {
@@ -569,7 +615,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
             _plateArea2Controller.text.trim().isNotEmpty &&
             _vehicleColor.isNotEmpty;
       case 2:
-        return _ktmPhoto != null;
+        return _ktmPhoto != null && _profilePhoto != null;
       default:
         return false;
     }
@@ -713,6 +759,31 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return l10n.validatorFullNameRequired;
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _phoneController,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(
+              labelText: l10n.whatsappNumberLabel,
+              hintText: l10n.whatsappNumberHint,
+              prefixIcon: const Icon(Icons.phone),
+              border: const OutlineInputBorder(),
+              helperText: l10n.whatsappNumberHelper,
+            ),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+            ],
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return l10n.validatorWhatsappRequired;
+              }
+              final cleaned = value.trim().replaceAll(RegExp(r'[\s\-]'), '');
+              if (cleaned.length < 10 || cleaned.length > 15) {
+                return l10n.validatorWhatsappInvalid;
               }
               return null;
             },
@@ -951,7 +1022,85 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
               color: Colors.grey,
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+
+          // Profile photo picker
+          Text(
+            l10n.profilePhotoLabel,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.profilePhotoHelper,
+            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: GestureDetector(
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  builder: (ctx) => SafeArea(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.camera_alt),
+                          title: Text(l10n.takePhotoButton),
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            _pickProfilePhoto(ImageSource.camera);
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.photo_library),
+                          title: Text(l10n.fromGalleryButton),
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            _pickProfilePhoto(ImageSource.gallery);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.grey[200],
+                    backgroundImage:
+                        _profilePhoto != null ? FileImage(_profilePhoto!) : null,
+                    child: _profilePhoto == null
+                        ? Icon(Icons.person, size: 50, color: Colors.grey[400])
+                        : null,
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: config.primaryColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 28),
+
+          // KTM photo section header
+          Text(
+            l10n.ktmPhotoLabel,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 12),
           if (_ktmPhoto != null)
             Container(
               width: double.infinity,

@@ -569,6 +569,36 @@ class AppLocalizationsId extends AppLocalizations {
   String get fullNameLabel => 'Nama Lengkap (sesuai KTM) *';
 
   @override
+  String get whatsappNumberLabel => 'Nomor WhatsApp *';
+
+  @override
+  String get whatsappNumberHint => 'contoh: 08123456789';
+
+  @override
+  String get whatsappNumberHelper =>
+      'Penumpang akan menghubungi melalui nomor ini';
+
+  @override
+  String get validatorWhatsappRequired => 'Nomor WhatsApp wajib diisi';
+
+  @override
+  String get validatorWhatsappInvalid =>
+      'Masukkan nomor telepon yang valid (contoh: 08123456789)';
+
+  @override
+  String get profilePhotoLabel => 'Foto Profil';
+
+  @override
+  String get profilePhotoRequired => 'Silakan unggah foto profil Anda';
+
+  @override
+  String get profilePhotoHelper =>
+      'Foto wajah yang jelas untuk verifikasi identitas';
+
+  @override
+  String get ktmPhotoLabel => 'Foto KTM';
+
+  @override
   String get vehicleTypeLabel => 'Jenis Kendaraan *';
 
   @override
