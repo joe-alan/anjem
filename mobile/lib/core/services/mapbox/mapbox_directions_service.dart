@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../config/mapbox_config.dart';
 import '../../models/lat_lng.dart';
@@ -30,9 +31,9 @@ class MapboxDirectionsService {
         'overview': overview,
       });
 
-      print('🗺️  Fetching route from Mapbox Directions API');
-      print('   Origin: ${origin.latitude}, ${origin.longitude}');
-      print('   Destination: ${destination.latitude}, ${destination.longitude}');
+      if (kDebugMode) print('🗺️  Fetching route from Mapbox Directions API');
+      if (kDebugMode) print('   Origin: ${origin.latitude}, ${origin.longitude}');
+      if (kDebugMode) print('   Destination: ${destination.latitude}, ${destination.longitude}');
 
       // Make request with timeout - wrapped in inner try/catch for DNS errors
       http.Response response;
@@ -46,13 +47,13 @@ class MapboxDirectionsService {
           },
         );
       } catch (networkError) {
-        print('🔴 Network error during HTTP request: $networkError');
+        if (kDebugMode) print('🔴 Network error during HTTP request: $networkError');
         return []; // Return empty immediately on any network error
       }
 
       if (response.statusCode != 200) {
-        print('❌ Mapbox Directions API error: ${response.statusCode}');
-        print('   Response: ${response.body}');
+        if (kDebugMode) print('❌ Mapbox Directions API error: ${response.statusCode}');
+        if (kDebugMode) print('   Response: ${response.body}');
         throw MapboxDirectionsException(
           'Failed to fetch directions: ${response.statusCode}',
         );
@@ -62,7 +63,7 @@ class MapboxDirectionsService {
       final data = json.decode(response.body);
 
       if (data['routes'] == null || (data['routes'] as List).isEmpty) {
-        print('❌ No routes found in response');
+        if (kDebugMode) print('❌ No routes found in response');
         throw MapboxDirectionsException('No routes found');
       }
 
@@ -70,7 +71,7 @@ class MapboxDirectionsService {
       final geometry = route['geometry'];
 
       if (geometry == null || geometry['coordinates'] == null) {
-        print('❌ No geometry found in route');
+        if (kDebugMode) print('❌ No geometry found in route');
         throw MapboxDirectionsException('No geometry found in route');
       }
 
@@ -82,11 +83,11 @@ class MapboxDirectionsService {
               ))
           .toList();
 
-      print('✅ Route fetched successfully: ${routeCoordinates.length} points');
+      if (kDebugMode) print('✅ Route fetched successfully: ${routeCoordinates.length} points');
 
       return routeCoordinates;
     } catch (e) {
-      print('❌ Error fetching directions: $e');
+      if (kDebugMode) print('❌ Error fetching directions: $e');
 
       // Check for DNS resolution errors - return empty list instead of crashing
       if (e.toString().contains('No address associated with hostname') ||
@@ -94,24 +95,24 @@ class MapboxDirectionsService {
           e.toString().contains('SocketException') ||
           e.toString().contains('Connection refused') ||
           e.toString().contains('Network is unreachable')) {
-        print('⚠️  Network error - returning empty route (app will continue without route line)');
+        if (kDebugMode) print('⚠️  Network error - returning empty route (app will continue without route line)');
         return []; // Return empty instead of throwing - prevents crash
       }
 
       // For timeout errors, also return empty
       if (e is MapboxDirectionsException && e.message.contains('timed out')) {
-        print('⚠️  Request timed out - returning empty route');
+        if (kDebugMode) print('⚠️  Request timed out - returning empty route');
         return [];
       }
 
       // For other MapboxDirectionsException, return empty to be safe
       if (e is MapboxDirectionsException) {
-        print('⚠️  Mapbox error: ${e.message} - returning empty route');
+        if (kDebugMode) print('⚠️  Mapbox error: ${e.message} - returning empty route');
         return [];
       }
 
       // For any other error, return empty to prevent crash
-      print('⚠️  Unknown error - returning empty route to prevent crash');
+      if (kDebugMode) print('⚠️  Unknown error - returning empty route to prevent crash');
       return [];
     }
   }

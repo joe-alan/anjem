@@ -3,8 +3,11 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Dashboard;
+use App\Filament\Pages\DriverQueuePage;
 use App\Filament\Pages\LiveMonitoringPage;
+use App\Filament\Pages\SystemHealthPage;
 use App\Filament\Resources\AuditLogResource;
+use App\Filament\Resources\FailedJobResource;
 use App\Filament\Resources\DriverResource;
 use App\Filament\Resources\KycResource;
 use App\Filament\Resources\RiderResource;
@@ -49,10 +52,13 @@ class AdminPanelProvider extends PanelProvider
                 RiderResource::class,
                 RideResource::class,
                 AuditLogResource::class,
+                FailedJobResource::class,
             ])
             ->pages([
                 Dashboard::class,
                 LiveMonitoringPage::class,
+                DriverQueuePage::class,
+                SystemHealthPage::class,
             ])
             ->widgets([
                 StatsOverviewWidget::class,

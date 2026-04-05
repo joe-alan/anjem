@@ -85,7 +85,7 @@ class RideRequestState {
     if (!isInCooldown) return 0;
     try {
       final until = DateTime.parse(cooldownUntil!);
-      return until.difference(DateTime.now()).inSeconds.clamp(0, 120);
+      return until.difference(DateTime.now()).inSeconds.clamp(0, 600);
     } catch (_) {
       return 0;
     }
@@ -101,8 +101,9 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
   int? _activeUserId;
   Timer? _matchPollingTimer;
   int _pollAttempts = 0;
-  static const _maxPollingAttempts = 10;
+  static const _fastPollMaxAttempts = 10;
   static const _pollInterval = Duration(seconds: 3);
+  static const _slowPollInterval = Duration(seconds: 10);
 
   RideRequestNotifier(
     this._service,
@@ -178,6 +179,88 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
     }
   }
 
+  Future<void> getEstimateByCoordinates({
+    required double pickupLat,
+    required double pickupLng,
+    required double destLat,
+    required double destLng,
+    int passengerCount = 1,
+  }) async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final estimate = await _service.getEstimateByCoordinates(
+        pickupLat: pickupLat,
+        pickupLng: pickupLng,
+        destLat: destLat,
+        destLng: destLng,
+        passengerCount: passengerCount,
+      );
+
+      state = state.copyWith(
+        fareEstimate: estimate,
+        isLoading: false,
+        error: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+
+  Future<void> createRequestByCoordinates({
+    required double pickupLat,
+    required double pickupLng,
+    required String pickupName,
+    required double destLat,
+    required double destLng,
+    required String destName,
+    required int passengerCount,
+    String? specialRequests,
+  }) async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final request = await _service.createRequestByCoordinates(
+        pickupLat: pickupLat,
+        pickupLng: pickupLng,
+        pickupName: pickupName,
+        destLat: destLat,
+        destLng: destLng,
+        destName: destName,
+        passengerCount: passengerCount,
+        specialRequests: specialRequests,
+      );
+
+      state = RideRequestState(
+        request: request,
+        fareEstimate: state.fareEstimate,
+        matchedRide: null,
+        isLoading: false,
+        successMessage: 'Ride request created successfully',
+        error: null,
+      );
+
+      if (_activeUserId != null) {
+        await _subscribeToMatching();
+        _startMatchPolling();
+      }
+    } on CooldownException catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.message,
+        cooldownUntil: e.cooldownUntil,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+
   Future<void> createRequest({
     required int pickupBeaconId,
     required int destinationBeaconId,
@@ -214,6 +297,12 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
         print(
             'RideRequestProvider: ⚠️ userId is NULL, cannot subscribe to WebSocket!');
       }
+    } on CooldownException catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.message,
+        cooldownUntil: e.cooldownUntil,
+      );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -325,6 +414,8 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
             required int id,
             required String name,
             required String role,
+            String? phone,
+            String? profilePicture,
           }) {
             final nowIso = DateTime.now().toIso8601String();
 
@@ -333,8 +424,8 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
               'firebase_uid': 'ws_${role}_$id',
               'name': name,
               'email': '${role}_$id@placeholder.anjem',
-              'phone': null,
-              'profile_picture': null,
+              'phone': phone,
+              'profile_picture': profilePicture,
               'user_type': role,
               'created_at': eventData['matched_at'] ?? nowIso,
               'updated_at': eventData['timestamp'] ?? nowIso,
@@ -366,6 +457,8 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
               id: eventData['driver_id'] as int,
               name: eventData['driver_name'] as String,
               role: 'driver',
+              phone: eventData['driver_phone'] as String?,
+              profilePicture: eventData['driver_profile_picture'] as String?,
             ),
             'driver_accepted_at': eventData['matched_at'], // ✅ Match Ride.fromJson expectation
             'arrived_at': null,
@@ -566,14 +659,26 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
 
     _matchPollingTimer?.cancel();
     _pollAttempts = 0;
-    _matchPollingTimer = Timer.periodic(_pollInterval, (_) async {
+    _scheduleNextPoll(_pollInterval);
+  }
+
+  void _scheduleNextPoll(Duration delay) {
+    _matchPollingTimer = Timer(delay, () async {
+      if (_matchPollingTimer == null || !state.isPending) return;
+
       _pollAttempts += 1;
       final foundMatch = await _fetchMatchViaApi();
-      if (foundMatch ||
-          !state.isPending ||
-          _pollAttempts >= _maxPollingAttempts) {
+
+      if (foundMatch || !state.isPending) {
         _stopMatchPolling();
+        return;
       }
+
+      // Phase 1 → Phase 2 transition after _fastPollMaxAttempts
+      final nextDelay = _pollAttempts >= _fastPollMaxAttempts
+          ? _slowPollInterval
+          : _pollInterval;
+      _scheduleNextPoll(nextDelay);
     });
   }
 

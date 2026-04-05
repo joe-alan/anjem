@@ -29,11 +29,14 @@ class FirebaseAuthService
                 throw new \Exception('Email not verified');
             }
 
+            $picture = $verifiedIdToken->claims()->get('picture');
+
             return [
                 'uid' => $uid,
                 'email' => $email,
                 'name' => $name,
                 'email_verified' => $emailVerified,
+                'picture' => $picture,
             ];
         } catch (FailedToVerifyToken $e) {
             Log::error('Failed to verify Firebase token: '.$e->getMessage());
@@ -44,16 +47,23 @@ class FirebaseAuthService
     public function getOrCreateUser(array $firebaseUser, string $deviceType): User
     {
         $user = User::where('email', $firebaseUser['email'])->first();
+        $picture = $firebaseUser['picture'] ?? null;
 
         if (! $user) {
             // Create new user with the device type they registered from
-            $user = User::create([
+            $userData = [
                 'name' => $firebaseUser['name'] ?? 'User',
                 'email' => $firebaseUser['email'],
                 'firebase_uid' => $firebaseUser['uid'],
                 'email_verified_at' => now(),
                 'role' => $deviceType, // 'rider' or 'driver'
-            ]);
+            ];
+
+            if ($picture) {
+                $userData['profile_picture'] = $picture;
+            }
+
+            $user = User::create($userData);
 
             Log::info('Created new user from Firebase auth', [
                 'user_id' => $user->id,
@@ -78,6 +88,11 @@ class FirebaseAuthService
                     'new_role' => 'both',
                     'signed_in_from' => $deviceType,
                 ]);
+            }
+
+            // Update profile picture from Google if user hasn't uploaded their own
+            if ($picture && (! $user->profile_picture || str_starts_with($user->profile_picture, 'https://'))) {
+                $user->update(['profile_picture' => $picture]);
             }
 
             // Update last active timestamp

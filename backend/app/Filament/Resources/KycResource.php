@@ -187,9 +187,13 @@ class KycResource extends Resource
     {
         $dp = $record->driverProfile;
 
-        $photoHtml = $dp->ktm_url
+        $ktmHtml = $dp->ktm_url
             ? '<img src="' . e(url($dp->ktm_url)) . '" class="max-w-full rounded shadow" alt="KTM Document">'
-            : '<div class="flex items-center justify-center h-48 bg-gray-100 dark:bg-gray-800 rounded text-gray-400">No photo uploaded</div>';
+            : '<div class="flex items-center justify-center h-48 bg-gray-100 dark:bg-gray-800 rounded text-gray-400">No KTM photo</div>';
+
+        $profileHtml = $record->profile_picture
+            ? '<img src="' . e(url($record->profile_picture)) . '" class="w-24 h-24 rounded-full object-cover shadow" alt="Profile Photo">'
+            : '<div class="flex items-center justify-center w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 text-xs">No photo</div>';
 
         $row = fn (string $label, ?string $value) =>
             '<div>'
@@ -199,11 +203,15 @@ class KycResource extends Resource
 
         return '
         <div class="grid grid-cols-2 gap-6 p-2 pb-4">
-            <div class="flex flex-col justify-start">' . $photoHtml . '</div>
+            <div class="flex flex-col gap-4">
+                <div class="flex items-center gap-4">' . $profileHtml . '</div>
+                ' . $ktmHtml . '
+            </div>
             <div class="space-y-4">
                 ' . $row('Student Name', $dp->student_name)
                  . $row('Student ID', $dp->student_id)
                  . $row('Student Email', $dp->student_email)
+                 . $row('WhatsApp', $record->phone_number)
                  . $row('Vehicle Plate', $dp->vehicle_plate)
                  . $row('Vehicle Color', $dp->vehicle_color) . '
             </div>
@@ -250,6 +258,7 @@ class KycResource extends Resource
     private static function rejectKyc(User $record, string $reason): void
     {
         $ktmUrl = $record->driverProfile->ktm_url;
+        $profilePicture = $record->profile_picture;
 
         DB::transaction(function () use ($record, $reason) {
             $record->driverProfile->update([
@@ -261,6 +270,10 @@ class KycResource extends Resource
                 'vehicle_plate'     => null,
                 'vehicle_color'     => null,
                 'ktm_url'           => null,
+            ]);
+            $record->update([
+                'phone_number'    => null,
+                'profile_picture' => null,
             ]);
             AdminAuditLog::create([
                 'admin_id'    => auth()->id(),
@@ -276,6 +289,10 @@ class KycResource extends Resource
 
         if ($ktmUrl) {
             Storage::disk('public')->delete(ltrim(str_replace('/storage', '', $ktmUrl), '/'));
+        }
+
+        if ($profilePicture && str_starts_with($profilePicture, '/storage/')) {
+            Storage::disk('public')->delete(ltrim(str_replace('/storage', '', $profilePicture), '/'));
         }
 
         try {

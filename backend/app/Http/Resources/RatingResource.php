@@ -16,8 +16,9 @@ class RatingResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'rating' => $this->rating,
-            'comment' => $this->comment,
+            'score' => $this->score,
+            'feedback' => $this->feedback,
+            'rating_type' => $this->rating_type,
             'tags' => $this->tags,
             'created_at' => $this->created_at->toISOString(),
 

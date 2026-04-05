@@ -1,5 +1,7 @@
+import 'package:action_slider/action_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/place_search_result.dart';
 import '../../core/providers/ride_request_provider.dart';
@@ -25,9 +27,7 @@ class RideDetailsScreen extends ConsumerStatefulWidget {
 }
 
 class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
-  int _passengerCount = 1;
   final _specialRequestsController = TextEditingController();
-  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -38,6 +38,7 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
+    final l10n = AppLocalizations.of(context);
     final requestState = ref.watch(rideRequestProvider);
     final fareEstimate = requestState.fareEstimate;
 
@@ -53,9 +54,20 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
               height: MediaQuery.of(context).size.height,
             ),
 
-          // Semi-transparent overlay
+          // Gradient overlay (lighter at top for route visibility, darker at bottom)
           Container(
-            color: Colors.black.withOpacity(0.3),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: const [0.0, 0.4, 1.0],
+                colors: [
+                  Colors.black.withValues(alpha: 0.05),
+                  Colors.black.withValues(alpha: 0.15),
+                  Colors.black.withValues(alpha: 0.5),
+                ],
+              ),
+            ),
           ),
 
           // Content overlay at bottom
@@ -63,7 +75,7 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
             children: [
               // AppBar
               AppBar(
-                title: const Text('Ride Details'),
+                title: Text(l10n.rideDetailsTitle),
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 foregroundColor: Colors.white,
@@ -132,12 +144,12 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text(
-                                    'Estimated Fare:',
-                                    style: TextStyle(fontSize: 14),
+                                  Text(
+                                    l10n.estimatedFareLabel,
+                                    style: const TextStyle(fontSize: 14),
                                   ),
                                   Text(
-                                    fareEstimate.formattedFare,
+                                    l10n.currencyFormat(fareEstimate.totalFare.toStringAsFixed(0)),
                                     style: TextStyle(
                                       fontSize: 28,
                                       fontWeight: FontWeight.bold,
@@ -179,41 +191,43 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
                         const SizedBox(height: 20),
                       ],
 
-                      // Passenger count
-                      const Text(
-                        'Passenger Count',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 8),
+                      // Cash payment note
+                      if (fareEstimate != null)
+                        Text(
+                          l10n.cashPaymentNote(l10n.currencyFormat(fareEstimate.totalFare.toStringAsFixed(0))),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                      if (fareEstimate != null)
+                        const SizedBox(height: 8),
+
+                      // Alternative payment note
                       Row(
                         children: [
-                          IconButton(
-                            onPressed: _passengerCount > 1
-                                ? () => setState(() => _passengerCount--)
-                                : null,
-                            icon: const Icon(Icons.remove_circle_outline),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey[300]!),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+                          Icon(Icons.payment, size: 18, color: Colors.grey[600]),
+                          const SizedBox(width: 8),
+                          Expanded(
                             child: Text(
-                              '$_passengerCount',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              l10n.altPaymentNote,
+                              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                             ),
                           ),
-                          IconButton(
-                            onPressed: _passengerCount < 4
-                                ? () => setState(() => _passengerCount++)
-                                : null,
-                            icon: const Icon(Icons.add_circle_outline),
-                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // Motorcycle passenger note
+                      Row(
+                        children: [
+                          Icon(Icons.motorcycle, size: 18, color: Colors.grey[600]),
                           const SizedBox(width: 8),
                           Text(
-                            'Max: 4 passengers',
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            l10n.motorcycleOnlyNote,
+                            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                           ),
                         ],
                       ),
@@ -221,16 +235,17 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
                       const SizedBox(height: 20),
 
                       // Special requests
-                      const Text(
-                        'Special Requests (Optional)',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                      Text(
+                        l10n.specialRequestsHint,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 8),
                       TextField(
                         controller: _specialRequestsController,
                         maxLines: 2,
+                        maxLength: 200,
                         decoration: InputDecoration(
-                          hintText: 'e.g., "Please wait at gate 2"',
+                          hintText: l10n.specialRequestsPlaceholder,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -241,103 +256,97 @@ class _RideDetailsScreenState extends ConsumerState<RideDetailsScreen> {
                       const SizedBox(height: 24),
 
                       // Confirm button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _isSubmitting || requestState.isLoading
-                              ? null
-                              : () async {
-                                  if (_isSubmitting) return;
-
-                                  // Validate IDs before submission
-                                  if (widget.pickupLocation.id == null ||
-                                      widget.destinationLocation.id == null) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Invalid location selection. Please go back and select valid beacons.',
-                                        ),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                    return;
-                                  }
-
-                                  setState(() => _isSubmitting = true);
-
-                                  try {
-                                    // Safe extraction of IDs (already validated above)
-                                    final pickupId = widget.pickupLocation.id;
-                                    final destinationId = widget.destinationLocation.id;
-
-                                    // This should never happen due to validation above, but be extra safe
-                                    if (pickupId == null || destinationId == null) {
-                                      throw Exception('Internal error: Location IDs are null');
-                                    }
-
-                                    await ref
-                                        .read(rideRequestProvider.notifier)
-                                        .createRequest(
-                                          pickupBeaconId: pickupId,
-                                          destinationBeaconId: destinationId,
-                                          passengerCount: _passengerCount,
-                                          specialRequests:
-                                              _specialRequestsController.text.trim(),
-                                        );
-
-                                    final updatedState = ref.read(rideRequestProvider);
-
-                                    if (!mounted) return;
-
-                                    if (updatedState.request != null) {
-                                      Navigator.of(context).pushReplacement(
-                                        MaterialPageRoute(
-                                          builder: (context) => const WaitingScreen(),
-                                        ),
-                                      );
-                                    } else if (updatedState.error != null) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text(updatedState.error!),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
-                                      setState(() => _isSubmitting = false);
-                                    }
-                                  } catch (e) {
-                                    if (!mounted) return;
-
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Failed: ${e.toString()}'),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                    setState(() => _isSubmitting = false);
-                                  }
-                                },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: config.primaryColor,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                      ActionSlider.standard(
+                        sliderBehavior: SliderBehavior.stretch,
+                        backgroundColor: config.primaryColor.withOpacity(0.1),
+                        toggleColor: config.primaryColor,
+                        icon: const Icon(Icons.arrow_forward_ios, color: Colors.white),
+                        loadingIcon: const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
                           ),
-                          child: _isSubmitting || requestState.isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                  ),
-                                )
-                              : const Text(
-                                  'Confirm Request',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                                ),
                         ),
+                        successIcon: const Icon(Icons.check_rounded, color: Colors.white),
+                        child: Text(
+                          l10n.confirmRequest,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: config.primaryColor,
+                          ),
+                        ),
+                        action: (controller) async {
+                          if (requestState.isLoading) {
+                            controller.reset();
+                            return;
+                          }
+
+                          controller.loading();
+
+                          try {
+                            final notifier = ref.read(rideRequestProvider.notifier);
+                            final specialReqs = _specialRequestsController.text.trim();
+
+                            // Use coordinate path if either location lacks an ID (P2P)
+                            if (widget.pickupLocation.id == null ||
+                                widget.destinationLocation.id == null) {
+                              await notifier.createRequestByCoordinates(
+                                pickupLat: widget.pickupLocation.coordinates.latitude,
+                                pickupLng: widget.pickupLocation.coordinates.longitude,
+                                pickupName: widget.pickupLocation.name,
+                                destLat: widget.destinationLocation.coordinates.latitude,
+                                destLng: widget.destinationLocation.coordinates.longitude,
+                                destName: widget.destinationLocation.name,
+                                passengerCount: 1,
+                                specialRequests: specialReqs,
+                              );
+                            } else {
+                              await notifier.createRequest(
+                                pickupBeaconId: widget.pickupLocation.id!,
+                                destinationBeaconId: widget.destinationLocation.id!,
+                                passengerCount: 1,
+                                specialRequests: specialReqs,
+                              );
+                            }
+
+                            final updatedState = ref.read(rideRequestProvider);
+
+                            if (!mounted) return;
+
+                            if (updatedState.request != null) {
+                              controller.success();
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                  builder: (context) => const WaitingScreen(),
+                                ),
+                              );
+                            } else if (updatedState.error != null) {
+                              controller.failure();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(updatedState.error!),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              await Future.delayed(const Duration(seconds: 2));
+                              if (mounted) controller.reset();
+                            }
+                          } catch (e) {
+                            if (!mounted) return;
+                            controller.failure();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(l10n.failedGeneric(e.toString())),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            await Future.delayed(const Duration(seconds: 2));
+                            if (mounted) controller.reset();
+                          }
+                        },
                       ),
                     ],
                   ),

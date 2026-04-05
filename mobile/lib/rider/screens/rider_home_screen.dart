@@ -1,14 +1,18 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/lat_lng.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/beacons_provider.dart';
 import '../../core/providers/ride_request_provider.dart';
-import '../../core/providers/session_provider.dart';
+import '../../core/providers/ride_history_provider.dart';
 import '../../core/providers/user_location_provider.dart';
 import '../../core/widgets/mapbox_map_widget.dart';
-import 'location_selection_screen.dart';
+import 'location_search_screen.dart';
+import 'ride_history_screen.dart';
+import 'rider_settings_screen.dart';
 import 'waiting_screen.dart';
 
 class RiderHomeScreen extends ConsumerStatefulWidget {
@@ -21,9 +25,37 @@ class RiderHomeScreen extends ConsumerStatefulWidget {
 class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
   MapboxMapController? _mapController;
   final Set<MapMarker> _markers = {};
+  Timer? _cooldownTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(rideHistoryProvider.notifier).refresh();
+      if (ref.read(rideRequestProvider).isInCooldown) {
+        _startCooldownTimer();
+      }
+    });
+  }
+
+  void _startCooldownTimer() {
+    _cooldownTimer?.cancel();
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) {
+        _cooldownTimer?.cancel();
+        return;
+      }
+      if (!ref.read(rideRequestProvider).isInCooldown) {
+        _cooldownTimer?.cancel();
+        _cooldownTimer = null;
+      }
+      setState(() {});
+    });
+  }
 
   @override
   void dispose() {
+    _cooldownTimer?.cancel();
     _mapController?.dispose();
     super.dispose();
   }
@@ -31,12 +63,26 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
+    final l10n = AppLocalizations.of(context);
     final beaconsState = ref.watch(beaconsProvider);
     final locationState = ref.watch(userLocationProvider);
     final rideRequestState = ref.watch(rideRequestProvider);
     final authState = ref.watch(authStateProvider);
+    final historyState = ref.watch(rideHistoryProvider);
+    final hasUnratedRides = historyState.hasUnrated;
+
+    // Start cooldown timer when cooldown activates
+    ref.listen<RideRequestState>(rideRequestProvider, (prev, next) {
+      if (next.isInCooldown && _cooldownTimer == null) {
+        _startCooldownTimer();
+      }
+    });
+
+    final isInCooldown = rideRequestState.isInCooldown;
+    final cooldownRemaining = rideRequestState.cooldownSecondsRemaining;
 
     final isSuspended = !(authState.user?.isActive ?? true);
+    final hasPhone = authState.user?.phone != null && authState.user!.phone!.trim().isNotEmpty;
 
     // Check if there's an active request that should block new requests
     final hasActiveRequest = rideRequestState.request != null &&
@@ -55,17 +101,33 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
         backgroundColor: config.primaryColor,
         foregroundColor: Colors.white,
         leading: IconButton(
-          icon: const Icon(Icons.logout),
-          onPressed: () => _showLogoutDialog(context),
-          tooltip: 'Logout',
+          icon: const Icon(Icons.settings_outlined),
+          tooltip: l10n.settingsButton,
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const RiderSettingsScreen(),
+            ),
+          ),
         ),
         actions: [
+          IconButton(
+            icon: Badge(
+              isLabelVisible: hasUnratedRides,
+              smallSize: 10,
+              child: const Icon(Icons.history),
+            ),
+            tooltip: l10n.rideHistoryTitle,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const RideHistoryScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
               ref.read(beaconsProvider.notifier).refresh();
               ref.read(userLocationProvider.notifier).getCurrentLocation();
               ref.read(authStateProvider.notifier).refreshUser();
+              ref.read(rideHistoryProvider.notifier).refresh();
             },
           ),
         ],
@@ -97,24 +159,24 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
 
           // Loading indicator
           if (beaconsState.isLoading || locationState.isLoading)
-            const Positioned(
+            Positioned(
               top: 16,
               left: 0,
               right: 0,
               child: Center(
                 child: Card(
                   child: Padding(
-                    padding: EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(16.0),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        SizedBox(
+                        const SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
-                        SizedBox(width: 12),
-                        Text('Loading...'),
+                        const SizedBox(width: 12),
+                        Text(l10n.loading),
                       ],
                     ),
                   ),
@@ -182,7 +244,7 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Your account has been suspended. You cannot request rides.',
+                          l10n.accountSuspendedBanner,
                           style: TextStyle(color: Colors.red[700], fontWeight: FontWeight.w500),
                         ),
                       ),
@@ -208,7 +270,7 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'You have an active ride request',
+                          l10n.activeRideRequestBanner,
                           style: TextStyle(color: Colors.blue[700]),
                         ),
                       ),
@@ -220,7 +282,7 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
                             ),
                           );
                         },
-                        child: const Text('View'),
+                        child: Text(l10n.viewButton),
                       ),
                     ],
                   ),
@@ -248,12 +310,60 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
                     Expanded(
                       child: Text(
                         rideRequestState.cancelCount >= 2
-                            ? 'Warning: One more cancellation will suspend your account.'
-                            : 'Warning: Repeated cancellations may result in a temporary ban.',
+                            ? l10n.oneMoreCancellationWarning
+                            : l10n.repeatedCancellationsWarning,
                         style: TextStyle(color: Colors.orange.shade800, fontSize: 13),
                       ),
                     ),
                   ],
+                ),
+              ),
+            ),
+
+          // Phone number required info card
+          if (!hasPhone && !isSuspended && !hasActiveRequest)
+            Positioned(
+              bottom: 90,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.orange.shade700, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        l10n.phoneRequiredMessage,
+                        style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => const RiderSettingsScreen()),
+                      ),
+                      child: Text(l10n.goToSettings),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // Unrated rides speech bubble (tail points UP toward clock icon)
+          if (hasUnratedRides && !isSuspended && !hasActiveRequest && !isInCooldown)
+            Positioned(
+              top: 8,
+              right: 50,
+              child: _PulsatingBubble(
+                primaryColor: config.primaryColor,
+                label: l10n.unratedRidesBubble,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const RideHistoryScreen()),
                 ),
               ),
             ),
@@ -266,23 +376,29 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: (isSuspended || beaconsState.beacons.isEmpty || hasActiveRequest)
+                onPressed: (isSuspended || hasActiveRequest || !hasPhone || isInCooldown)
                     ? null
                     : () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (context) =>
-                                const LocationSelectionScreen(),
+                                const LocationSearchScreen(),
                           ),
                         );
                       },
                 icon: const Icon(Icons.add_location),
                 label: Text(
-                  isSuspended ? 'Account Suspended' : hasActiveRequest ? 'Request in Progress' : 'Request Ride',
+                  isSuspended
+                      ? l10n.accountSuspendedButton
+                      : hasActiveRequest
+                          ? l10n.requestInProgressButton
+                          : isInCooldown
+                              ? l10n.cooldownCountdown(cooldownRemaining)
+                              : l10n.requestRideButton,
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: (isSuspended || hasActiveRequest) ? Colors.grey : config.primaryColor,
+                  backgroundColor: (isSuspended || hasActiveRequest || !hasPhone || isInCooldown) ? Colors.grey : config.primaryColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -306,8 +422,6 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
           id: 'beacon_${beacon.id}',
           latitude: beacon.coordinates.latitude,
           longitude: beacon.coordinates.longitude,
-          // title and snippet are not directly supported in simplified wrapper
-          // Will need to handle marker info windows separately if needed
           icon: 'marker-15', // Mapbox default marker
           size: 1.5, // Larger size for beacons
         ),
@@ -324,34 +438,132 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen> {
       ),
     );
   }
+}
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Logout'),
-          content: const Text('Are you sure you want to logout?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+/// Speech bubble with upward tail and slow pulse animation.
+class _PulsatingBubble extends StatefulWidget {
+  final Color primaryColor;
+  final String label;
+  final VoidCallback onTap;
+
+  const _PulsatingBubble({
+    required this.primaryColor,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  State<_PulsatingBubble> createState() => _PulsatingBubbleState();
+}
+
+class _PulsatingBubbleState extends State<_PulsatingBubble>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat(reverse: true);
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.04).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Upward tail
+            Padding(
+              padding: const EdgeInsets.only(right: 14),
+              child: CustomPaint(
+                size: const Size(14, 8),
+                painter: _UpwardTailPainter(
+                  fillColor: Colors.white,
+                  borderColor: widget.primaryColor,
+                ),
+              ),
             ),
-            TextButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                // Clear session state first to prevent stale data on re-login
-                ref.read(sessionStateProvider.notifier).clearSession();
-                await ref.read(authStateProvider.notifier).signOut();
-              },
-              child: const Text(
-                'Logout',
-                style: TextStyle(color: Colors.red),
+            // Bubble body
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: widget.primaryColor, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Text(
+                widget.label,
+                style: TextStyle(
+                  color: widget.primaryColor,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ],
-        );
-      },
+        ),
+      ),
     );
   }
+}
+
+/// Paints an upward-pointing triangle tail for the speech bubble.
+class _UpwardTailPainter extends CustomPainter {
+  final Color fillColor;
+  final Color borderColor;
+
+  _UpwardTailPainter({required this.fillColor, required this.borderColor});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(0, size.height)
+      ..lineTo(size.width / 2, 0)
+      ..lineTo(size.width, size.height)
+      ..close();
+
+    canvas.drawPath(path, Paint()..color = fillColor);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = borderColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
+    // Cover the bottom border so it blends into the bubble
+    canvas.drawLine(
+      Offset(-1, size.height),
+      Offset(size.width + 1, size.height),
+      Paint()
+        ..color = fillColor
+        ..strokeWidth = 2,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

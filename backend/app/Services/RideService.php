@@ -69,6 +69,10 @@ class RideService
                 $destinationLocation->id
             );
 
+            if ($estimates === null) {
+                throw new \InvalidArgumentException('Distance exceeds maximum of 20 km');
+            }
+
             // Create ride request
             $rideRequest = RideRequest::create([
                 'rider_id' => $requestData['rider_id'],
@@ -210,7 +214,7 @@ class RideService
             // Only the currently-dispatched driver may accept.
             // current_driver_id is null when no driver has been assigned yet (edge-case
             // on very fast acceptance before the first dispatch completes).
-            if ($rideRequest->current_driver_id !== null && $rideRequest->current_driver_id !== $driverId) {
+            if ($rideRequest->current_driver_id !== $driverId) {
                 throw new \Exception('This ride request is assigned to another driver', 403);
             }
 
@@ -481,7 +485,7 @@ class RideService
             ));
             $suspended = true;
         } elseif ($newCount >= 2) {
-            $cooldownUntil = now()->addMinutes(5);
+            $cooldownUntil = now()->addMinutes(2);
             \Illuminate\Support\Facades\Cache::put($cooldownKey, $cooldownUntil->toIso8601String(), $cooldownUntil);
         }
 
@@ -629,7 +633,7 @@ class RideService
             }
 
             // Pass location IDs to enable route caching
-            return $this->calculateRideEstimates(
+            $estimates = $this->calculateRideEstimates(
                 $pickupLocation->coordinates->latitude,
                 $pickupLocation->coordinates->longitude,
                 $destinationLocation->coordinates->latitude,
@@ -638,6 +642,14 @@ class RideService
                 $pickupLocationId,          // NEW: Enable caching
                 $destinationLocationId       // NEW: Enable caching
             );
+
+            if ($estimates === null) {
+                throw new \InvalidArgumentException('Distance exceeds maximum of 20 km');
+            }
+
+            return $estimates;
+        } catch (\InvalidArgumentException $e) {
+            throw $e; // Re-throw distance cap errors
         } catch (\Exception $e) {
             Log::error('Failed to get ride estimates', [
                 'pickup_location_id' => $pickupLocationId,
@@ -670,7 +682,14 @@ class RideService
         int $passengerCount = 1,
         ?int $pickupLocationId = null,
         ?int $destLocationId = null
-    ): array {
+    ): ?array {
+        // Quick haversine pre-check: reject if straight-line distance > 20 km
+        // Driving distance is always >= straight-line, so this avoids a Mapbox call
+        $straightLineKm = $this->haversineDistanceKm($pickupLat, $pickupLng, $destLat, $destLng);
+        if ($straightLineKm > 20) {
+            return null;
+        }
+
         // Get driving details with route geometry (uses caching if IDs provided)
         $drivingDetails = $this->locationService->getDrivingDetails(
             $pickupLat,
@@ -684,8 +703,13 @@ class RideService
         $distanceKm = $drivingDetails['distance_meters'] / 1000;
         $durationMinutes = $drivingDetails['duration_minutes'];
 
-        // Calculate fare breakdown using campus-specific pricing
+        // Calculate fare breakdown using distance-based pricing
         $fareBreakdown = $this->calculateFareBreakdown($distanceKm, $durationMinutes, $passengerCount);
+
+        // Distance exceeds 20 km — ride not allowed
+        if ($fareBreakdown === null) {
+            return null;
+        }
 
         // Return mobile-friendly field names (camelCase)
         return [
@@ -706,47 +730,68 @@ class RideService
     }
 
     /**
-     * Campus-specific fare calculation with breakdown
+     * Distance-based fare calculation
+     *
+     * Returns null if distance exceeds 20 km (ride not allowed).
+     *
+     * Fare tiers:
+     *   < 1 km        → Rp 5,000
+     *   1–4.9 km      → Rp 5,000 + Rp 1,000 × floor(km)
+     *   5–6.9 km      → Rp 10,000 + Rp 1,000 × floor((km-5)/0.5)
+     *   7.0 km         → Rp 15,000
+     *   7.1–20 km     → tiered formula rising from Rp 17,000
+     *   > 20 km       → null (rejected)
      */
-    private function calculateFareBreakdown(float $distanceKm, int $durationMinutes, int $passengerCount = 1): array
+    private function calculateFareBreakdown(float $distanceKm, int $durationMinutes, int $passengerCount = 1): ?array
     {
-        // Campus fare structure:
-        // - Base fare: Rp 3,000
-        // - Distance: Rp 2,000 per km
-        // - Time: Rp 500 per minute (for long waits in traffic)
-        // - Passenger multiplier: +20% per additional passenger
+        $km = round($distanceKm, 1);
 
-        $baseFare = 3000;
-        $distanceFare = $distanceKm * 2000;
-        $timeFare = max(0, ($durationMinutes - 5)) * 500; // Free first 5 minutes
-
-        $totalFare = $baseFare + $distanceFare + $timeFare;
-
-        // Passenger multiplier
-        if ($passengerCount > 1) {
-            $multiplier = 1 + (($passengerCount - 1) * 0.2);
-            $totalFare *= $multiplier;
+        if ($km > 20) {
+            return null;
         }
 
-        // Minimum fare: Rp 5,000
-        // Maximum fare: Rp 50,000 (for campus rides)
-        $finalFare = max(5000, min(50000, (int) round($totalFare)));
+        if ($km < 1) {
+            $totalFare = 5000;
+        } elseif ($km < 5) {
+            $totalFare = 5000 + 1000 * floor($km);
+        } elseif ($km < 7) {
+            $totalFare = 10000 + 1000 * floor(($km - 5) / 0.5);
+        } elseif ($km < 7.1) {
+            $totalFare = 15000;
+        } else {
+            $n = floor((round($km * 10) - 71) / 10);
+            $totalFare = (17 + 3 * floor($n / 2) + ($n % 2)) * 1000;
+        }
 
         return [
-            'base_fare' => (int) $baseFare,
-            'distance_fare' => (int) round($distanceFare + $timeFare),
-            'total_fare' => $finalFare,
+            'base_fare' => (int) $totalFare,
+            'distance_fare' => 0,
+            'total_fare' => (int) $totalFare,
         ];
     }
 
     /**
-     * Campus-specific fare calculation (legacy method for backward compatibility)
+     * Fare calculation (legacy method for backward compatibility)
      */
-    private function calculateFare(float $distanceKm, int $durationMinutes, int $passengerCount = 1): int
+    private function calculateFare(float $distanceKm, int $durationMinutes, int $passengerCount = 1): ?int
     {
         $breakdown = $this->calculateFareBreakdown($distanceKm, $durationMinutes, $passengerCount);
 
-        return $breakdown['total_fare'];
+        return $breakdown ? $breakdown['total_fare'] : null;
+    }
+
+    /**
+     * Haversine straight-line distance in km between two coordinates.
+     */
+    private function haversineDistanceKm(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        $earthRadiusKm = 6371;
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLng = deg2rad($lng2 - $lng1);
+        $a = sin($dLat / 2) ** 2
+            + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLng / 2) ** 2;
+
+        return $earthRadiusKm * 2 * atan2(sqrt($a), sqrt(1 - $a));
     }
 
     /**
@@ -794,8 +839,10 @@ class RideService
         }
 
         if (isset($requestData['pickup_latitude'], $requestData['pickup_longitude'])) {
-            // Find the closest beacon for pickup
-            return $this->locationService->getClosestBeacon(
+            // P2P pickup — create or find an arbitrary location (same as destination path)
+            return $this->locationService->findOrCreateDestination(
+                $requestData['pickup_name'] ?? 'Custom Pickup',
+                $requestData['pickup_address'] ?? 'User-provided location',
                 $requestData['pickup_latitude'],
                 $requestData['pickup_longitude']
             );

@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/ride_request.dart';
 import '../../core/providers/api_provider.dart';
@@ -11,10 +13,13 @@ import '../../core/providers/driver_status_provider.dart';
 import '../../core/providers/driver_statistics_provider.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/kyc_provider.dart';
-import '../../core/providers/session_provider.dart';
 import 'ride_request_screen.dart';
 import 'active_ride_screen.dart';
 import 'driver_settings_screen.dart';
+import 'earnings_history_screen.dart';
+import 'driver_ride_history_screen.dart';
+import 'rating_history_screen.dart';
+import 'kyc_status_screen.dart';
 
 class DriverHomeScreen extends ConsumerStatefulWidget {
   const DriverHomeScreen({super.key});
@@ -58,6 +63,10 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     Future.microtask(() {
       ref.refresh(driverStatisticsProvider);
     });
+    // Prompt for location permission on first boot if not yet granted
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _checkAndRequestLocationPermission(),
+    );
 
     _incomingRequestSub = ref.listenManual<RideRequest?>(
       driverIncomingRequestProvider,
@@ -87,6 +96,28 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
           });
         }
 
+        // Detect online → offline transition (system kick)
+        if (previous != null &&
+            previous.isOnline &&
+            !next.isOnline) {
+          final reason = ref.read(driverStatusProvider.notifier).consumeKickReason();
+          if (reason != null && mounted) {
+            final l10n = AppLocalizations.of(context);
+            final message = switch (reason) {
+              'location_stale' => l10n.kickedStaleGps,
+              'zero_credits' => l10n.kickedZeroCredits,
+              _ => l10n.kickedGeneric,
+            };
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(message),
+                duration: const Duration(seconds: 6),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        }
+
         // Start location updates when online & idle; stop otherwise.
         if (next.isOnline && !next.hasActiveRide) {
           _startIdleLocationUpdates();
@@ -101,6 +132,44 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     if (status.isOnline && !status.hasActiveRide) {
       _startIdleLocationUpdates();
     }
+  }
+
+  Future<bool> _checkAndRequestLocationPermission() async {
+    final permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.whileInUse ||
+        permission == LocationPermission.always) {
+      return true;
+    }
+    if (permission == LocationPermission.denied) {
+      final result = await Geolocator.requestPermission();
+      return result == LocationPermission.whileInUse ||
+          result == LocationPermission.always;
+    }
+    // deniedForever — system dialog won't appear; direct them to settings
+    if (mounted) {
+      final l10n = AppLocalizations.of(context);
+      await showDialog<void>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: Text(l10n.locationPermissionTitle),
+          content: Text(l10n.locationPermissionMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Geolocator.openAppSettings();
+              },
+              child: Text(l10n.openSettings),
+            ),
+          ],
+        ),
+      );
+    }
+    return false;
   }
 
   void _startIdleLocationUpdates() {
@@ -174,6 +243,8 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
   }
 
   void _showCreditsInfoSheet(BuildContext context, int balance) {
+    final l10n = AppLocalizations.of(context);
+
     final Color accentColor = balance == 0
         ? Colors.red[700]!
         : balance < 5
@@ -181,16 +252,16 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
             : Colors.green[700]!;
 
     final String statusLabel = balance == 0
-        ? 'No credits'
+        ? l10n.noCreditsBalance
         : balance < 5
-            ? 'Low credits'
-            : 'Sufficient credits';
+            ? l10n.lowCreditsBalance
+            : l10n.sufficientCreditsBalance;
 
     final String statusMessage = balance == 0
-        ? 'You cannot go online or accept rides until your balance is topped up. Contact your admin.'
+        ? l10n.noCreditsMessage
         : balance < 5
-            ? 'Your balance is running low. You can still accept rides, but consider contacting admin to top up soon.'
-            : 'You have enough credits to go online and accept rides.';
+            ? l10n.lowCreditsMessage
+            : l10n.sufficientCreditsMessage;
 
     showModalBottomSheet(
       context: context,
@@ -208,9 +279,9 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
               children: [
                 Icon(Icons.toll_rounded, color: accentColor, size: 28),
                 const SizedBox(width: 10),
-                const Text(
-                  'Your Credits',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  l10n.yourCreditsTitle,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -248,22 +319,22 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
             const SizedBox(height: 16),
 
             // How credits work
-            const Text(
-              'How credits work',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            Text(
+              l10n.howCreditsWork,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const _CreditInfoRow(
+            _CreditInfoRow(
               icon: Icons.check_circle_outline,
-              text: '1 credit is deducted each time you accept a ride',
+              text: l10n.creditInfo1,
             ),
-            const _CreditInfoRow(
+            _CreditInfoRow(
               icon: Icons.block,
-              text: 'You need at least 1 credit to go online',
+              text: l10n.creditInfo2,
             ),
-            const _CreditInfoRow(
+            _CreditInfoRow(
               icon: Icons.admin_panel_settings_outlined,
-              text: 'Credits are granted by admin — contact them to top up',
+              text: l10n.creditInfo3,
             ),
             const SizedBox(height: 24),
 
@@ -273,7 +344,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
               child: FilledButton.icon(
                 onPressed: null, // TODO: implement top-up flow
                 icon: const Icon(Icons.add_card_outlined),
-                label: const Text('Top Up — Coming Soon'),
+                label: Text(l10n.topUpComingSoon),
               ),
             ),
           ],
@@ -285,6 +356,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
   @override
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
+    final l10n = AppLocalizations.of(context);
     final user = ref.watch(currentUserProvider);
     final driverStatus = ref.watch(driverStatusProvider);
     final statisticsAsync = ref.watch(driverStatisticsProvider);
@@ -306,7 +378,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                driverStatus.isOnline ? 'ONLINE' : 'OFFLINE',
+                driverStatus.isOnline ? l10n.statusOnlineLabel : l10n.statusOfflineLabel,
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
@@ -325,7 +397,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
               padding: const EdgeInsets.only(right: 4),
               child: ActionChip(
                 label: Text(
-                  'Credits: $balance',
+                  l10n.creditsChip(balance),
                   style: const TextStyle(
                     fontSize: 12,
                     color: Colors.white,
@@ -344,13 +416,6 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
             ),
           ).value ??
               const SizedBox.shrink(),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              _showLogoutDialog(context);
-            },
-            tooltip: 'Logout',
-          ),
         ],
       ),
       body: RefreshIndicator(
@@ -376,16 +441,16 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Welcome, ${user?.name ?? 'Driver'}!',
+                          l10n.welcomeDriver(user?.name ?? l10n.driverFallback),
                           style: Theme.of(context).textTheme.headlineSmall,
                         ),
                         const SizedBox(height: 8),
                         Text(
                           driverStatus.isOnline
                               ? driverStatus.hasActiveRide
-                                  ? 'You have an active ride'
-                                  : 'Waiting for ride requests...'
-                              : 'Go online to start receiving ride requests',
+                                  ? l10n.statusOnlineWithRide
+                                  : l10n.statusOnlineIdle
+                              : l10n.statusOfflineMessage,
                           style:
                               Theme.of(context).textTheme.bodyMedium?.copyWith(
                                     color: Colors.grey[600],
@@ -400,52 +465,56 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
 
                 // Queue Position Card (only when online and not in active ride)
                 if (driverStatus.isOnline && !driverStatus.hasActiveRide)
-                  Card(
-                    elevation: 2,
-                    color: driverStatus.queuePosition == 1
-                        ? Colors.green[50]
-                        : Colors.blue[50],
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.queue,
-                            size: 36,
-                            color: driverStatus.queuePosition == 1
-                                ? Colors.green
-                                : config.primaryColor,
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  driverStatus.queuePosition == 0
-                                      ? 'Joining queue...'
-                                      : driverStatus.queuePosition == 1
-                                          ? 'You\'re next in queue!'
-                                          : 'Queue Position: #${driverStatus.queuePosition}',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  driverStatus.queuePosition <= 1
-                                      ? 'The next ride request will come to you'
-                                      : '${driverStatus.queuePosition - 1} driver(s) ahead of you',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey[700],
-                                  ),
-                                ),
-                              ],
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: Card(
+                      key: ValueKey(driverStatus.queuePosition),
+                      elevation: 2,
+                      color: driverStatus.queuePosition == 1
+                          ? Colors.green[50]
+                          : Colors.blue[50],
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.queue,
+                              size: 36,
+                              color: driverStatus.queuePosition == 1
+                                  ? Colors.green
+                                  : config.primaryColor,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    driverStatus.queuePosition == 0
+                                        ? l10n.joiningQueue
+                                        : driverStatus.queuePosition == 1
+                                            ? l10n.youreNextInQueue
+                                            : l10n.queuePositionNumber(driverStatus.queuePosition),
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    driverStatus.queuePosition <= 1
+                                        ? l10n.nextRideComing
+                                        : l10n.driversAheadOfYou(driverStatus.queuePosition - 1),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey[700],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -462,7 +531,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Today\'s Earnings',
+                            l10n.todaysEarningsTitle,
                             style: Theme.of(context)
                                 .textTheme
                                 .titleMedium
@@ -471,38 +540,43 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                 ),
                           ),
                           const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Rp ${_formatCurrency(stats.todayEarnings)}',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineMedium
-                                        ?.copyWith(
-                                          color: config.primaryColor,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${stats.todayRides} rides completed today',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey[600],
+                          InkWell(
+                            onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const EarningsHistoryScreen())),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      l10n.currencyFormat(_formatCurrency(stats.todayEarnings)),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .headlineMedium
+                                          ?.copyWith(
+                                            color: config.primaryColor,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              Icon(
-                                Icons.account_balance_wallet,
-                                size: 48,
-                                color: config.primaryColor.withOpacity(0.3),
-                              ),
-                            ],
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      l10n.ridesCompletedToday(stats.todayRides),
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Icon(
+                                  Icons.chevron_right,
+                                  size: 28,
+                                  color: config.primaryColor.withValues(alpha: 0.5),
+                                ),
+                              ],
+                            ),
                           ),
                           const Divider(height: 24),
                           Row(
@@ -512,13 +586,17 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                 context,
                                 Icons.star,
                                 stats.rating.toStringAsFixed(1),
-                                'Rating',
+                                l10n.ratingLabel,
+                                onTap: () => Navigator.push(context,
+                                  MaterialPageRoute(builder: (_) => const RatingHistoryScreen())),
                               ),
                               _buildStatItem(
                                 context,
-                                Icons.directions_car,
+                                Icons.two_wheeler,
                                 stats.totalRides.toString(),
-                                'Total Rides',
+                                l10n.totalRidesLabel,
+                                onTap: () => Navigator.push(context,
+                                  MaterialPageRoute(builder: (_) => const DriverRideHistoryScreen())),
                               ),
                               _buildStatItem(
                                 context,
@@ -528,11 +606,13 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                         ? Icons.verified
                                         : Icons.pending_outlined,
                                 !(user?.isActive ?? true)
-                                    ? 'Suspended'
+                                    ? l10n.statusSuspended
                                     : stats.isVerified
-                                        ? 'Verified'
-                                        : 'Unverified',
-                                'Status',
+                                        ? l10n.statusVerified
+                                        : l10n.statusUnverified,
+                                l10n.statusLabel,
+                                onTap: () => Navigator.push(context,
+                                  MaterialPageRoute(builder: (_) => const KycStatusScreen())),
                               ),
                             ],
                           ),
@@ -559,7 +639,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                               size: 48, color: Colors.red),
                           const SizedBox(height: 8),
                           Text(
-                            'Unable to load statistics',
+                            l10n.unableToLoadStats,
                             style: TextStyle(color: Colors.grey[600]),
                           ),
                           const SizedBox(height: 8),
@@ -568,7 +648,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                               ref.invalidate(driverStatisticsProvider);
                             },
                             icon: const Icon(Icons.refresh),
-                            label: const Text('Retry'),
+                            label: Text(l10n.retry),
                           ),
                         ],
                       ),
@@ -588,14 +668,14 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                       child: Column(
                         children: [
                           const Icon(
-                            Icons.local_taxi,
+                            Icons.two_wheeler,
                             size: 48,
                             color: Colors.blue,
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'You have an active ride',
-                            style: TextStyle(
+                          Text(
+                            l10n.youHaveActiveRide,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
@@ -618,7 +698,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                               backgroundColor: Colors.blue,
                               foregroundColor: Colors.white,
                             ),
-                            child: const Text('View Active Ride'),
+                            child: Text(l10n.viewActiveRide),
                           ),
                         ],
                       ),
@@ -642,9 +722,9 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'Your account has been suspended. Contact admin.',
-                                  style: TextStyle(
+                                Text(
+                                  l10n.accountSuspendedContactAdmin,
+                                  style: const TextStyle(
                                     color: Colors.red,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -652,7 +732,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                                 if (kycSubmission?.suspendReason != null) ...[
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Reason: ${kycSubmission!.suspendReason}',
+                                    l10n.suspensionReason(kycSubmission!.suspendReason!),
                                     style: TextStyle(
                                       color: Colors.red[700],
                                       fontSize: 13,
@@ -678,10 +758,10 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                           const Icon(Icons.hourglass_top_rounded,
                               color: Colors.orange, size: 28),
                           const SizedBox(width: 12),
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'Your account is pending admin approval. You cannot go online until approved.',
-                              style: TextStyle(color: Colors.deepOrange),
+                              l10n.pendingApprovalBanner,
+                              style: const TextStyle(color: Colors.deepOrange),
                             ),
                           ),
                         ],
@@ -731,10 +811,10 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                               const Icon(Icons.credit_card_off,
                                   color: Colors.red, size: 28),
                               const SizedBox(width: 12),
-                              const Expanded(
+                              Expanded(
                                 child: Text(
-                                  'You have no credits. Contact admin to top up before going online.',
-                                  style: TextStyle(color: Colors.red),
+                                  l10n.noCreditsWarning,
+                                  style: const TextStyle(color: Colors.red),
                                 ),
                               ),
                             ],
@@ -753,9 +833,8 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  'Low credits: $balance remaining. Contact admin to top up soon.',
-                                  style:
-                                      const TextStyle(color: Colors.deepOrange),
+                                  l10n.lowCreditsWarning(balance),
+                                  style: const TextStyle(color: Colors.deepOrange),
                                 ),
                               ),
                             ],
@@ -775,10 +854,11 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () {
-                          // TODO: Navigate to earnings history
+                          Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const DriverRideHistoryScreen()));
                         },
                         icon: const Icon(Icons.history),
-                        label: const Text('Earnings History'),
+                        label: Text(l10n.rideHistoryButton),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
@@ -796,7 +876,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
                           );
                         },
                         icon: const Icon(Icons.settings),
-                        label: const Text('Settings'),
+                        label: Text(l10n.settingsButton),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
@@ -818,31 +898,40 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     BuildContext context,
     IconData icon,
     String value,
-    String label,
-  ) {
-    return Column(
-      children: [
-        Icon(icon, size: 24, color: AppConfig.instance.primaryColor),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+    String label, {
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Column(
+          children: [
+            Icon(icon, size: 24, color: AppConfig.instance.primaryColor),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
         ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
+      ),
     );
   }
 
   Widget _buildFloatingActionButton(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final driverStatus = ref.watch(driverStatusProvider);
     final user = ref.watch(currentUserProvider);
     final isDriverVerified = ref.watch(isDriverVerifiedProvider);
@@ -859,7 +948,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
             valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
           ),
         ),
-        label: const Text('Loading Profile...'),
+        label: Text(l10n.loadingProfile),
         backgroundColor: Colors.grey,
       );
     }
@@ -875,7 +964,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
             valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
           ),
         ),
-        label: const Text('Loading...'),
+        label: Text(l10n.loading),
         backgroundColor: Colors.grey,
       );
     }
@@ -886,10 +975,11 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         onPressed: driverStatus.hasActiveRide
             ? null
             : () async {
+                HapticFeedback.mediumImpact();
                 await ref.read(driverStatusProvider.notifier).goOffline();
               },
         icon: const Icon(Icons.stop),
-        label: Text(driverStatus.hasActiveRide ? 'Active Ride' : 'Go Offline'),
+        label: Text(driverStatus.hasActiveRide ? l10n.activeRideButton : l10n.goOfflineButton),
         backgroundColor: driverStatus.hasActiveRide ? Colors.grey : Colors.red,
         foregroundColor: Colors.white,
       );
@@ -901,6 +991,9 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     return FloatingActionButton.extended(
       onPressed: canGoOnline
           ? () async {
+              HapticFeedback.mediumImpact();
+              final hasPermission = await _checkAndRequestLocationPermission();
+              if (!hasPermission || !mounted) return;
               await ref.read(driverStatusProvider.notifier).goOnline();
               final error = ref.read(driverStatusProvider).error;
               if (error != null && error.contains('credit') && mounted) {
@@ -911,7 +1004,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
             }
           : null,
       icon: const Icon(Icons.play_arrow),
-      label: const Text('Go Online'),
+      label: Text(l10n.goOnlineButton),
       backgroundColor: canGoOnline ? AppConfig.instance.primaryColor : Colors.grey,
       foregroundColor: Colors.white,
     );
@@ -927,39 +1020,6 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     return amount.toStringAsFixed(0);
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Logout'),
-          content: const Text('Are you sure you want to logout?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                // Clear session state first to prevent stale data on re-login
-                ref.read(sessionStateProvider.notifier).clearSession();
-                await ref.read(authStateProvider.notifier).signOut();
-                // No need to navigate - AuthenticationWrapper will automatically
-                // show LoginScreen when isAuthenticated becomes false
-              },
-              child: const Text(
-                'Logout',
-                style: TextStyle(color: Colors.red),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
 }
 
 class _CreditInfoRow extends StatelessWidget {
@@ -985,4 +1045,3 @@ class _CreditInfoRow extends StatelessWidget {
     );
   }
 }
-

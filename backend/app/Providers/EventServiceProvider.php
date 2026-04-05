@@ -18,6 +18,26 @@ class EventServiceProvider extends ServiceProvider
         Registered::class => [
             SendEmailVerificationNotification::class,
         ],
+        \App\Events\RideStatusUpdated::class => [
+            \App\Listeners\BroadcastAdminRideStatusUpdate::class,
+            \App\Listeners\BroadcastAdminDriverRejoined::class,
+        ],
+        \App\Events\NewRideRequest::class => [
+            \App\Listeners\BroadcastAdminNewRideRequest::class,
+            \App\Listeners\BroadcastAdminMatchingDispatch::class,
+        ],
+        \App\Events\RideRequestCancelled::class => [
+            \App\Listeners\BroadcastAdminRideRequestCancelled::class,
+        ],
+        \App\Events\DriverOnlineStatusChanged::class => [
+            \App\Listeners\BroadcastAdminDriverStatusChange::class,
+        ],
+        \App\Events\DriverKycStatusChanged::class => [
+            \App\Listeners\BroadcastAdminKycUpdate::class,
+        ],
+        \App\Events\DriverCreditsUpdated::class => [
+            \App\Listeners\BroadcastAdminCreditsUpdate::class,
+        ],
     ];
 
     /**

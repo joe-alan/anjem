@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\PlaceController;
 use App\Http\Controllers\Api\RequestController;
 use App\Http\Controllers\Api\RideController;
 use App\Http\Controllers\Api\SessionController;
+use App\Http\Controllers\Api\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -47,6 +48,9 @@ Route::prefix('v1')->group(function () {
     // Public place search endpoint (no auth required)
     Route::get('places/search', [PlaceController::class, 'search'])->middleware('throttle:60,1');
 
+    // Resolve (find or create) a location — requires auth to prevent abuse
+    Route::post('places/resolve', [PlaceController::class, 'resolve'])->middleware(['auth:sanctum', 'throttle:30,1']);
+
     // Protected routes - General rate limiting
     Route::middleware(['auth:sanctum', 'throttle:100,1'])->group(function () {
 
@@ -58,6 +62,10 @@ Route::prefix('v1')->group(function () {
             ]);
         });
 
+        Route::patch('user', [UserController::class, 'update']);
+        Route::post('user/avatar', [UserController::class, 'updateAvatar']);
+        Route::delete('user', [UserController::class, 'destroy']);
+
         Route::get('session/resume', [SessionController::class, 'resume']);
 
         // Rider routes
@@ -65,6 +73,7 @@ Route::prefix('v1')->group(function () {
             Route::get('estimates', [RequestController::class, 'getEstimates']);
             Route::post('/', [RequestController::class, 'store']);
             Route::get('{ride_request}', [RequestController::class, 'show']);
+            Route::get('{ride_request}/nearby-drivers', [RequestController::class, 'nearbyDrivers']);
             Route::patch('{ride_request}/cancel', [RequestController::class, 'cancel']);
             Route::get('/', [RequestController::class, 'index']);
         });
@@ -78,6 +87,7 @@ Route::prefix('v1')->group(function () {
                 Route::post('send-code', [\App\Http\Controllers\Api\DriverKycController::class, 'sendVerificationCode']);
                 Route::post('verify-email', [\App\Http\Controllers\Api\DriverKycController::class, 'verifyEmail']);
                 Route::get('status', [\App\Http\Controllers\Api\DriverKycController::class, 'getKycStatus']);
+                Route::delete('revoke', [\App\Http\Controllers\Api\DriverKycController::class, 'revokeKyc']);
             });
 
             Route::post('online', [DriverController::class, 'goOnline']);

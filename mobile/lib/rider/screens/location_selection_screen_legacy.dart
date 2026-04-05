@@ -1,6 +1,9 @@
+// LEGACY: Replaced by LocationSearchScreen (Gojek-style map-first flow).
+// Kept for reference — do not use in new code.
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/lat_lng.dart';
 import '../../core/models/place_search_result.dart';
@@ -48,21 +51,21 @@ class _LocationSelectionScreenState
       return;
     }
 
-    setState(() {
-      _isSearching = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isSearching = true;
+      });
+    }
 
     _debounceTimer = Timer(const Duration(milliseconds: 500), () {
-      _performSearch();
+      if (mounted) _performSearch();
     });
   }
 
   Future<void> _performSearch() async {
     final query = _searchController.text.trim();
     if (query.length < 2) {
-      setState(() {
-        _isSearching = false;
-      });
+      if (mounted) setState(() => _isSearching = false);
       return;
     }
 
@@ -70,24 +73,23 @@ class _LocationSelectionScreenState
     await ref.read(placeSearchProvider.notifier).search(
       query: query,
       userLocation: userLocation,
-      radius: 5.0,
+      radius: 15.0,
       limit: 20,
     );
 
-    setState(() {
-      _isSearching = false;
-    });
+    if (mounted) setState(() => _isSearching = false);
   }
 
   @override
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
+    final l10n = AppLocalizations.of(context);
     final searchState = ref.watch(placeSearchProvider);
     final searchResults = searchState.results;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Select Locations'),
+        title: Text(l10n.selectLocationsTitle),
         backgroundColor: config.primaryColor,
         foregroundColor: Colors.white,
       ),
@@ -99,7 +101,7 @@ class _LocationSelectionScreenState
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search locations (gates, canteens, faculties...)',
+                hintText: l10n.searchLocationsHint,
                 prefixIcon: _isSearching || searchState.isLoading
                     ? const Padding(
                         padding: EdgeInsets.all(12.0),
@@ -148,7 +150,7 @@ class _LocationSelectionScreenState
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Pickup: ${_pickupLocation!.name}',
+                                '${l10n.pickupLabel}: ${_pickupLocation!.name}',
                                 style: const TextStyle(fontWeight: FontWeight.w600),
                               ),
                               if (_pickupLocation!.address != null)
@@ -183,7 +185,7 @@ class _LocationSelectionScreenState
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Destination: ${_destinationLocation!.name}',
+                                '${l10n.dropOffLabel}: ${_destinationLocation!.name}',
                                 style: const TextStyle(fontWeight: FontWeight.w600),
                               ),
                               if (_destinationLocation!.address != null)
@@ -231,10 +233,10 @@ class _LocationSelectionScreenState
                 ? Center(
                     child: Text(
                       searchState.isLoading || _isSearching
-                          ? 'Searching...'
+                          ? l10n.searchingText
                           : _searchController.text.isEmpty
-                              ? 'Start typing to search for locations'
-                              : 'No results found',
+                              ? l10n.startTypingHint
+                              : l10n.noResultsFound,
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                   )
@@ -281,7 +283,7 @@ class _LocationSelectionScreenState
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
-                                      'Beacon',
+                                      l10n.beaconLabel,
                                       style: TextStyle(
                                         fontSize: 10,
                                         color: Colors.blue[900],
@@ -323,7 +325,7 @@ class _LocationSelectionScreenState
                                     _pickupLocation = place;
                                   });
                                 },
-                                child: const Text('Pickup'),
+                                child: Text(l10n.pickupLabel),
                               ),
                             if (!isDestination &&
                                 _destinationLocation == null &&
@@ -334,7 +336,7 @@ class _LocationSelectionScreenState
                                     _destinationLocation = place;
                                   });
                                 },
-                                child: const Text('Drop-off'),
+                                child: Text(l10n.dropOffLabel),
                               ),
                           ],
                         ),
@@ -346,95 +348,88 @@ class _LocationSelectionScreenState
           // Continue button
           if (_pickupLocation != null && _destinationLocation != null)
             Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoadingEstimate
-                      ? null
-                      : () async {
-                          // Check if both locations have IDs (exist in database)
-                          if (_pickupLocation!.id == null ||
-                              _destinationLocation!.id == null) {
-                            // Show error: only support database locations for now
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Could not resolve one of the selected locations. Please try searching again.',
-                                ),
-                                backgroundColor: Colors.orange,
-                              ),
-                            );
-                            return;
-                          }
+      padding: const EdgeInsets.all(16.0),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: _isLoadingEstimate
+              ? null
+              : () async {
+                  if (_pickupLocation!.id == null ||
+                      _destinationLocation!.id == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(l10n.locationResolveFailed),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                    return;
+                  }
 
-                          setState(() {
-                            _isLoadingEstimate = true;
-                          });
+                  setState(() {
+                    _isLoadingEstimate = true;
+                  });
 
-                          try {
-                            // Safe extraction of IDs (already validated above)
-                            final pickupId = _pickupLocation!.id;
-                            final destinationId = _destinationLocation!.id;
+                  try {
+                    final pickupId = _pickupLocation!.id;
+                    final destinationId = _destinationLocation!.id;
 
-                            // Double-check IDs are not null (shouldn't happen due to check above)
-                            if (pickupId == null || destinationId == null) {
-                              throw Exception('Location IDs are null. Please select valid beacons.');
-                            }
+                    if (pickupId == null || destinationId == null) {
+                      throw Exception('Location IDs are null. Please select valid beacons.');
+                    }
 
-                            // Get fare estimate with non-null IDs
-                            await ref
-                                .read(rideRequestProvider.notifier)
-                                .getEstimate(
-                                  pickupBeaconId: pickupId,
-                                  destinationBeaconId: destinationId,
-                                );
+                    await ref
+                        .read(rideRequestProvider.notifier)
+                        .getEstimate(
+                          pickupBeaconId: pickupId,
+                          destinationBeaconId: destinationId,
+                        );
 
-                            if (!mounted) return;
+                    if (!mounted) return;
 
-                            // Navigate to ride details with PlaceSearchResults directly
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => RideDetailsScreen(
-                                  pickupLocation: _pickupLocation!,
-                                  destinationLocation: _destinationLocation!,
-                                ),
-                              ),
-                            );
-                          } catch (e) {
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Failed to get estimate: ${e.toString()}'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          } finally {
-                            if (mounted) {
-                              setState(() {
-                                _isLoadingEstimate = false;
-                              });
-                            }
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: config.primaryColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: _isLoadingEstimate
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : const Text(
-                          'Continue',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => RideDetailsScreen(
+                          pickupLocation: _pickupLocation!,
+                          destinationLocation: _destinationLocation!,
                         ),
+                      ),
+                    );
+                  } catch (e) {
+                    if (!mounted) return;
+                    final l10nErr = AppLocalizations.of(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(l10nErr.estimateFailed(e.toString())),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  } finally {
+                    if (mounted) {
+                      setState(() {
+                        _isLoadingEstimate = false;
+                      });
+                    }
+                  }
+                },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: config.primaryColor,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+          ),
+          child: _isLoadingEstimate
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : Text(
+                  l10n.continueButton,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
                 ),
               ),
             ),

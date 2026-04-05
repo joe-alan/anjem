@@ -6,25 +6,31 @@ import 'active_ride_provider.dart';
 // Ride History State
 class RideHistoryState {
   final List<Ride> rides;
+  final int unratedCount;
   final bool isLoading;
   final String? error;
-  final String? selectedFilter; // 'all', 'completed', 'cancelled'
+  final String selectedFilter; // 'all', 'completed', 'cancelled', 'unrated'
 
   const RideHistoryState({
     this.rides = const [],
+    this.unratedCount = 0,
     this.isLoading = false,
     this.error,
     this.selectedFilter = 'all',
   });
 
+  bool get hasUnrated => unratedCount > 0;
+
   RideHistoryState copyWith({
     List<Ride>? rides,
+    int? unratedCount,
     bool? isLoading,
     String? error,
     String? selectedFilter,
   }) {
     return RideHistoryState(
       rides: rides ?? this.rides,
+      unratedCount: unratedCount ?? this.unratedCount,
       isLoading: isLoading ?? this.isLoading,
       error: error,
       selectedFilter: selectedFilter ?? this.selectedFilter,
@@ -36,25 +42,42 @@ class RideHistoryState {
 class RideHistoryNotifier extends StateNotifier<RideHistoryState> {
   final RideService _service;
 
+  /// Cache of ALL rides (unfiltered) — used to derive unratedCount
+  List<Ride> _allRides = [];
+
   RideHistoryNotifier(this._service) : super(const RideHistoryState()) {
-    loadRides();
+    _loadAll();
   }
 
-  Future<void> loadRides({String? status}) async {
+  /// Always fetches all rides, updates unratedCount, then applies the active filter.
+  Future<void> _loadAll() async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final rides = await _service.getUserRides(status: status);
+      _allRides = await _service.getUserRides();
+      final unrated = _allRides.where((r) => r.canRate).length;
+
       state = state.copyWith(
-        rides: rides,
+        rides: _applyFilter(_allRides, state.selectedFilter),
+        unratedCount: unrated,
         isLoading: false,
         error: null,
       );
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  List<Ride> _applyFilter(List<Ride> rides, String filter) {
+    switch (filter) {
+      case 'completed':
+        return rides.where((r) => r.status == RideStatus.completed).toList();
+      case 'cancelled':
+        return rides.where((r) => r.status == RideStatus.cancelled).toList();
+      case 'unrated':
+        return rides.where((r) => r.canRate).toList();
+      default:
+        return rides;
     }
   }
 
@@ -72,31 +95,20 @@ class RideHistoryNotifier extends StateNotifier<RideHistoryState> {
         feedback: feedback,
       );
 
-      // Reload rides to get updated data
-      await loadRides();
+      await _loadAll();
     } catch (e) {
       state = state.copyWith(error: e.toString());
     }
   }
 
   void setFilter(String filter) {
-    state = state.copyWith(selectedFilter: filter);
-
-    // Reload with filter
-    if (filter == 'all') {
-      loadRides();
-    } else {
-      loadRides(status: filter);
-    }
+    state = state.copyWith(
+      selectedFilter: filter,
+      rides: _applyFilter(_allRides, filter),
+    );
   }
 
-  void refresh() {
-    if (state.selectedFilter == 'all') {
-      loadRides();
-    } else {
-      loadRides(status: state.selectedFilter);
-    }
-  }
+  void refresh() => _loadAll();
 
   void clearError() {
     state = state.copyWith(error: null);

@@ -2,13 +2,22 @@ import '../api/api_service.dart';
 import '../../models/ride_request.dart';
 import '../../models/fare_estimate.dart';
 
+/// Thrown when the rider is in a cooldown period and cannot create requests.
+class CooldownException implements Exception {
+  final String message;
+  final String? cooldownUntil;
+  CooldownException(this.message, {this.cooldownUntil});
+  @override
+  String toString() => message;
+}
+
 class RideRequestService {
   final ApiService _apiService;
 
   RideRequestService({required ApiService apiService})
       : _apiService = apiService;
 
-  /// Get fare estimate for a route
+  /// Get fare estimate for a route (by location IDs)
   Future<FareEstimate> getEstimate({
     required int pickupBeaconId,
     required int destinationBeaconId,
@@ -36,7 +45,39 @@ class RideRequestService {
     }
   }
 
-  /// Create a new ride request
+  /// Get fare estimate by coordinates (P2P flow)
+  Future<FareEstimate> getEstimateByCoordinates({
+    required double pickupLat,
+    required double pickupLng,
+    required double destLat,
+    required double destLng,
+    int passengerCount = 1,
+  }) async {
+    try {
+      final response = await _apiService.get('/requests/estimates', queryParameters: {
+        'pickup_latitude': pickupLat,
+        'pickup_longitude': pickupLng,
+        'destination_latitude': destLat,
+        'destination_longitude': destLng,
+        'passenger_count': passengerCount,
+      });
+
+      if (response.data['success'] != true) {
+        throw Exception(
+          response.data['message'] ?? 'Failed to get fare estimate',
+        );
+      }
+
+      return FareEstimate.fromJson(
+        response.data['data'] as Map<String, dynamic>,
+      );
+    } catch (e) {
+      print('RideRequestService: Error getting coordinate estimate - $e');
+      rethrow;
+    }
+  }
+
+  /// Create a new ride request (by location IDs)
   Future<RideRequest> createRequest({
     required int pickupBeaconId,
     required int destinationBeaconId,
@@ -53,6 +94,12 @@ class RideRequestService {
       });
 
       if (response.data['success'] != true) {
+        if (response.statusCode == 429 && response.data['data'] is Map) {
+          throw CooldownException(
+            response.data['message'] ?? 'Please wait before requesting',
+            cooldownUntil: (response.data['data'] as Map)['cooldown_until'] as String?,
+          );
+        }
         throw Exception(
           response.data['message'] ?? 'Failed to create ride request',
         );
@@ -63,6 +110,51 @@ class RideRequestService {
       );
     } catch (e) {
       print('RideRequestService: Error creating request - $e');
+      rethrow;
+    }
+  }
+
+  /// Create a new ride request by coordinates (P2P flow)
+  Future<RideRequest> createRequestByCoordinates({
+    required double pickupLat,
+    required double pickupLng,
+    required String pickupName,
+    required double destLat,
+    required double destLng,
+    required String destName,
+    required int passengerCount,
+    String? specialRequests,
+  }) async {
+    try {
+      final response = await _apiService.post('/requests', data: {
+        'pickup_latitude': pickupLat,
+        'pickup_longitude': pickupLng,
+        'pickup_name': pickupName,
+        'destination_latitude': destLat,
+        'destination_longitude': destLng,
+        'destination_name': destName,
+        'passenger_count': passengerCount,
+        if (specialRequests != null && specialRequests.isNotEmpty)
+          'special_requests': specialRequests,
+      });
+
+      if (response.data['success'] != true) {
+        if (response.statusCode == 429 && response.data['data'] is Map) {
+          throw CooldownException(
+            response.data['message'] ?? 'Please wait before requesting',
+            cooldownUntil: (response.data['data'] as Map)['cooldown_until'] as String?,
+          );
+        }
+        throw Exception(
+          response.data['message'] ?? 'Failed to create ride request',
+        );
+      }
+
+      return RideRequest.fromJson(
+        response.data['data'] as Map<String, dynamic>,
+      );
+    } catch (e) {
+      print('RideRequestService: Error creating coordinate request - $e');
       rethrow;
     }
   }

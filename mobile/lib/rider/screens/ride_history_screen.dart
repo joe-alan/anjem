@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import '../../core/config/app_config.dart';
 import '../../core/models/ride.dart';
 import '../../core/providers/ride_history_provider.dart';
+import 'completed_screen.dart';
 
 class RideHistoryScreen extends ConsumerWidget {
   const RideHistoryScreen({super.key});
@@ -12,10 +14,11 @@ class RideHistoryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final config = AppConfig.instance;
     final historyState = ref.watch(rideHistoryProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ride History'),
+        title: Text(l10n.rideHistoryTitle),
         backgroundColor: config.primaryColor,
         foregroundColor: Colors.white,
       ),
@@ -28,14 +31,14 @@ class RideHistoryScreen extends ConsumerWidget {
             child: Row(
               children: [
                 _FilterChip(
-                  label: 'All',
+                  label: l10n.filterAll,
                   isSelected: historyState.selectedFilter == 'all',
                   onTap: () =>
                       ref.read(rideHistoryProvider.notifier).setFilter('all'),
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: 'Completed',
+                  label: l10n.filterCompleted,
                   isSelected: historyState.selectedFilter == 'completed',
                   onTap: () => ref
                       .read(rideHistoryProvider.notifier)
@@ -43,11 +46,21 @@ class RideHistoryScreen extends ConsumerWidget {
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: 'Cancelled',
+                  label: l10n.filterCancelled,
                   isSelected: historyState.selectedFilter == 'cancelled',
                   onTap: () => ref
                       .read(rideHistoryProvider.notifier)
                       .setFilter('cancelled'),
+                ),
+                const SizedBox(width: 8),
+                _FilterChip(
+                  label: l10n.notRatedYet,
+                  isSelected: historyState.selectedFilter == 'unrated',
+                  highlighted: historyState.selectedFilter != 'unrated' &&
+                      historyState.hasUnrated,
+                  onTap: () => ref
+                      .read(rideHistoryProvider.notifier)
+                      .setFilter('unrated'),
                 ),
               ],
             ),
@@ -69,7 +82,7 @@ class RideHistoryScreen extends ConsumerWidget {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'No rides yet',
+                              l10n.noRidesYet,
                               style: TextStyle(
                                 fontSize: 18,
                                 color: Colors.grey[600],
@@ -82,12 +95,16 @@ class RideHistoryScreen extends ConsumerWidget {
                         onRefresh: () async {
                           ref.read(rideHistoryProvider.notifier).refresh();
                         },
-                        child: ListView.builder(
-                          itemCount: historyState.rides.length,
-                          itemBuilder: (context, index) {
-                            final ride = historyState.rides[index];
-                            return _RideHistoryItem(ride: ride);
-                          },
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: ListView.builder(
+                            key: ValueKey(historyState.selectedFilter),
+                            itemCount: historyState.rides.length,
+                            itemBuilder: (context, index) {
+                              final ride = historyState.rides[index];
+                              return _RideHistoryItem(ride: ride);
+                            },
+                          ),
                         ),
                       ),
           ),
@@ -100,12 +117,14 @@ class RideHistoryScreen extends ConsumerWidget {
 class _FilterChip extends StatelessWidget {
   final String label;
   final bool isSelected;
+  final bool highlighted;
   final VoidCallback onTap;
 
   const _FilterChip({
     required this.label,
     required this.isSelected,
     required this.onTap,
+    this.highlighted = false,
   });
 
   @override
@@ -117,15 +136,42 @@ class _FilterChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? config.primaryColor : Colors.grey[200],
+          color: isSelected
+              ? config.primaryColor
+              : highlighted
+                  ? Colors.orange.shade50
+                  : Colors.grey[200],
           borderRadius: BorderRadius.circular(20),
+          border: highlighted && !isSelected
+              ? Border.all(color: Colors.orange, width: 1.5)
+              : null,
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black87,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (highlighted && !isSelected) ...[
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: Colors.orange,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected
+                    ? Colors.white
+                    : highlighted
+                        ? Colors.orange.shade800
+                        : Colors.black87,
+                fontWeight: (isSelected || highlighted) ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -140,6 +186,7 @@ class _RideHistoryItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final config = AppConfig.instance;
+    final l10n = AppLocalizations.of(context);
     final dateFormat = DateFormat('MMM dd, yyyy • hh:mm a');
 
     return Card(
@@ -168,7 +215,32 @@ class _RideHistoryItem extends StatelessWidget {
                       color: Colors.grey[600],
                     ),
                   ),
-                  _StatusChip(status: ride.status),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (ride.canRate)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.orange),
+                            ),
+                            child: Text(
+                              l10n.notRatedYet,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.orange,
+                              ),
+                            ),
+                          ),
+                        ),
+                      _StatusChip(status: ride.status),
+                    ],
+                  ),
                 ],
               ),
 
@@ -211,7 +283,7 @@ class _RideHistoryItem extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Rp ${ride.fare.toStringAsFixed(0)}',
+                    l10n.currencyFormat(ride.fare.toStringAsFixed(0)),
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -248,17 +320,18 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     Color color;
     String text;
 
     switch (status) {
       case RideStatus.completed:
         color = Colors.green;
-        text = 'Completed';
+        text = l10n.filterCompleted;
         break;
       case RideStatus.cancelled:
         color = Colors.red;
-        text = 'Cancelled';
+        text = l10n.filterCancelled;
         break;
       default:
         color = Colors.grey;
@@ -291,43 +364,44 @@ class _RideDetailsDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final dateFormat = DateFormat('MMM dd, yyyy • hh:mm a');
 
     return AlertDialog(
-      title: const Text('Ride Details'),
+      title: Text(l10n.rideDetailsTitle),
       content: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             _DetailRow(
-              label: 'Date',
+              label: l10n.dateLabel,
               value: dateFormat.format(ride.createdAt),
             ),
             _DetailRow(
-              label: 'From',
+              label: l10n.fromLabel,
               value: ride.pickupLocation.name,
             ),
             _DetailRow(
-              label: 'To',
+              label: l10n.toLabel,
               value: ride.destinationLocation.name,
             ),
             _DetailRow(
-              label: 'Fare',
-              value: 'Rp ${ride.fare.toStringAsFixed(0)}',
+              label: l10n.fareLabel,
+              value: l10n.currencyFormat(ride.fare.toStringAsFixed(0)),
             ),
             if (ride.driver != null)
               _DetailRow(
-                label: 'Driver',
+                label: l10n.driverLabel,
                 value: ride.driver!.name,
               ),
             _DetailRow(
-              label: 'Passengers',
+              label: l10n.passengerCountTitle,
               value: '${ride.passengerCount}',
             ),
             if (ride.specialRequests != null)
               _DetailRow(
-                label: 'Special Requests',
+                label: l10n.specialRequestsTitle,
                 value: ride.specialRequests!,
               ),
           ],
@@ -336,8 +410,21 @@ class _RideDetailsDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
+          child: Text(l10n.close),
         ),
+        if (ride.canRate)
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => CompletedScreen(ride: ride, fromHistory: true),
+                ),
+              );
+            },
+            icon: const Icon(Icons.star, size: 18),
+            label: Text(l10n.rateButton),
+          ),
       ],
     );
   }

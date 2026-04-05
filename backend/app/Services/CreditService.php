@@ -59,6 +59,43 @@ class CreditService
     }
 
     /**
+     * Refund one credit to a driver after a rider-initiated pre-pickup cancellation.
+     */
+    public function refundCredit(int $driverId, int $rideId): void
+    {
+        DB::transaction(function () use ($driverId, $rideId) {
+            // Idempotency: skip if already refunded for this ride
+            $alreadyRefunded = CreditTransaction::where('ride_id', $rideId)
+                ->where('type', 'refund')
+                ->exists();
+
+            if ($alreadyRefunded) {
+                return;
+            }
+
+            $profile = DriverProfile::where('user_id', $driverId)->lockForUpdate()->first();
+            if (! $profile) {
+                throw new \RuntimeException("Driver profile not found for user {$driverId}");
+            }
+
+            $balanceBefore = $profile->credits_balance;
+            $profile->credits_balance     = $balanceBefore + 1;
+            $profile->credits_total_spent = max(0, $profile->credits_total_spent - 1);
+            $profile->save();
+
+            CreditTransaction::create([
+                'driver_id'      => $driverId,
+                'type'           => 'refund',
+                'amount'         => 1,
+                'balance_before' => $balanceBefore,
+                'balance_after'  => $balanceBefore + 1,
+                'ride_id'        => $rideId,
+                'description'    => 'Rider-initiated cancellation refund',
+            ]);
+        });
+    }
+
+    /**
      * Add credits to a driver (admin grant or refund).
      */
     public function addCredits(int $driverId, int $amount, string $description = 'Admin grant'): void

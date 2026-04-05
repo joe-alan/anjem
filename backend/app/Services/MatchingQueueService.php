@@ -11,6 +11,7 @@ use App\Jobs\ExpireRideRequest;
 use App\Jobs\HandleRequestTimeout;
 use App\Models\DriverProfile;
 use App\Models\RideRequest;
+use App\Models\Ride;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -54,8 +55,8 @@ class MatchingQueueService
     // Rider cooldown after cancel/expire
     private const RIDER_COOLDOWN_SECONDS = 60;
 
-    // Safety-net timeout job delay (slightly longer than the mobile 30s UI timer)
-    private const TIMEOUT_JOB_DELAY_SECONDS = 35;
+    // Safety-net timeout job delay (slightly longer than the mobile 15s UI timer)
+    private const TIMEOUT_JOB_DELAY_SECONDS = 18;
 
     // Countdown shown to rider when no drivers are available before expiry
     private const NO_DRIVERS_COUNTDOWN_SECONDS = 60;
@@ -108,6 +109,7 @@ class MatchingQueueService
         ]);
 
         $this->broadcastAllQueuePositions();
+        $this->sweepOrphanedRequests($driverId);
 
         Log::info('Driver rejoined matching queue after ride completion', ['driver_id' => $driverId]);
     }
@@ -157,6 +159,14 @@ class MatchingQueueService
             ->where('is_verified', true)
             ->whereNotNull('went_online_at')
             ->whereNotIn('user_id', $excludedDriverIds)
+            // Exclude drivers currently being offered another pending request
+            ->whereNotIn('user_id', function ($q) use ($rideRequest) {
+                $q->select('current_driver_id')
+                  ->from('ride_requests')
+                  ->where('status', 'pending')
+                  ->whereNotNull('current_driver_id')
+                  ->where('id', '!=', $rideRequest->id);
+            })
             ->whereDoesntHave('user', function ($q) {
                 $q->whereHas('driverRides', function ($rq) {
                     $rq->whereIn('status', ['accepted', 'driver_arrived', 'in_progress']);
@@ -230,7 +240,7 @@ class MatchingQueueService
             ]);
         }
 
-        // Safety-net: if driver doesn't respond within 35s, auto-handle timeout
+        // Safety-net: if driver doesn't respond within 18s, auto-handle timeout
         HandleRequestTimeout::dispatch($rideRequest->id, $driver->user_id)
             ->delay(now()->addSeconds(self::TIMEOUT_JOB_DELAY_SECONDS));
 
@@ -301,6 +311,9 @@ class MatchingQueueService
                 'error' => $e->getMessage(),
             ]);
         }
+
+        // After freeing the declining driver, sweep any orphaned requests
+        $this->sweepOrphanedRequests($driverId);
     }
 
     /**
@@ -310,15 +323,59 @@ class MatchingQueueService
      */
     public function handleNoDriversFound(RideRequest $rideRequest): void
     {
+        $rideRequest->increment('expiry_generation');
+        $rideRequest->refresh();
+
         broadcast(new RideNoDriversAvailable($rideRequest, self::NO_DRIVERS_COUNTDOWN_SECONDS));
 
-        ExpireRideRequest::dispatch($rideRequest->id)
+        ExpireRideRequest::dispatch($rideRequest->id, $rideRequest->expiry_generation)
             ->delay(now()->addSeconds(self::NO_DRIVERS_COUNTDOWN_SECONDS));
 
         Log::info('No eligible drivers found, started expiry countdown', [
             'ride_request_id'   => $rideRequest->id,
             'countdown_seconds' => self::NO_DRIVERS_COUNTDOWN_SECONDS,
+            'expiry_generation' => $rideRequest->expiry_generation,
         ]);
+    }
+
+    /**
+     * Sweep orphaned pending requests (no driver assigned, not expired) and
+     * dispatch the oldest one to the best available driver.
+     * Called after a driver becomes free (decline, ride completion).
+     */
+    public function sweepOrphanedRequests(?int $triggerDriverId = null): void
+    {
+        // Lock the oldest orphaned request to prevent concurrent sweeps
+        // from dispatching the same request to multiple drivers.
+        $rideRequest = DB::transaction(function () {
+            return RideRequest::where('status', 'pending')
+                ->whereNull('current_driver_id')
+                ->where('expires_at', '>', now())
+                ->orderBy('created_at', 'asc')
+                ->lockForUpdate()
+                ->first();
+        });
+
+        if (! $rideRequest) {
+            return;
+        }
+
+        // Re-verify after lock (another sweep may have claimed it)
+        $rideRequest->refresh();
+        if ($rideRequest->status !== 'pending' || $rideRequest->current_driver_id !== null) {
+            return;
+        }
+
+        $topDriver = $this->findTopDriver($rideRequest);
+        if ($topDriver) {
+            $this->dispatchToDriver($rideRequest, $topDriver);
+            broadcast(new RideSearchResumed($rideRequest));
+            Log::info('Sweep: re-dispatched orphaned request', [
+                'ride_request_id' => $rideRequest->id,
+                'dispatched_to'   => $topDriver->user_id,
+                'triggered_by'    => $triggerDriverId,
+            ]);
+        }
     }
 
     /**
@@ -446,6 +503,35 @@ class MatchingQueueService
     }
 
     /**
+     * Restore queue_joined_at for drivers whose cooldown has expired.
+     * Scheduled every minute via Kernel.php.
+     */
+    public function reactivateCooldownExpiredDrivers(): void
+    {
+        $reactivated = DriverProfile::query()
+            ->whereNotNull('went_online_at')
+            ->whereNull('queue_joined_at')
+            ->whereNotNull('queue_cooldown_until')
+            ->where('queue_cooldown_until', '<', now())
+            ->get();
+
+        foreach ($reactivated as $profile) {
+            $profile->update(['queue_joined_at' => now()]);
+        }
+
+        if ($reactivated->isNotEmpty()) {
+            $this->broadcastAllQueuePositions();
+            foreach ($reactivated as $profile) {
+                $this->sweepOrphanedRequests($profile->user_id);
+            }
+            Log::info('Reactivated drivers after cooldown expiry', [
+                'count' => $reactivated->count(),
+                'driver_ids' => $reactivated->pluck('user_id')->toArray(),
+            ]);
+        }
+    }
+
+    /**
      * Track which drivers have already been tried for a ride request.
      * Uses a Redis key to store the list.
      */
@@ -486,34 +572,26 @@ class MatchingQueueService
      */
     private function tryDispatchPendingRequest(int $driverId): void
     {
-        // Pick the oldest pending request that has no driver currently dispatched.
-        $rideRequest = RideRequest::where('status', 'pending')
+        $pendingRequests = RideRequest::where('status', 'pending')
             ->whereNull('current_driver_id')
+            ->where('expires_at', '>', now())
             ->oldest()
-            ->first();
+            ->get();
 
-        if (! $rideRequest) {
-            return;
+        foreach ($pendingRequests as $rideRequest) {
+            $topDriver = $this->findTopDriver($rideRequest);
+            if ($topDriver) {
+                $this->dispatchToDriver($rideRequest, $topDriver);
+                broadcast(new RideSearchResumed($rideRequest));
+                Log::info('Re-dispatched pending request after new driver joined queue', [
+                    'ride_request_id' => $rideRequest->id,
+                    'dispatched_to'   => $topDriver->user_id,
+                    'triggered_by'    => $driverId,
+                ]);
+
+                return; // One dispatch per call
+            }
         }
-
-        // Use standard pool logic — the newly joined driver will be a candidate
-        // (assuming they are within radius and haven't been tried before).
-        $topDriver = $this->findTopDriver($rideRequest);
-
-        if (! $topDriver) {
-            return;
-        }
-
-        $this->dispatchToDriver($rideRequest, $topDriver);
-
-        // Notify rider so their no-drivers-available countdown clears.
-        broadcast(new RideSearchResumed($rideRequest));
-
-        Log::info('Re-dispatched pending request after new driver joined queue', [
-            'ride_request_id' => $rideRequest->id,
-            'dispatched_to'   => $topDriver->user_id,
-            'triggered_by'    => $driverId,
-        ]);
     }
 
     /**
@@ -521,7 +599,7 @@ class MatchingQueueService
      * Called whenever the queue composition changes so that all drivers see
      * the correct rank without needing to reload the app.
      */
-    private function broadcastAllQueuePositions(): void
+    public function broadcastAllQueuePositions(): void
     {
         $driverIds = DriverProfile::inQueue()->notInCooldown()->pluck('user_id');
         foreach ($driverIds as $driverId) {
@@ -557,5 +635,77 @@ class MatchingQueueService
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Return anonymous nearby driver pins for the rider waiting screen.
+     *
+     * Each pin has a jittered lat/lng (~100 m offset) and a state:
+     *   - notified:    currently being offered this request
+     *   - unavailable: online but busy (active ride) or in cooldown
+     *   - active:      available to accept rides
+     *
+     * @return array<int, array{lat: float, lng: float, state: string}>
+     */
+    public function getNearbyDriversForRider(RideRequest $rideRequest, float $radiusKm = 5.0): array
+    {
+        $rideRequest->loadMissing('pickupLocation');
+        $pickup = $rideRequest->pickupLocation;
+
+        if (! $pickup || ! $pickup->coordinates) {
+            return [];
+        }
+
+        $pickupLat = $pickup->coordinates->latitude;
+        $pickupLng = $pickup->coordinates->longitude;
+        $radiusMeters = $radiusKm * 1000;
+
+        $drivers = DriverProfile::online()
+            ->verified()
+            ->whereNotNull('current_location')
+            ->whereRaw(
+                'ST_DWithin(
+                    current_location::geography,
+                    ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography,
+                    ?
+                )',
+                [$pickupLng, $pickupLat, $radiusMeters]
+            )
+            ->get();
+
+        if ($drivers->isEmpty()) {
+            return [];
+        }
+
+        // Batch-fetch driver IDs that currently have an active ride
+        $busyDriverIds = Ride::whereIn('driver_id', $drivers->pluck('user_id'))
+            ->whereIn('status', Ride::ACTIVE_STATUSES)
+            ->pluck('driver_id')
+            ->toArray();
+
+        // Drivers who already declined/timed out for this request
+        $triedDriverIds = $this->getTriedDriverIds($rideRequest);
+
+        $currentDriverId = $rideRequest->current_driver_id;
+
+        return $drivers->map(function (DriverProfile $driver) use ($currentDriverId, $busyDriverIds, $triedDriverIds) {
+            if ($driver->user_id === $currentDriverId) {
+                $state = 'notified';
+            } elseif (
+                in_array($driver->user_id, $busyDriverIds, true)
+                || in_array($driver->user_id, $triedDriverIds, true)
+                || $driver->isInCooldown()
+            ) {
+                $state = 'unavailable';
+            } else {
+                $state = 'active';
+            }
+
+            return [
+                'lat' => round($driver->current_location->latitude, 6),
+                'lng' => round($driver->current_location->longitude, 6),
+                'state' => $state,
+            ];
+        })->values()->toArray();
     }
 }

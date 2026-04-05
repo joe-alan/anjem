@@ -1,11 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import '../config/app_config.dart';
 import '../models/session_state.dart';
 import '../providers/session_provider.dart';
 import '../providers/active_ride_provider.dart';
 import '../providers/driver_status_provider.dart';
 import '../providers/ride_request_provider.dart';
+import '../providers/user_location_provider.dart';
 import '../../rider/screens/rider_active_ride_screen.dart';
 import '../../rider/screens/waiting_screen.dart';
 import '../../driver/screens/active_ride_screen.dart';
@@ -43,6 +46,10 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
     // Delay session check until after the first frame is built
     // This prevents "setState during build" errors
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Eagerly trigger location permission prompt right after sign-in.
+      // The provider's constructor calls checkPermission(), so reading
+      // it forces instantiation before the home screen mounts.
+      ref.read(userLocationProvider);
       _checkSession();
     });
   }
@@ -72,6 +79,16 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
       if (!mounted) return;
 
       if (sessionState == null || sessionState.isIdle) {
+        // Restore rider cooldown if active (survives app restart)
+        if (sessionState?.riderCooldown != null) {
+          final cd = sessionState!.riderCooldown!;
+          ref.read(rideRequestProvider.notifier).applyCancelPenalty(
+            cancelCount: cd.cancelCount,
+            cooldownUntil: cd.cooldownUntil,
+            isSuspended: false,
+          );
+        }
+
         // No active session, go to default home screen.
         // Sync driver status with backend. On a cold launch the driver may
         // have been left online by a force-quit / crash. Always go offline in
@@ -142,7 +159,7 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
         }
       });
     } catch (e) {
-      print('SessionCheckWrapper: Error checking session: $e');
+      if (kDebugMode) print('SessionCheckWrapper: Error checking session: $e');
       // On error, default to home screen
       if (!mounted) return;
       setState(() {
@@ -180,15 +197,16 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
   }
 
   void _showResumeDialog(SessionState sessionState) {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Continue Previous Session?'),
+        title: Text(l10n.continueSessionTitle),
         content: Text(
           sessionState.needsToResumeRide
-              ? 'You have an active ride. Would you like to continue?'
-              : 'You have a pending ride request. Would you like to continue?',
+              ? l10n.continueRideMessage
+              : l10n.continuePendingMessage,
         ),
         actions: [
           TextButton(
@@ -210,11 +228,11 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
                 });
               }
             },
-            child: const Text('Yes'),
+            child: Text(l10n.yes),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('No'),
+            child: Text(l10n.no),
           ),
         ],
       ),
@@ -224,17 +242,17 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
   Widget _getScreenForSessionState(SessionState sessionState) {
     final config = AppConfig.instance;
 
-    print('🔍 SessionCheckWrapper._getScreenForSessionState:');
-    print('   State: ${sessionState.state}');
-    print('   Ride Role: ${sessionState.rideRole}');
-    print('   Active Ride: ${sessionState.activeRide?.id}');
-    print('   Is Driver App: ${config.isDriverApp}');
-    print('   Driver Context: online=${sessionState.driverContext.isOnline}, activeRideId=${sessionState.driverContext.activeRideId}');
+    if (kDebugMode) print('SessionCheckWrapper._getScreenForSessionState:');
+    if (kDebugMode) print('   State: ${sessionState.state}');
+    if (kDebugMode) print('   Ride Role: ${sessionState.rideRole}');
+    if (kDebugMode) print('   Active Ride: ${sessionState.activeRide?.id}');
+    if (kDebugMode) print('   Is Driver App: ${config.isDriverApp}');
+    if (kDebugMode) print('   Driver Context: online=${sessionState.driverContext.isOnline}, activeRideId=${sessionState.driverContext.activeRideId}');
 
     switch (sessionState.state) {
       case SessionStateType.rideActive:
         if (sessionState.activeRide == null) {
-          print('   ⚠️  State is rideActive but activeRide is null!');
+          if (kDebugMode) print('   State is rideActive but activeRide is null!');
           return widget.defaultHomeScreen;
         }
 
@@ -243,18 +261,18 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
         // Only navigate to ride screen if role matches current app
         if (config.isDriverApp &&
             sessionState.rideRole == RideRole.driver) {
-          print('   ✅ Navigating to ActiveRideScreen (rideId: ${sessionState.activeRide!.id})');
+          if (kDebugMode) print('   Navigating to ActiveRideScreen (rideId: ${sessionState.activeRide!.id})');
           return ActiveRideScreen(rideId: sessionState.activeRide!.id);
         } else if (!config.isDriverApp &&
             sessionState.rideRole == RideRole.rider) {
-          print('   ✅ Navigating to RiderActiveRideScreen (rideId: ${sessionState.activeRide!.id})');
+          if (kDebugMode) print('   Navigating to RiderActiveRideScreen (rideId: ${sessionState.activeRide!.id})');
           return RiderActiveRideScreen(initialRide: sessionState.activeRide!);
         }
 
         // Role mismatch (e.g., driver ride but on rider app)
         // Go to home screen - user needs to switch to correct app
-        print('   ⚠️  Role mismatch - going to home screen');
-        print('   rideRole: ${sessionState.rideRole}, isDriverApp: ${config.isDriverApp}');
+        if (kDebugMode) print('   Role mismatch - going to home screen');
+        if (kDebugMode) print('   rideRole: ${sessionState.rideRole}, isDriverApp: ${config.isDriverApp}');
         return widget.defaultHomeScreen;
 
       case SessionStateType.requestMatched:
@@ -274,13 +292,13 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
 
       case SessionStateType.requestPending:
         if (sessionState.activeRequest == null) {
-          print('   ⚠️  State is requestPending but activeRequest is null!');
+          if (kDebugMode) print('   State is requestPending but activeRequest is null!');
           return widget.defaultHomeScreen;
         }
 
         // For riders, show waiting screen for pending requests
         if (!config.isDriverApp) {
-          print('   ✅ Navigating to WaitingScreen (pending request)');
+          if (kDebugMode) print('   Navigating to WaitingScreen (pending request)');
           return const WaitingScreen();
         }
 
