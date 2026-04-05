@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/l10n/app_localizations.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'config/app_config.dart';
 import 'navigation/navigator_key.dart';
 import 'providers/auth_provider.dart';
@@ -159,11 +160,24 @@ class _FcmInitializerState extends ConsumerState<FcmInitializer> {
         _fcmInitialized = true;
         await fcm.initialize();
         await fcm.checkInitialMessage();
+
+        // Set Sentry user context
+        final user = next.user;
+        if (user != null) {
+          Sentry.configureScope((scope) {
+            scope.setUser(SentryUser(
+              id: user.id.toString(),
+              email: user.email,
+              data: {'role': user.role, 'flavor': AppConfig.instance.flavorName},
+            ));
+          });
+        }
       }
 
       if ((previous?.isAuthenticated ?? false) && !next.isAuthenticated) {
         _fcmInitialized = false;
         await fcm.deleteToken();
+        Sentry.configureScope((scope) => scope.setUser(null));
       }
     });
 

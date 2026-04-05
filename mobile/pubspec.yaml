@@ -93,8 +93,10 @@ dependencies:
   url_launcher: ^6.3.1
   font_awesome_flutter: ^11.0.0
   flutter_svg: ^2.0.10+1
+  sentry_flutter: ^9.16.0
 
 dev_dependencies:
+  sentry_dart_plugin: ^3.2.1
   flutter_test:
     sdk: flutter
 
@@ -152,3 +154,9 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+sentry:
+  upload_debug_symbols: true
+  upload_source_maps: true
+  project: flutter-clients
+  org: anjemme
