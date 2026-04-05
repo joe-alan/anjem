@@ -293,9 +293,21 @@ class RideController extends Controller
                     $ride->refresh();
                     broadcast(new RideStatusUpdated($ride, $previousStatus, 'driver'));
                     $this->notificationService->sendRideCompletedNotifications($ride);
+                    // Always rejoin the queue first — this is the critical path.
+                    // Separating it from the credit check ensures the driver is never
+                    // left out of the queue due to an unrelated exception.
                     try {
-                        // If the driver has exhausted their credits, kick them offline so they
-                        // don't occupy a queue slot and receive dispatches they cannot accept.
+                        $this->matchingQueueService->rejoinAfterRide($user->id);
+                    } catch (\Throwable $rejoinError) {
+                        \Log::error('Failed to rejoin queue after ride completion', [
+                            'driver_id' => $user->id,
+                            'ride_id'   => $ride->id,
+                            'error'     => $rejoinError->getMessage(),
+                        ]);
+                    }
+
+                    // Now check credits — if exhausted, kick offline (removes from queue).
+                    try {
                         if ($this->creditService->getBalance($user->id) < 1) {
                             $driverProfile = $user->driverProfile;
                             $this->matchingQueueService->removeFromQueue($user->id);
@@ -307,12 +319,9 @@ class RideController extends Controller
                                 'driver_id' => $user->id,
                                 'ride_id'   => $ride->id,
                             ]);
-                        } else {
-                            // Driver rejoins the FIFO queue at the back after completing a ride
-                            $this->matchingQueueService->rejoinAfterRide($user->id);
                         }
                     } catch (\Throwable $creditSyncError) {
-                        \Log::error('Post-completion credit/queue sync failed', [
+                        \Log::error('Post-completion credit check failed (driver remains in queue)', [
                             'driver_id' => $user->id,
                             'ride_id'   => $ride->id,
                             'error'     => $creditSyncError->getMessage(),
