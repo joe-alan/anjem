@@ -11,14 +11,18 @@ class SentryContext
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (auth()->check()) {
+        if (app()->bound('sentry')) {
             \Sentry\configureScope(function (Scope $scope) use ($request): void {
-                $user = $request->user();
-                $scope->setUser([
-                    'id' => $user->id,
-                    'email' => $user->email,
-                    'name' => $user->name,
-                ]);
+                if ($request->user()) {
+                    $user = $request->user();
+                    $scope->setUser([
+                        'id' => $user->id,
+                        'email' => $user->email,
+                    ]);
+                    $scope->setTag('user.role', $user->role ?? 'unknown');
+                }
+
+                $scope->setTag('api.route', $request->route()?->getName() ?? $request->path());
             });
         }
 

@@ -50,8 +50,19 @@ return [
     // @see: https://docs.sentry.io/platforms/php/guides/laravel/configuration/options/#send_default_pii
     'send_default_pii' => env('SENTRY_SEND_DEFAULT_PII', false),
 
+    // Scrub sensitive data before sending to Sentry
+    'before_send' => [App\Exceptions\SentryBeforeSend::class, 'handle'],
+
     // @see: https://docs.sentry.io/platforms/php/guides/laravel/configuration/options/#ignore_exceptions
-    // 'ignore_exceptions' => [],
+    'ignore_exceptions' => [
+        \Illuminate\Validation\ValidationException::class,
+        \Illuminate\Auth\AuthenticationException::class,
+        \Illuminate\Database\Eloquent\ModelNotFoundException::class,
+        \Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class,
+        \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException::class,
+        \Illuminate\Auth\Access\AuthorizationException::class,
+        \Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException::class,
+    ],
 
     // @see: https://docs.sentry.io/platforms/php/guides/laravel/configuration/options/#ignore_transactions
     'ignore_transactions' => [
