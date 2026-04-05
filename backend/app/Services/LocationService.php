@@ -307,12 +307,6 @@ class LocationService
 
             \Illuminate\Support\Facades\Cache::put($cacheKey, $locationData, 300); // 5 minutes TTL
 
-            Log::debug('Driver location updated', [
-                'driver_id' => $driverId,
-                'latitude' => $latitude,
-                'longitude' => $longitude,
-            ]);
-
             return true;
 
         } catch (\Exception $e) {
