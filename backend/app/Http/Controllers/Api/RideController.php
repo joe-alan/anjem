@@ -359,6 +359,44 @@ class RideController extends Controller
                             }
                         }
                     }
+
+                    // Rejoin driver to queue after cancellation (same pattern as completion)
+                    $driverId = $ride->driver_id;
+                    if ($driverId) {
+                        try {
+                            $this->matchingQueueService->rejoinAfterRide($driverId);
+                        } catch (\Throwable $rejoinError) {
+                            \Log::error('Failed to rejoin queue after ride cancellation', [
+                                'driver_id' => $driverId,
+                                'ride_id'   => $ride->id,
+                                'error'     => $rejoinError->getMessage(),
+                            ]);
+                        }
+
+                        try {
+                            if ($this->creditService->getBalance($driverId) < 1) {
+                                $driverUser = \App\Models\User::find($driverId);
+                                $driverProfile = $driverUser?->driverProfile;
+                                $this->matchingQueueService->removeFromQueue($driverId);
+                                if ($driverProfile) {
+                                    $driverProfile->update(['went_online_at' => null]);
+                                }
+                                if ($driverUser) {
+                                    broadcast(new DriverOnlineStatusChanged($driverUser, false, null, null, 'zero_credits'));
+                                }
+                                \Log::info('Driver auto-kicked offline: zero credits after ride cancellation', [
+                                    'driver_id' => $driverId,
+                                    'ride_id'   => $ride->id,
+                                ]);
+                            }
+                        } catch (\Throwable $creditSyncError) {
+                            \Log::error('Post-cancellation credit check failed (driver remains in queue)', [
+                                'driver_id' => $driverId,
+                                'ride_id'   => $ride->id,
+                                'error'     => $creditSyncError->getMessage(),
+                            ]);
+                        }
+                    }
                 }
                 break;
 
