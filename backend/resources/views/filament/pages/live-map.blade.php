@@ -17,7 +17,7 @@
     </div>
 
     {{-- Map container --}}
-    <div class="relative">
+    <div class="relative" wire:ignore>
         <div id="live-map" style="width:100%; height:70vh; border-radius:0.5rem;"></div>
 
         {{-- Detail panel --}}
@@ -79,8 +79,8 @@ function liveMap() {
             this.map = new mapboxgl.Map({
                 container: 'live-map',
                 style: 'mapbox://styles/mapbox/streets-v12',
-                center: [110.42, -6.97],
-                zoom: 14,
+                center: [110.4413, -7.0496],
+                zoom: 15,
             });
 
             this.map.addControl(new mapboxgl.NavigationControl(), 'top-left');
