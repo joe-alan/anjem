@@ -19,7 +19,6 @@ use App\Filament\Resources\RideResource;
 use App\Filament\Resources\RiderResource;
 use App\Filament\Resources\RouteCacheResource;
 use App\Filament\Widgets\DailyRidesChartWidget;
-use App\Filament\Widgets\KycPendingWidget;
 use App\Filament\Widgets\StatsOverviewWidget;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -47,6 +46,9 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Indigo,
             ])
+            ->sidebarCollapsibleOnDesktop()
+            ->sidebarWidth('14rem')
+            ->collapsedSidebarWidth('4.5rem')
             ->navigationGroups([
                 'Users',
                 'Rides',
@@ -75,7 +77,6 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 StatsOverviewWidget::class,
                 DailyRidesChartWidget::class,
-                KycPendingWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

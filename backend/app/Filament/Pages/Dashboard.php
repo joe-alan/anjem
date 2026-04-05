@@ -3,7 +3,6 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Widgets\DailyRidesChartWidget;
-use App\Filament\Widgets\KycPendingWidget;
 use App\Filament\Widgets\StatsOverviewWidget;
 use Filament\Pages\Dashboard as BaseDashboard;
 
@@ -17,7 +16,6 @@ class Dashboard extends BaseDashboard
         return [
             StatsOverviewWidget::class,
             DailyRidesChartWidget::class,
-            KycPendingWidget::class,
         ];
     }
 
