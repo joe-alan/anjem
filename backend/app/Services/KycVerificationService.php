@@ -279,11 +279,12 @@ class KycVerificationService
         }
 
         // Nullify KYC PII fields, reset verification
+        // vehicle_type has a NOT NULL constraint — reset to default instead of null
         $profile->update([
             'student_email'    => null,
             'student_id'       => null,
             'student_name'     => null,
-            'vehicle_type'     => null,
+            'vehicle_type'     => 'motorcycle',
             'vehicle_plate'    => null,
             'vehicle_color'    => null,
             'ktm_url'          => null,
