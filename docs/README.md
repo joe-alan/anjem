@@ -10,7 +10,7 @@ Last Updated: December 1, 2025 | Version: 1.0.0 (MVP Phase 9)
 
 ### **Getting Started**
 - 🚀 [Quick Start Cheatsheet](QUICK_START_CHEATSHEET.md) - Get up and running in 5 minutes
-- 📁 [Project Structure](../PROJECT_STRUCTURE.md) - Navigate the codebase easily
+- 📁 [Project Structure](architecture/PROJECT_STRUCTURE.md) - Navigate the codebase easily
 
 ### **Setup & Installation**
 - [Development Setup](setup/DEVELOPMENT.md) - Complete dev environment setup
