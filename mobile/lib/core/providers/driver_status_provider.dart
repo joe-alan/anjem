@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/ride_request.dart';
@@ -30,7 +31,7 @@ class DriverStatusState {
     this.isLoading = false,
     this.error,
     this.queuePosition = 0,
-    this.maxPickupRadiusKm = 5.0,
+    this.maxPickupRadiusKm = 1.0,
   });
 
   DriverStatusState copyWith({
@@ -64,6 +65,7 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
   final WebSocketService _wsService;
   final Ref _ref;
   int? _driverId;
+  String? _kickReason;
 
   DriverStatusNotifier(
     this._apiService,
@@ -72,14 +74,14 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
   ) : super(const DriverStatusState());
 
   void setDriverId(int? driverId) {
-    print('DriverStatusProvider: setDriverId called with: $driverId');
+    if (kDebugMode) print('DriverStatusProvider: setDriverId called with: $driverId');
     _driverId = driverId;
     if (driverId == null) {
-      print(
+      if (kDebugMode) print(
           'DriverStatusProvider: Driver ID is null - resetting to offline state');
       state = const DriverStatusState();
     } else {
-      print('DriverStatusProvider: Driver ID set successfully: $_driverId');
+      if (kDebugMode) print('DriverStatusProvider: Driver ID set successfully: $_driverId');
     }
   }
 
@@ -88,7 +90,7 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
     final user = _ref.read(currentUserProvider);
 
     if (user == null) {
-      print('DriverStatusProvider: Cannot go online - user not loaded yet');
+      if (kDebugMode) print('DriverStatusProvider: Cannot go online - user not loaded yet');
       state = state.copyWith(
         error: 'Please wait for your profile to load, then try again',
       );
@@ -98,9 +100,11 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
     // Check if driver is verified (has completed KYC)
     final isVerified = _ref.read(isDriverVerifiedProvider);
     if (!isVerified) {
-      print('DriverStatusProvider: Cannot go online - driver not verified');
-      print(
-          'DriverStatusProvider: User needs to complete KYC verification first');
+      if (kDebugMode) {
+        print('DriverStatusProvider: Cannot go online - driver not verified');
+        print(
+            'DriverStatusProvider: User needs to complete KYC verification first');
+      }
       state = state.copyWith(
         error: 'Please complete driver verification (KYC) before going online',
       );
@@ -108,9 +112,11 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
     }
 
     if (_driverId == null) {
-      print('DriverStatusProvider: Cannot go online - driver ID is null');
-      print(
-          'DriverStatusProvider: This usually means the user is not loaded yet or not a driver');
+      if (kDebugMode) {
+        print('DriverStatusProvider: Cannot go online - driver ID is null');
+        print(
+            'DriverStatusProvider: This usually means the user is not loaded yet or not a driver');
+      }
       state = state.copyWith(
         error: 'Please wait for your profile to load, then try again',
       );
@@ -135,9 +141,11 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      print(
-          'DriverStatusProvider: Going online for driver (user ID) $_driverId');
-      print('DriverStatusProvider: Is verified: $isVerified');
+      if (kDebugMode) {
+        print(
+            'DriverStatusProvider: Going online for driver (user ID) $_driverId');
+        print('DriverStatusProvider: Is verified: $isVerified');
+      }
 
       // Include current GPS so backend sets current_location immediately —
       // without this, ST_Distance matching fails until the home screen timer fires.
@@ -165,7 +173,7 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         throw Exception(response.data['message'] ?? 'Failed to go online');
       }
 
-      print('DriverStatusProvider: Backend confirmed driver is online');
+      if (kDebugMode) print('DriverStatusProvider: Backend confirmed driver is online');
 
       final queuePosition =
           (response.data['data']?['queue_position'] as int?) ?? 0;
@@ -182,9 +190,9 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
       // Subscribe to driver channel for incoming ride requests
       await _subscribeToRideRequests();
 
-      print('DriverStatusProvider: Successfully went online');
+      if (kDebugMode) print('DriverStatusProvider: Successfully went online');
     } catch (e) {
-      print('DriverStatusProvider: Error going online - $e');
+      if (kDebugMode) print('DriverStatusProvider: Error going online - $e');
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -194,13 +202,13 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
 
   Future<void> goOffline() async {
     if (_driverId == null) {
-      print('DriverStatusProvider: Cannot go offline - driver ID is null');
+      if (kDebugMode) print('DriverStatusProvider: Cannot go offline - driver ID is null');
       return;
     }
 
     // ✅ FIX: Check for active ride first
     if (state.hasActiveRide) {
-      print(
+      if (kDebugMode) print(
           'DriverStatusProvider: Cannot go offline - active ride in progress');
       state = state.copyWith(
         error: 'Please complete your current ride before going offline',
@@ -211,12 +219,12 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      print('DriverStatusProvider: Going offline for driver $_driverId');
+      if (kDebugMode) print('DriverStatusProvider: Going offline for driver $_driverId');
 
       // Call backend endpoint
-      print('DriverStatusProvider: Calling POST /driver/offline');
+      if (kDebugMode) print('DriverStatusProvider: Calling POST /driver/offline');
       final response = await _apiService.post('/driver/offline');
-      print('DriverStatusProvider: goOffline API response: ${response.data}');
+      if (kDebugMode) print('DriverStatusProvider: goOffline API response: ${response.data}');
 
       // Keep the driver channel subscription alive so session.replaced
       // is received immediately if another device logs in while offline.
@@ -229,10 +237,10 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         queuePosition: 0,
       );
 
-      print(
+      if (kDebugMode) print(
           'DriverStatusProvider: Successfully went offline - state updated to ${state.status}');
     } catch (e) {
-      print('DriverStatusProvider: ❌ EXCEPTION in goOffline: $e');
+      if (kDebugMode) print('DriverStatusProvider: ❌ EXCEPTION in goOffline: $e');
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -242,18 +250,20 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
 
   Future<void> _subscribeToRideRequests() async {
     if (_driverId == null) {
-      print('DriverStatusProvider: Cannot subscribe - driver ID is null');
+      if (kDebugMode) print('DriverStatusProvider: Cannot subscribe - driver ID is null');
       return;
     }
 
-    print(
+    if (kDebugMode) print(
         'DriverStatusProvider: Subscribing to driver channel for driver $_driverId');
 
     await _wsService.subscribeToDriverChannel(
       driverId: _driverId!,
       onNewRideRequest: (eventData) {
-        print('🎉 NEW RIDE REQUEST RECEIVED!');
-        print('Event data: $eventData');
+        if (kDebugMode) {
+          print('NEW RIDE REQUEST RECEIVED!');
+          print('Event data: $eventData');
+        }
 
         try {
           final rideRequest = _mapRideRequestEvent(eventData);
@@ -261,30 +271,34 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
               .read(driverIncomingRequestProvider.notifier)
               .setRequest(rideRequest);
         } catch (error, stackTrace) {
-          print(
-              'DriverStatusProvider: Failed to parse ride request event - $error');
-          print(stackTrace);
+          if (kDebugMode) {
+            print(
+                'DriverStatusProvider: Failed to parse ride request event - $error');
+            print(stackTrace);
+          }
         }
       },
       onQueuePositionChanged: (eventData) {
-        print('DriverStatusProvider: Queue position changed - $eventData');
+        if (kDebugMode) print('DriverStatusProvider: Queue position changed - $eventData');
         final newPosition = (eventData['queue_position'] as int?) ?? 0;
         state = state.copyWith(queuePosition: newPosition);
       },
       onRequestCancelled: (eventData) {
-        print('DriverStatusProvider: Ride request cancelled - $eventData');
+        if (kDebugMode) print('DriverStatusProvider: Ride request cancelled - $eventData');
         // Clear the incoming request so RideRequestScreen dismisses itself
         _ref.read(driverIncomingRequestProvider.notifier).clear();
       },
       onSessionReplaced: (eventData) {
-        print('DriverStatusProvider: Session replaced — signing out this device');
+        if (kDebugMode) print('DriverStatusProvider: Session replaced — signing out this device');
         // Another device logged in with this driver account; sign out locally.
         _ref.read(authStateProvider.notifier).signOut();
       },
       onDriverStatusChanged: (eventData) {
         final isOnline = eventData['is_online'] as bool? ?? true;
         if (!isOnline) {
-          print('DriverStatusProvider: Auto-kicked offline by backend (zero credits)');
+          final reason = eventData['reason'] as String?;
+          if (kDebugMode) print('DriverStatusProvider: Auto-kicked offline by backend (reason: $reason)');
+          _kickReason = reason;
           _ref.read(driverIncomingRequestProvider.notifier).clear();
           state = state.copyWith(
             status: DriverStatusEnum.offline,
@@ -296,21 +310,21 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         }
       },
       onKycStatusChanged: (eventData) {
-        print('DriverStatusProvider: Admin changed KYC status — refreshing');
+        if (kDebugMode) print('DriverStatusProvider: Admin changed KYC status — refreshing');
         _ref.read(kycStateProvider.notifier).refreshKycStatus();
       },
       onCreditsUpdated: (eventData) {
-        print('DriverStatusProvider: Admin updated credits — refreshing balance');
+        if (kDebugMode) print('DriverStatusProvider: Admin updated credits — refreshing balance');
         _ref.invalidate(creditsProvider);
       },
       onAccountStatusChanged: (eventData) {
         final isSuspended = eventData['is_suspended'] as bool? ?? false;
         if (isSuspended) {
-          print('DriverStatusProvider: Account suspended — going offline');
+          if (kDebugMode) print('DriverStatusProvider: Account suspended — going offline');
           _ref.read(driverIncomingRequestProvider.notifier).clear();
           state = const DriverStatusState();
         } else {
-          print('DriverStatusProvider: Account unsuspended');
+          if (kDebugMode) print('DriverStatusProvider: Account unsuspended');
         }
         // Refresh user (updates isActive) and KYC status (updates suspendReason).
         _ref.read(authStateProvider.notifier).refreshUser();
@@ -318,7 +332,7 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
       },
     );
 
-    print('DriverStatusProvider: Subscribed to ride requests');
+    if (kDebugMode) print('DriverStatusProvider: Subscribed to ride requests');
   }
 
   RideRequest _mapRideRequestEvent(Map<String, dynamic> eventData) {
@@ -391,6 +405,13 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
     }
   }
 
+  /// Consume the kick reason (returns it once, then clears).
+  String? consumeKickReason() {
+    final reason = _kickReason;
+    _kickReason = null;
+    return reason;
+  }
+
   void clearError() {
     state = state.copyWith(error: null);
   }
@@ -408,7 +429,7 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
   Future<void> kickOfflineOnLaunch() async {
     if (_driverId == null) return;
 
-    print('DriverStatusProvider: kickOfflineOnLaunch — clearing stale online state');
+    if (kDebugMode) print('DriverStatusProvider: kickOfflineOnLaunch — clearing stale online state');
 
     state = state.copyWith(
       status: DriverStatusEnum.offline,
@@ -421,10 +442,10 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
 
     try {
       await _apiService.post('/driver/offline');
-      print('DriverStatusProvider: kickOfflineOnLaunch — backend notified offline');
+      if (kDebugMode) print('DriverStatusProvider: kickOfflineOnLaunch — backend notified offline');
     } catch (e) {
       // Non-fatal: KickStaleDrivers heartbeat will clear it within ~90s.
-      print('DriverStatusProvider: kickOfflineOnLaunch — backend notify failed (non-fatal): $e');
+      if (kDebugMode) print('DriverStatusProvider: kickOfflineOnLaunch — backend notify failed (non-fatal): $e');
     }
   }
 
@@ -451,7 +472,7 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
     int? activeRideId,
   }) async {
     if (activeRideId != null) {
-      print(
+      if (kDebugMode) print(
           'DriverStatusProvider: Syncing status - inActiveRide ($activeRideId)');
       state = state.copyWith(
         status: DriverStatusEnum.inActiveRide,
@@ -459,14 +480,14 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
       );
       await _subscribeToRideRequests();
     } else if (isOnline) {
-      print('DriverStatusProvider: Syncing status - online');
+      if (kDebugMode) print('DriverStatusProvider: Syncing status - online');
       state = state.copyWith(
         status: DriverStatusEnum.online,
         activeRideId: null,
       );
       await _subscribeToRideRequests();
     } else {
-      print('DriverStatusProvider: Syncing status - offline');
+      if (kDebugMode) print('DriverStatusProvider: Syncing status - offline');
       state = state.copyWith(
         status: DriverStatusEnum.offline,
         activeRideId: null,
@@ -487,23 +508,27 @@ final driverStatusProvider =
 
   // Listen to auth changes
   ref.listen(currentUserProvider, (previous, next) {
-    print('DriverStatusProvider: currentUserProvider changed');
-    print('  - Previous user ID: ${previous?.id}');
-    print('  - New user ID: ${next?.id}');
-    print('  - User email: ${next?.email}');
-    print('  - User role: ${next?.role}');
-    print('  - Has driver profile: ${next?.driverProfile != null}');
-    if (next?.driverProfile != null) {
-      print('  - Driver profile ID: ${next?.driverProfile?.id}');
+    if (kDebugMode) {
+      print('DriverStatusProvider: currentUserProvider changed');
+      print('  - Previous user ID: ${previous?.id}');
+      print('  - New user ID: ${next?.id}');
+      print('  - User email: ${next?.email}');
+      print('  - User role: ${next?.role}');
+      print('  - Has driver profile: ${next?.driverProfile != null}');
+      if (next?.driverProfile != null) {
+        print('  - Driver profile ID: ${next?.driverProfile?.id}');
+      }
     }
     notifier.setDriverId(next?.id);
   });
 
   // Set initial driver ID
   final initialUser = ref.read(currentUserProvider);
-  print('DriverStatusProvider: Initializing with user ID: ${initialUser?.id}');
-  print(
-      'DriverStatusProvider: Has driver profile: ${initialUser?.driverProfile != null}');
+  if (kDebugMode) {
+    print('DriverStatusProvider: Initializing with user ID: ${initialUser?.id}');
+    print(
+        'DriverStatusProvider: Has driver profile: ${initialUser?.driverProfile != null}');
+  }
   notifier.setDriverId(initialUser?.id);
 
   return notifier;

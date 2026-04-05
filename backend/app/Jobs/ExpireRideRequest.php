@@ -23,6 +23,7 @@ class ExpireRideRequest implements ShouldQueue
 
     public function __construct(
         public readonly int $rideRequestId,
+        public readonly int $expectedGeneration = 0,
     ) {}
 
     public function handle(NotificationService $notificationService): void
@@ -38,10 +39,21 @@ class ExpireRideRequest implements ShouldQueue
             return;
         }
 
+        // Stale generation: a newer no-drivers countdown superseded this one
+        if ((int) $rideRequest->expiry_generation !== $this->expectedGeneration) {
+            Log::info('ExpireRideRequest: stale generation, skipping', [
+                'ride_request_id'     => $this->rideRequestId,
+                'expected_generation' => $this->expectedGeneration,
+                'current_generation'  => $rideRequest->expiry_generation,
+            ]);
+
+            return;
+        }
+
         // A new driver was dispatched during the no-drivers countdown window.
         // Defer expiry so the driver has time to respond (another full countdown).
         if ($rideRequest->current_driver_id !== null) {
-            self::dispatch($this->rideRequestId)
+            self::dispatch($this->rideRequestId, $this->expectedGeneration)
                 ->delay(now()->addSeconds(self::RIDER_COOLDOWN_SECONDS));
 
             Log::info('ExpireRideRequest deferred: driver dispatched during countdown', [
@@ -52,9 +64,9 @@ class ExpireRideRequest implements ShouldQueue
             return;
         }
 
+        // No rider cooldown on system expiry — rider waited it out, not their fault
         $rideRequest->update([
-            'status'              => 'expired',
-            'rider_cooldown_until' => now()->addSeconds(self::RIDER_COOLDOWN_SECONDS),
+            'status' => 'expired',
         ]);
 
         // Broadcast to rider to kick them off the waiting screen

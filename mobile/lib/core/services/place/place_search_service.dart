@@ -114,20 +114,34 @@ class PlaceSearchService {
     }
   }
 
-  /// Get place details by ID
-  ///
-  /// Note: This assumes the place is already in the local database.
-  /// For Mapbox results (id = null), they should be cached after first retrieval.
-  Future<PlaceSearchResult?> getPlaceById(int id) async {
+  /// Resolve a location: find existing within 100m or create new in DB.
+  /// Returns a PlaceSearchResult with a DB id.
+  Future<PlaceSearchResult> resolveLocation({
+    required String name,
+    String? address,
+    required double latitude,
+    required double longitude,
+  }) async {
     try {
-      // Search by exact ID (backend will need to support this endpoint)
-      // For now, we'll just return null since this endpoint may not exist yet
-      // TODO: Implement /places/{id} endpoint in backend
-      return null;
-    } catch (e) {
-      throw PlaceSearchException(
-        'Failed to get place details: ${e.toString()}',
+      final response = await _apiService.post('/places/resolve', data: {
+        'name': name,
+        'address': address ?? '',
+        'latitude': latitude,
+        'longitude': longitude,
+      });
+
+      if (response.data['success'] != true) {
+        throw PlaceSearchException(
+          response.data['message'] ?? 'Failed to resolve location',
+        );
+      }
+
+      return PlaceSearchResult.fromJson(
+        response.data['data'] as Map<String, dynamic>,
       );
+    } catch (e) {
+      if (e is PlaceSearchException) rethrow;
+      throw PlaceSearchException('Failed to resolve location: $e');
     }
   }
 }

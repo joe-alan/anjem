@@ -33,15 +33,21 @@ class RideController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $query = Ride::with(['rider', 'driver', 'pickupLocation', 'destinationLocation']);
+        $query = Ride::with(['rider', 'driver', 'pickupLocation', 'destinationLocation', 'ratings']);
 
-        // Filter by user role
-        if ($user->role === 'rider') {
+        // Filter by role — the app sends ?role=rider or ?role=driver so that
+        // users with role 'both' only see rides for the relevant app flavor.
+        $roleFilter = $request->query('role');
+        if ($roleFilter === 'rider') {
+            $query->where('rider_id', $user->id);
+        } elseif ($roleFilter === 'driver') {
+            $query->where('driver_id', $user->id);
+        } elseif ($user->role === 'rider') {
             $query->where('rider_id', $user->id);
         } elseif ($user->role === 'driver') {
             $query->where('driver_id', $user->id);
         } else {
-            // For 'both' and 'admin' roles, show all rides for this user
+            // Fallback for 'both'/'admin' without role param
             $query->where(function ($q) use ($user) {
                 $q->where('rider_id', $user->id)
                     ->orWhere('driver_id', $user->id);
@@ -287,26 +293,35 @@ class RideController extends Controller
                     $ride->refresh();
                     broadcast(new RideStatusUpdated($ride, $previousStatus, 'driver'));
                     $this->notificationService->sendRideCompletedNotifications($ride);
+                    // Always rejoin the queue first — this is the critical path.
+                    // Separating it from the credit check ensures the driver is never
+                    // left out of the queue due to an unrelated exception.
                     try {
-                        // If the driver has exhausted their credits, kick them offline so they
-                        // don't occupy a queue slot and receive dispatches they cannot accept.
+                        $this->matchingQueueService->rejoinAfterRide($user->id);
+                    } catch (\Throwable $rejoinError) {
+                        \Log::error('Failed to rejoin queue after ride completion', [
+                            'driver_id' => $user->id,
+                            'ride_id'   => $ride->id,
+                            'error'     => $rejoinError->getMessage(),
+                        ]);
+                    }
+
+                    // Now check credits — if exhausted, kick offline (removes from queue).
+                    try {
                         if ($this->creditService->getBalance($user->id) < 1) {
                             $driverProfile = $user->driverProfile;
                             $this->matchingQueueService->removeFromQueue($user->id);
                             if ($driverProfile) {
                                 $driverProfile->update(['went_online_at' => null]);
                             }
-                            broadcast(new DriverOnlineStatusChanged($user, false, null));
+                            broadcast(new DriverOnlineStatusChanged($user, false, null, null, 'zero_credits'));
                             \Log::info('Driver auto-kicked offline: zero credits after ride completion', [
                                 'driver_id' => $user->id,
                                 'ride_id'   => $ride->id,
                             ]);
-                        } else {
-                            // Driver rejoins the FIFO queue at the back after completing a ride
-                            $this->matchingQueueService->rejoinAfterRide($user->id);
                         }
                     } catch (\Throwable $creditSyncError) {
-                        \Log::error('Post-completion credit/queue sync failed', [
+                        \Log::error('Post-completion credit check failed (driver remains in queue)', [
                             'driver_id' => $user->id,
                             'ride_id'   => $ride->id,
                             'error'     => $creditSyncError->getMessage(),
@@ -331,6 +346,56 @@ class RideController extends Controller
                     $this->notificationService->sendRideCancelledNotification($ride, $user->id, $cancelReason);
                     if ($ride->rider_id === $user->id) {
                         $penaltyMeta = $this->rideService->applyRiderCancelPenalty($user);
+                        // Refund driver credit for pre-pickup rider cancellation
+                        if (in_array($previousStatus, ['accepted', 'driver_arrived'])) {
+                            try {
+                                $this->creditService->refundCredit($ride->driver_id, $ride->id);
+                            } catch (\Throwable $e) {
+                                \Log::error('Failed to refund driver credit on rider cancel', [
+                                    'driver_id' => $ride->driver_id,
+                                    'ride_id' => $ride->id,
+                                    'error' => $e->getMessage(),
+                                ]);
+                            }
+                        }
+                    }
+
+                    // Rejoin driver to queue after cancellation (same pattern as completion)
+                    $driverId = $ride->driver_id;
+                    if ($driverId) {
+                        try {
+                            $this->matchingQueueService->rejoinAfterRide($driverId);
+                        } catch (\Throwable $rejoinError) {
+                            \Log::error('Failed to rejoin queue after ride cancellation', [
+                                'driver_id' => $driverId,
+                                'ride_id'   => $ride->id,
+                                'error'     => $rejoinError->getMessage(),
+                            ]);
+                        }
+
+                        try {
+                            if ($this->creditService->getBalance($driverId) < 1) {
+                                $driverUser = \App\Models\User::find($driverId);
+                                $driverProfile = $driverUser?->driverProfile;
+                                $this->matchingQueueService->removeFromQueue($driverId);
+                                if ($driverProfile) {
+                                    $driverProfile->update(['went_online_at' => null]);
+                                }
+                                if ($driverUser) {
+                                    broadcast(new DriverOnlineStatusChanged($driverUser, false, null, null, 'zero_credits'));
+                                }
+                                \Log::info('Driver auto-kicked offline: zero credits after ride cancellation', [
+                                    'driver_id' => $driverId,
+                                    'ride_id'   => $ride->id,
+                                ]);
+                            }
+                        } catch (\Throwable $creditSyncError) {
+                            \Log::error('Post-cancellation credit check failed (driver remains in queue)', [
+                                'driver_id' => $driverId,
+                                'ride_id'   => $ride->id,
+                                'error'     => $creditSyncError->getMessage(),
+                            ]);
+                        }
                     }
                 }
                 break;

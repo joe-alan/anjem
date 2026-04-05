@@ -33,6 +33,9 @@ class Ride extends Equatable {
   final bool? adminOverride;
   final String? adminReason;
   final List<LatLng>? routeCoordinates;
+  final bool canRate;
+  final int? riderRating; // score the rider gave the driver (rider_to_driver)
+  final String? riderFeedback; // feedback text from rider
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -58,6 +61,9 @@ class Ride extends Equatable {
     this.adminOverride,
     this.adminReason,
     this.routeCoordinates,
+    this.canRate = false,
+    this.riderRating,
+    this.riderFeedback,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -106,9 +112,32 @@ class Ride extends Equatable {
       adminOverride: json['admin_override'] as bool?,
       adminReason: json['admin_reason'] as String?,
       routeCoordinates: _parseRouteGeometry(json['route_geometry']),
+      canRate: json['can_rate'] as bool? ?? false,
+      riderRating: _parseRiderRating(json['ratings']),
+      riderFeedback: _parseRiderFeedback(json['ratings']),
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
+  }
+
+  static int? _parseRiderRating(dynamic ratings) {
+    if (ratings == null || ratings is! List) return null;
+    for (final r in ratings) {
+      if (r is Map<String, dynamic> && r['rating_type'] == 'rider_to_driver') {
+        return (r['score'] as num?)?.toInt();
+      }
+    }
+    return null;
+  }
+
+  static String? _parseRiderFeedback(dynamic ratings) {
+    if (ratings == null || ratings is! List) return null;
+    for (final r in ratings) {
+      if (r is Map<String, dynamic> && r['rating_type'] == 'rider_to_driver') {
+        return r['feedback'] as String?;
+      }
+    }
+    return null;
   }
 
   static List<LatLng>? _parseRouteGeometry(dynamic geometry) {
@@ -209,6 +238,9 @@ class Ride extends Equatable {
     bool? adminOverride,
     String? adminReason,
     List<LatLng>? routeCoordinates,
+    bool? canRate,
+    int? riderRating,
+    String? riderFeedback,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -234,6 +266,9 @@ class Ride extends Equatable {
       adminOverride: adminOverride ?? this.adminOverride,
       adminReason: adminReason ?? this.adminReason,
       routeCoordinates: routeCoordinates ?? this.routeCoordinates,
+      canRate: canRate ?? this.canRate,
+      riderRating: riderRating ?? this.riderRating,
+      riderFeedback: riderFeedback ?? this.riderFeedback,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -262,6 +297,9 @@ class Ride extends Equatable {
         adminOverride,
         adminReason,
         routeCoordinates,
+        canRate,
+        riderRating,
+        riderFeedback,
         createdAt,
         updatedAt,
       ];

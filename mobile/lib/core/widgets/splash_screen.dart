@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../config/app_config.dart';
 
 class SplashScreen extends StatelessWidget {
@@ -14,11 +15,15 @@ class SplashScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // App Logo/Icon
-            Icon(
-              config.isRiderApp ? Icons.directions_car : Icons.local_taxi,
-              size: 120,
-              color: Colors.white,
+            // App Logo
+            SvgPicture.asset(
+              'assets/images/logo.svg',
+              width: 120,
+              height: 120,
+              colorFilter: const ColorFilter.mode(
+                Colors.white,
+                BlendMode.srcIn,
+              ),
             ),
             const SizedBox(height: 24),
 

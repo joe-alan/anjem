@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\RideService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class SessionController extends Controller
 {
@@ -37,6 +38,7 @@ class SessionController extends Controller
                 'active_ride' => $activeRide ? new RideResource($activeRide) : null,
                 'active_request' => $activeRequest ? new RideRequestResource($activeRequest) : null,
                 'driver_context' => $this->buildDriverContext($user, $activeRide),
+                'rider_cooldown' => $this->getRiderCooldown($user),
             ],
         ]);
     }
@@ -70,6 +72,38 @@ class SessionController extends Controller
 
         if ($ride->driver_id === $userId) {
             return 'driver';
+        }
+
+        return null;
+    }
+
+    private function getRiderCooldown(User $user): ?array
+    {
+        // Check Redis cancel-strike cooldown (2nd cancel penalty)
+        $redisCooldown = Cache::get("rider_cancel_cooldown:{$user->id}");
+        if ($redisCooldown) {
+            $until = \Carbon\Carbon::parse($redisCooldown);
+            if ($until->isFuture()) {
+                $count = (int) Cache::get("rider_cancel_count:{$user->id}", 0);
+                return [
+                    'cooldown_until' => $until->toISOString(),
+                    'cancel_count' => $count,
+                ];
+            }
+        }
+
+        // Check DB rider_cooldown_until (matching queue cooldown)
+        $dbCooldown = RideRequest::where('rider_id', $user->id)
+            ->where('rider_cooldown_until', '>', now())
+            ->orderBy('rider_cooldown_until', 'desc')
+            ->value('rider_cooldown_until');
+
+        if ($dbCooldown) {
+            $count = (int) Cache::get("rider_cancel_count:{$user->id}", 0);
+            return [
+                'cooldown_until' => \Carbon\Carbon::parse($dbCooldown)->toISOString(),
+                'cancel_count' => $count,
+            ];
         }
 
         return null;

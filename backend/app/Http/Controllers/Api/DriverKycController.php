@@ -42,6 +42,15 @@ class DriverKycController extends Controller
                 \Log::info('KTM photo stored', ['url' => $ktmUrl]);
             }
 
+            // Store profile photo
+            $profilePhotoUrl = null;
+            if ($request->hasFile('profile_photo')) {
+                $profilePhotoUrl = $this->kycService->storeProfilePhoto(
+                    $request->file('profile_photo'), $user->id
+                );
+                \Log::info('Profile photo stored', ['url' => $profilePhotoUrl]);
+            }
+
             // Submit KYC data
             $driverProfile = $this->kycService->submitKycData(
                 $user->id,
@@ -51,7 +60,9 @@ class DriverKycController extends Controller
                 $request->vehicle_type,
                 $request->vehicle_plate,
                 $request->vehicle_color,
-                $ktmUrl
+                $ktmUrl,
+                $request->phone_number,
+                $profilePhotoUrl
             );
 
             \Log::info('KYC submission successful', ['user_id' => $user->id]);
@@ -102,16 +113,14 @@ class DriverKycController extends Controller
         try {
             $email = $request->student_email;
 
-            // Validate email domain
+            // Must be an academic email (*.ac.id)
             if (! $this->kycService->isValidStudentEmail($email)) {
-                $allowedDomain = config('app.allowed_student_email_domain');
-
                 return response()->json([
                     'success' => false,
                     'available' => false,
-                    'message' => "Email must be from {$allowedDomain}",
+                    'message' => 'Email must be from an academic institution (*.ac.id)',
                     'reason' => 'invalid_domain',
-                ], 200);  // Return 200 with available:false instead of error
+                ], 200);
             }
 
             // Check if email is already registered (excluding current user if updating)
@@ -155,13 +164,11 @@ class DriverKycController extends Controller
         try {
             $email = $request->student_email;
 
-            // Validate email domain
+            // Must be an academic email (*.ac.id)
             if (! $this->kycService->isValidStudentEmail($email)) {
-                $allowedDomain = config('app.allowed_student_email_domain');
-
                 return response()->json([
                     'success' => false,
-                    'message' => "Email must be from {$allowedDomain}",
+                    'message' => 'Email must be from an academic institution (*.ac.id)',
                 ], 400);
             }
 
@@ -228,6 +235,63 @@ class DriverKycController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to verify email',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Revoke KYC data — deletes PII, resets to unverified
+     */
+    public function revokeKyc(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            if (! $user->tokenCan('driver:go-online')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized: Driver permissions required',
+                ], 403);
+            }
+
+            // Guard: driver must be offline
+            $profile = \App\Models\DriverProfile::where('user_id', $user->id)->first();
+            if ($profile && $profile->went_online_at !== null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You must go offline before revoking KYC data',
+                ], 409);
+            }
+
+            // Guard: no active ride
+            $hasActiveRide = \App\Models\Ride::where('driver_id', $user->id)
+                ->whereNotIn('status', ['completed', 'cancelled'])
+                ->exists();
+            if ($hasActiveRide) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot revoke KYC while you have an active ride',
+                ], 409);
+            }
+
+            $revoked = $this->kycService->revokeKycData($user->id);
+
+            if (! $revoked) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No KYC data found to revoke',
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'KYC data revoked successfully',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to revoke KYC data',
                 'error' => $e->getMessage(),
             ], 500);
         }

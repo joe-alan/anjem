@@ -20,7 +20,7 @@ class Ride extends Model
     /**
      * Statuses that represent an active ride lifecycle.
      */
-    public const ACTIVE_STATUSES = ['matched', 'accepted', 'driver_arrived', 'in_progress'];
+    public const ACTIVE_STATUSES = ['accepted', 'driver_arrived', 'in_progress'];
 
     /**
      * The attributes that are mass assignable.

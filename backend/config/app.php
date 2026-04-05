@@ -70,7 +70,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'Asia/Jakarta',
 
     /*
     |--------------------------------------------------------------------------
@@ -167,6 +167,7 @@ return [
         App\Providers\AuthServiceProvider::class,
         App\Providers\BroadcastServiceProvider::class,
         App\Providers\EventServiceProvider::class,
+        App\Providers\HorizonServiceProvider::class,
         App\Providers\Filament\AdminPanelProvider::class,
         App\Providers\RouteServiceProvider::class,
     ])->toArray(),
@@ -191,10 +192,14 @@ return [
     | KYC Verification Settings
     |--------------------------------------------------------------------------
     |
-    | Configure the allowed student email domain for driver verification
+    | Configure the allowed student email domains for driver verification.
+    | Comma-separated list of domains (e.g., "undip.ac.id,polines.ac.id").
     |
     */
 
-    'allowed_student_email_domain' => env('ALLOWED_STUDENT_EMAIL_DOMAIN', 'ui.ac.id'),
+    'allowed_student_email_domains' => array_filter(array_map(
+        'trim',
+        explode(',', env('ALLOWED_STUDENT_EMAIL_DOMAINS', 'undip.ac.id'))
+    )),
 
 ];

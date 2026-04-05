@@ -14,6 +14,7 @@ class AppConfig {
   final String pusherHost;
   final int pusherPort;
   final String pusherScheme;
+  final String? sentryDsn;
 
   AppConfig._({
     required this.flavor,
@@ -25,6 +26,7 @@ class AppConfig {
     required this.pusherHost,
     required this.pusherPort,
     required this.pusherScheme,
+    this.sentryDsn,
   });
 
   static void initialize({
@@ -37,6 +39,7 @@ class AppConfig {
     required String pusherHost,
     required int pusherPort,
     String pusherScheme = 'http',
+    String? sentryDsn,
   }) {
     _instance = AppConfig._(
       flavor: flavor,
@@ -48,6 +51,7 @@ class AppConfig {
       pusherHost: pusherHost,
       pusherPort: pusherPort,
       pusherScheme: pusherScheme,
+      sentryDsn: sentryDsn,
     );
   }
 

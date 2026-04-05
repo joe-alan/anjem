@@ -1,10 +1,18 @@
 <x-filament-panels::page>
+<div x-data="liveMonitor()" x-init="init()">
+    {{-- Connection status --}}
+    <div class="flex items-center gap-2 mb-4 text-sm text-gray-500 dark:text-gray-400">
+        <span x-show="connected" class="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+        <span x-show="!connected" class="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+        <span x-text="connected ? 'Live' : 'Reconnecting...'"></span>
+    </div>
+
     {{-- Active Ride Requests (searching / dispatched to driver) --}}
-    <div wire:poll.10s>
+    <div wire:poll.60s>
         <x-filament::section>
             <x-slot name="heading">
                 Active Ride Requests
-                <span class="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">(auto-refreshes every 10s)</span>
+                <span class="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">(live updates + 60s fallback)</span>
             </x-slot>
 
             <div class="overflow-x-auto">
@@ -51,11 +59,11 @@
     </div>
 
     {{-- Active Rides (driver accepted and beyond) --}}
-    <div wire:poll.10s class="mt-6">
+    <div wire:poll.60s class="mt-6">
         <x-filament::section>
             <x-slot name="heading">
                 Active Rides
-                <span class="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">(auto-refreshes every 10s)</span>
+                <span class="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">(live updates + 60s fallback)</span>
             </x-slot>
 
             <div class="overflow-x-auto">
@@ -105,11 +113,11 @@
     </div>
 
     {{-- Online Drivers --}}
-    <div wire:poll.15s class="mt-6">
+    <div wire:poll.60s class="mt-6">
         <x-filament::section>
             <x-slot name="heading">
                 Online Drivers
-                <span class="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">(auto-refreshes every 15s)</span>
+                <span class="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">(live updates + 60s fallback)</span>
             </x-slot>
 
             <div class="overflow-x-auto">
@@ -144,4 +152,40 @@
     </div>
 
     <x-filament-actions::modals />
+</div>
+
+<style>
+@keyframes flash-row {
+    0% { background-color: rgb(238 242 255); }
+    100% { background-color: transparent; }
+}
+.flash-row { animation: flash-row 2s ease-out; }
+</style>
+
+<script>
+function liveMonitor() {
+    return {
+        connected: false,
+        init() {
+            if (!window.Echo) return;
+            const channel = window.Echo.private('admin.live');
+            channel.listen('.admin.live.update', (data) => {
+                const relevant = ['ride_status', 'new_request', 'request_cancelled', 'driver_status'];
+                if (relevant.includes(data.type)) {
+                    this.$wire.$refresh();
+                    if (data.type === 'new_request') {
+                        new FilamentNotification()
+                            .title('New Ride Request')
+                            .body(`Rider: ${data.payload.rider_name}`)
+                            .info()
+                            .send();
+                    }
+                }
+            });
+            channel.subscribed(() => { this.connected = true; });
+            channel.error(() => { this.connected = false; });
+        }
+    }
+}
+</script>
 </x-filament-panels::page>

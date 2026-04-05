@@ -36,6 +36,7 @@ class RideRequest extends Model
         'matched_at',
         'current_driver_id',
         'rider_cooldown_until',
+        'expiry_generation',
         'route_geometry',
     ];
 
@@ -53,6 +54,7 @@ class RideRequest extends Model
         'expires_at' => 'datetime',
         'matched_at' => 'datetime',
         'rider_cooldown_until' => 'datetime',
+        'expiry_generation' => 'integer',
         'current_driver_id' => 'integer',
         'route_geometry' => 'json',
         'created_at' => 'datetime',

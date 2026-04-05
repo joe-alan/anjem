@@ -231,9 +231,9 @@ class Location extends Model
     {
         $point = new Point($latitude, $longitude, 4326);
 
-        // Check if a destination already exists within 100 meters
+        // Check if a destination already exists within 50 meters
         $existing = static::destinations()
-            ->withinDistance($point, 100)
+            ->withinDistance($point, 50)
             ->first();
 
         if ($existing) {

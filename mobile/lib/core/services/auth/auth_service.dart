@@ -82,9 +82,8 @@ class AuthService {
       final String sanctumToken = response.data['token'];
       await _apiService.setToken(sanctumToken);
 
-      // 8. Return user data
-      final userData = response.data['user'];
-      return User.fromJson(userData);
+      // 8. Fetch full user profile (login response is partial — missing phone, etc.)
+      return await getCurrentUser();
     } on ApiException {
       rethrow;
     } catch (e) {

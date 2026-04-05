@@ -55,6 +55,11 @@ class RideResource extends JsonResource
                         return false;
                     }
 
+                    // Only the rider or driver of this ride can rate it
+                    if ($this->rider_id !== $user->id && $this->driver_id !== $user->id) {
+                        return false;
+                    }
+
                     // Check if user already rated this ride
                     return ! $this->ratings()
                         ->where('rater_id', $user->id)

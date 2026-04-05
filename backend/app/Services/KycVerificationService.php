@@ -4,24 +4,20 @@ namespace App\Services;
 
 use App\Models\AdminAuditLog;
 use App\Models\DriverProfile;
+use App\Models\User;
 use App\Models\VerificationCode;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class KycVerificationService
 {
     /**
-     * Validate student email domain
+     * Validate that the email belongs to an academic institution (*.ac.id).
      */
     public function isValidStudentEmail(string $email): bool
     {
-        $allowedDomain = config('app.allowed_student_email_domain');
-
-        if (! $allowedDomain) {
-            return false;
-        }
-
-        return Str::endsWith($email, '@'.$allowedDomain);
+        return (bool) preg_match('/@.+\.ac\.id$/i', $email);
     }
 
     /**
@@ -123,6 +119,17 @@ class KycVerificationService
     }
 
     /**
+     * Store profile photo and return the path
+     */
+    public function storeProfilePhoto($file, int $userId): string
+    {
+        $filename = 'avatar_'.$userId.'_'.time().'.'.$file->getClientOriginalExtension();
+        $path = $file->storeAs('avatars', $filename, 'public');
+
+        return '/storage/'.$path;
+    }
+
+    /**
      * Create or update driver profile with KYC data
      */
     public function submitKycData(
@@ -133,21 +140,43 @@ class KycVerificationService
         string $vehicleType,
         string $vehiclePlate,
         string $vehicleColor,
-        ?string $ktmUrl = null
+        ?string $ktmUrl = null,
+        ?string $phoneNumber = null,
+        ?string $profilePhotoUrl = null
     ): DriverProfile {
-        return DriverProfile::updateOrCreate(
-            ['user_id' => $userId],
-            [
-                'student_email' => $studentEmail,
-                'student_id' => $studentId,
-                'student_name' => $studentName,
-                'vehicle_type' => $vehicleType,
-                'vehicle_plate' => $vehiclePlate, // Fixed: was license_plate, should be vehicle_plate
-                'vehicle_color' => $vehicleColor,
-                'ktm_url' => $ktmUrl,
-                'is_verified' => false, // Will be verified after email confirmation
-            ]
-        );
+        return DB::transaction(function () use (
+            $userId, $studentEmail, $studentId, $studentName,
+            $vehicleType, $vehiclePlate, $vehicleColor, $ktmUrl,
+            $phoneNumber, $profilePhotoUrl
+        ) {
+            $profile = DriverProfile::updateOrCreate(
+                ['user_id' => $userId],
+                [
+                    'student_email' => $studentEmail,
+                    'student_id' => $studentId,
+                    'student_name' => $studentName,
+                    'vehicle_type' => $vehicleType,
+                    'vehicle_plate' => $vehiclePlate,
+                    'vehicle_color' => $vehicleColor,
+                    'ktm_url' => $ktmUrl,
+                    'is_verified' => false,
+                ]
+            );
+
+            // Store phone and profile photo on the users table
+            $userUpdates = [];
+            if ($phoneNumber !== null) {
+                $userUpdates['phone_number'] = $phoneNumber;
+            }
+            if ($profilePhotoUrl !== null) {
+                $userUpdates['profile_picture'] = $profilePhotoUrl;
+            }
+            if (! empty($userUpdates)) {
+                User::where('id', $userId)->update($userUpdates);
+            }
+
+            return $profile;
+        });
     }
 
     /**
@@ -183,6 +212,8 @@ class KycVerificationService
             ->latest()
             ->value('reason');
 
+        $user = User::find($userId);
+
         return [
             'kyc_submitted'    => $kycSubmitted,
             'email_verified'   => $driverProfile->email_verified_at !== null,
@@ -190,13 +221,64 @@ class KycVerificationService
             'student_email'    => $driverProfile->student_email,
             'student_id'       => $driverProfile->student_id,
             'student_name'     => $driverProfile->student_name,
+            'phone_number'     => $user?->phone_number,
             'vehicle_type'     => $driverProfile->vehicle_type,
             'vehicle_plate'    => $driverProfile->vehicle_plate,
             'vehicle_color'    => $driverProfile->vehicle_color,
             'ktm_url'          => $driverProfile->ktm_url,
+            'profile_photo_url' => $user?->profile_picture,
             'rejection_reason' => $rejectionReason,
             'suspend_reason'   => $suspendReason,
         ];
+    }
+
+    /**
+     * Revoke KYC data for a driver — nullifies PII fields, preserves stats.
+     */
+    public function revokeKycData(int $userId): bool
+    {
+        $profile = DriverProfile::where('user_id', $userId)->first();
+
+        if (! $profile) {
+            return false;
+        }
+
+        // Delete KTM photo from storage
+        if ($profile->ktm_url) {
+            $storagePath = str_replace('/storage/', '', $profile->ktm_url);
+            \Storage::disk('public')->delete($storagePath);
+        }
+
+        // Delete profile photo from storage
+        $user = User::find($userId);
+        if ($user?->profile_picture && str_starts_with($user->profile_picture, '/storage/')) {
+            $storagePath = str_replace('/storage/', '', $user->profile_picture);
+            \Storage::disk('public')->delete($storagePath);
+        }
+
+        // Nullify KYC PII fields, reset verification
+        // vehicle_type has a NOT NULL constraint — reset to default instead of null
+        $profile->update([
+            'student_email'    => null,
+            'student_id'       => null,
+            'student_name'     => null,
+            'vehicle_type'     => 'motorcycle',
+            'vehicle_plate'    => null,
+            'vehicle_color'    => null,
+            'ktm_url'          => null,
+            'email_verified_at' => null,
+            'is_verified'      => false,
+        ]);
+
+        // Clear phone and profile picture from user record
+        if ($user) {
+            $user->update([
+                'phone_number'    => null,
+                'profile_picture' => null,
+            ]);
+        }
+
+        return true;
     }
 
     /**

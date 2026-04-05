@@ -44,6 +44,8 @@ class RideRequestMatched implements ShouldBroadcast
             'rider_name' => $this->ride->rider->name,
             'driver_id' => $this->ride->driver_id,
             'driver_name' => $this->ride->driver->name,
+            'driver_phone' => $this->ride->driver->phone_number,
+            'driver_profile_picture' => $this->ride->driver->profile_picture,
             'pickup_location' => [
                 'id' => $this->ride->pickupLocation->id,
                 'name' => $this->ride->pickupLocation->name,

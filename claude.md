@@ -8,12 +8,12 @@ Anjem is a campus ride-sharing platform composed of a Laravel 11 backend (`backe
 
 - `backend/app/` (controllers, services, events, models) with API routes in `routes/api.php`, migrations/seeders in `database/`, and integration/unit tests under `tests/`.
 - `mobile/lib/` with shared modules in `core/` (models, services, providers, widgets) and flavor-specific code in `rider/` and `driver/`.
-- Supporting assets: `docker-compose.yml` (Postgres + Redis), `Makefile`, and docs referenced above.
+- Supporting assets: `Makefile` and docs referenced above.
 
 ## First-Time Setup
 
 1. **Backend**
-   - `cd backend && cp .env.example .env`, fill DB/Firebase/Mapbox keys, then `composer install`, `php artisan key:generate`, `docker-compose up -d`, `php artisan migrate --seed`, `php artisan storage:link`.
+   - `cd backend && cp .env.example .env`, fill DB/Firebase/Mapbox keys, then `composer install`, `php artisan key:generate`, `php artisan migrate --seed`, `php artisan storage:link`. Ensure Postgres and Redis are running as native services.
    - Start services: `php artisan serve`, `php artisan reverb:start`, `php artisan queue:work`, `php artisan schedule:work` (Redis-backed queues).
 2. **Mobile**
    - `cd mobile && flutter pub get`.
@@ -24,13 +24,13 @@ Anjem is a campus ride-sharing platform composed of a Laravel 11 backend (`backe
 
 - Backend: `php artisan serve` + `php artisan reverb:start` + `php artisan queue:work` + `php artisan schedule:work` (ensure Redis is running). All four processes must be running — `schedule:work` drives the stale-driver kick and request cleanup jobs.
 - Mobile: `flutter run --flavor rider -t lib/main_rider.dart` or `flutter run --flavor driver -t lib/main_driver.dart`.
-- Keep Docker Postgres/Redis containers running, and rerun `build_runner` whenever annotated files change.
+- Ensure Postgres and Redis are running as native services, and rerun `build_runner` whenever annotated files change.
 
 ## Destructive Commands (Use Carefully)
 
 - `php artisan migrate:fresh --seed` wipes dev data—run only when you intend to reseed.
 - `php artisan test` must target the isolated test DB (see next section) to avoid truncating dev data.
-- Dropping containers/databases affects both backend and Flutter clients; confirm backups or seed scripts first.
+- Dropping databases affects both backend and Flutter clients; confirm backups or seed scripts first.
 
 ## Testing & Test Environment Setup
 
@@ -48,6 +48,41 @@ Anjem is a campus ride-sharing platform composed of a Laravel 11 backend (`backe
 - PHP: PSR-12, type-hinted methods, PascalCase classes, camelCase methods/properties. Keep controllers thin—move logic into `app/Services`.
 - Dart: Effective Dart; explicit types where clarity matters; widgets ≤20–25 lines; reusable components in `lib/core/widgets`; state handled via Riverpod providers.
 - Run formatters/analyzers before committing.
+
+## Internationalisation (i18n)
+
+The app uses Flutter's `gen-l10n` system. **Never hardcode user-visible strings** in Dart files.
+
+### Adding a string
+
+1. Add the key to `mobile/lib/l10n/app_en.arb` (English source of truth).
+2. Add the matching translation to `mobile/lib/l10n/app_id.arb` (Bahasa Indonesia).
+3. Use it in Dart: `AppLocalizations.of(context).yourKey`.
+4. Parametrised strings use `{placeholder}` in ARB and become method calls in Dart: `l10n.etaMinutes(minutes)`.
+
+### Async safety
+
+Read `AppLocalizations.of(context)` **before** any `await`. After an async gap, re-read inside `if (mounted)`:
+
+```dart
+final l10n = AppLocalizations.of(context); // before await
+await someAsyncCall();
+if (mounted) {
+  final l10n = AppLocalizations.of(context); // re-read post-await
+  ScaffoldMessenger.of(context).showSnackBar(...);
+}
+```
+
+Builder/helper methods that need l10n should receive it as a parameter (`AppLocalizations l10n`) rather than calling `of(context)` inside them.
+
+### Default locale & switching
+
+- Default locale is **Bahasa Indonesia** (`id`), set in `mobile/lib/core/providers/locale_provider.dart`.
+- `MaterialApp` in `mobile/lib/core/app.dart` watches `localeProvider` — updating its state switches the whole app live:
+  ```dart
+  ref.read(localeProvider.notifier).state = const Locale('en');
+  ```
+- There is currently no in-app language switcher UI; adding one requires only a settings screen that writes to `localeProvider`.
 
 ## Branching & Git Flow
 
@@ -68,9 +103,9 @@ Anjem is a campus ride-sharing platform composed of a Laravel 11 backend (`backe
 
 ## Environment & Operations Notes
 
-- Redis backs queues and broadcasting; ensure `redis-server` (or the Docker container) is running before `queue:work`.
+- Redis backs queues and broadcasting; ensure `redis-server` is running before `queue:work`.
 - WebSockets use Laravel Reverb (`php artisan reverb:start`); mobile clients rely on it for ride updates.
-- Storage: run `php artisan storage:link` whenever cloning or rebuilding the backend container.
+- Storage: run `php artisan storage:link` whenever cloning the backend repo.
 - Keep Firebase, Mapbox, and Google OAuth credentials secure—never commit secrets; use `.env` or CI secrets.
 
 These guidelines keep backend, mobile, and documentation efforts aligned while protecting shared environments.
