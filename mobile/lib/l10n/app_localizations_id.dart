@@ -644,6 +644,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get emailUnavailable => '✗ Email ini sudah terdaftar';
 
   @override
+  String get emailInvalidDomain =>
+      '✗ Email harus dari institusi akademik (*.ac.id)';
+
+  @override
   String get emailCheckError => 'Tidak dapat memeriksa ketersediaan';
 
   @override

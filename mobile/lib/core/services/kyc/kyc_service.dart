@@ -48,8 +48,9 @@ class KycService {
     }
   }
 
-  /// Check if student email is available for registration
-  Future<bool> checkEmailAvailability(String studentEmail) async {
+  /// Check if student email is available for registration.
+  /// Returns a record with `available` and `reason` (null, 'invalid_domain', or 'already_registered').
+  Future<({bool available, String? reason})> checkEmailAvailability(String studentEmail) async {
     try {
       print('KYC Service: Checking email availability for $studentEmail');
       final response = await _apiService.post(
@@ -59,13 +60,10 @@ class KycService {
 
       print('KYC Service: Email availability response - ${response.data}');
 
-      if (response.data['success'] != true) {
-        // If success is false, return the available status anyway
-        // (handles cases like invalid domain)
-        return response.data['available'] ?? false;
-      }
-
-      return response.data['available'] ?? false;
+      return (
+        available: response.data['available'] ?? false,
+        reason: response.data['reason'] as String?,
+      );
     } on ApiException catch (e) {
       print('KYC Service: ApiException checking email - ${e.message}');
       // On error, assume email is unavailable to be safe

@@ -206,6 +206,7 @@
   "checkingAvailability": "Memeriksa ketersediaan...",
   "emailAvailable": "\u2713 Email tersedia",
   "emailUnavailable": "\u2717 Email ini sudah terdaftar",
+  "emailInvalidDomain": "\u2717 Email harus dari institusi akademik (*.ac.id)",
   "emailCheckError": "Tidak dapat memeriksa ketersediaan",
   "kycRejectedBannerTitle": "KYC Ditolak",
   "draftDataLoaded": "Data draf dimuat (disimpan {timeAgo})",

@@ -643,6 +643,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emailUnavailable => '✗ This email is already registered';
 
   @override
+  String get emailInvalidDomain =>
+      '✗ Email must be from an academic institution (*.ac.id)';
+
+  @override
   String get emailCheckError => 'Could not check availability';
 
   @override

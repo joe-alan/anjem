@@ -330,16 +330,22 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
 
     try {
       final kycService = ref.read(kycServiceProvider);
-      final isAvailable = await kycService.checkEmailAvailability(email);
+      final result = await kycService.checkEmailAvailability(email);
 
       if (mounted) {
         final l10nPost = AppLocalizations.of(context);
+        String message;
+        if (result.available) {
+          message = l10nPost.emailAvailable;
+        } else if (result.reason == 'invalid_domain') {
+          message = l10nPost.emailInvalidDomain;
+        } else {
+          message = l10nPost.emailUnavailable;
+        }
         setState(() {
           _checkingEmail = false;
-          _emailAvailable = isAvailable;
-          _emailAvailabilityMessage = isAvailable
-              ? l10nPost.emailAvailable
-              : l10nPost.emailUnavailable;
+          _emailAvailable = result.available;
+          _emailAvailabilityMessage = message;
         });
       }
     } catch (e) {
