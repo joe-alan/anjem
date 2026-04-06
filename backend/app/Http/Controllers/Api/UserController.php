@@ -4,12 +4,19 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
+use App\Services\FirebaseStorageService;
+use App\Services\ImageCompressionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
+    public function __construct(
+        private FirebaseStorageService $storageService,
+        private ImageCompressionService $compressionService,
+    ) {}
+
     /**
      * Update the authenticated user's profile.
      */
@@ -50,16 +57,25 @@ class UserController extends Controller
 
         $user = $request->user();
 
-        // Delete old avatar if it exists and is a local file
+        // Delete old avatar (Firebase or legacy)
         if ($user->profile_picture) {
-            $oldPath = str_replace('/storage/', '', $user->profile_picture);
-            if (Storage::disk('public')->exists($oldPath)) {
+            $objectPath = $this->storageService->extractObjectPath($user->profile_picture);
+            if ($objectPath) {
+                $this->storageService->delete($objectPath);
+            } elseif (str_starts_with($user->profile_picture, '/storage/')) {
+                $oldPath = str_replace('/storage/', '', $user->profile_picture);
                 Storage::disk('public')->delete($oldPath);
             }
         }
 
-        $path = $request->file('avatar')->store('avatars', 'public');
-        $user->update(['profile_picture' => '/storage/' . $path]);
+        // Compress and upload to Firebase
+        $compressed = $this->compressionService->compress(
+            $request->file('avatar')->getRealPath(), 512, 512, 80
+        );
+        $firebasePath = 'avatars/avatar_' . $user->id . '_' . time() . '.jpg';
+        $url = $this->storageService->upload($firebasePath, $compressed, 'image/jpeg');
+
+        $user->update(['profile_picture' => $url]);
 
         return response()->json([
             'success' => true,

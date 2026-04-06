@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
 use Kreait\Firebase\Contract\Auth;
 use Kreait\Firebase\Contract\Messaging;
+use Kreait\Firebase\Contract\Storage;
 use Kreait\Firebase\Factory;
 use Laravel\Sanctum\Sanctum;
 
@@ -36,6 +37,16 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(Messaging::class, function ($app) {
             return $app->make(Factory::class)->createMessaging();
+        });
+
+        $this->app->singleton(Storage::class, function ($app) {
+            $factory = $app->make(Factory::class);
+            $bucket = config('services.firebase.storage_bucket');
+            if ($bucket) {
+                $factory = $factory->withDefaultStorageBucket($bucket);
+            }
+
+            return $factory->createStorage();
         });
     }
 

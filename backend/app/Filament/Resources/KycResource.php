@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use App\Services\FirebaseStorageService;
 use App\Filament\Resources\KycResource\Pages;
 
 class KycResource extends Resource
@@ -183,16 +184,46 @@ class KycResource extends Resource
             ]);
     }
 
+    private static function resolveImageUrl(?string $url): ?string
+    {
+        if (! $url) {
+            return null;
+        }
+        if (str_starts_with($url, 'http')) {
+            return $url;
+        }
+
+        return url($url);
+    }
+
+    private static function deleteImage(?string $url): void
+    {
+        if (! $url) {
+            return;
+        }
+
+        $storageService = app(FirebaseStorageService::class);
+        $objectPath = $storageService->extractObjectPath($url);
+
+        if ($objectPath) {
+            $storageService->delete($objectPath);
+        } elseif (str_starts_with($url, '/storage/')) {
+            Storage::disk('public')->delete(ltrim(str_replace('/storage', '', $url), '/'));
+        }
+    }
+
     private static function buildReviewModalHtml(User $record): string
     {
         $dp = $record->driverProfile;
 
-        $ktmHtml = $dp->ktm_url
-            ? '<img src="' . e(url($dp->ktm_url)) . '" class="max-w-full rounded shadow" alt="KTM Document">'
+        $ktmSrc = self::resolveImageUrl($dp->ktm_url);
+        $ktmHtml = $ktmSrc
+            ? '<img src="' . e($ktmSrc) . '" class="max-w-full rounded shadow" alt="KTM Document">'
             : '<div class="flex items-center justify-center h-48 bg-gray-100 dark:bg-gray-800 rounded text-gray-400">No KTM photo</div>';
 
-        $profileHtml = $record->profile_picture
-            ? '<img src="' . e(url($record->profile_picture)) . '" class="w-24 h-24 rounded-full object-cover shadow" alt="Profile Photo">'
+        $profileSrc = self::resolveImageUrl($record->profile_picture);
+        $profileHtml = $profileSrc
+            ? '<img src="' . e($profileSrc) . '" class="w-24 h-24 rounded-full object-cover shadow" alt="Profile Photo">'
             : '<div class="flex items-center justify-center w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 text-xs">No photo</div>';
 
         $row = fn (string $label, ?string $value) =>
@@ -239,9 +270,7 @@ class KycResource extends Resource
             ]);
         });
 
-        if ($ktmUrl) {
-            Storage::disk('public')->delete(ltrim(str_replace('/storage', '', $ktmUrl), '/'));
-        }
+        self::deleteImage($ktmUrl);
 
         try {
             app(NotificationService::class)->sendKycApprovedToDriver($record);
@@ -287,13 +316,8 @@ class KycResource extends Resource
             ]);
         });
 
-        if ($ktmUrl) {
-            Storage::disk('public')->delete(ltrim(str_replace('/storage', '', $ktmUrl), '/'));
-        }
-
-        if ($profilePicture && str_starts_with($profilePicture, '/storage/')) {
-            Storage::disk('public')->delete(ltrim(str_replace('/storage', '', $profilePicture), '/'));
-        }
+        self::deleteImage($ktmUrl);
+        self::deleteImage($profilePicture);
 
         try {
             app(NotificationService::class)->sendKycRejectedToDriver($record, $reason);
