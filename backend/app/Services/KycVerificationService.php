@@ -252,26 +252,20 @@ class KycVerificationService
             return false;
         }
 
-        // Delete KTM photo from storage (Firebase or legacy)
+        // Delete KTM photo from Firebase Storage
         if ($profile->ktm_url) {
             $objectPath = $this->storageService->extractObjectPath($profile->ktm_url);
             if ($objectPath) {
                 $this->storageService->delete($objectPath);
-            } else {
-                $storagePath = str_replace('/storage/', '', $profile->ktm_url);
-                \Storage::disk('public')->delete($storagePath);
             }
         }
 
-        // Delete profile photo from storage (Firebase or legacy)
+        // Delete profile photo from Firebase Storage
         $user = User::find($userId);
         if ($user?->profile_picture) {
             $objectPath = $this->storageService->extractObjectPath($user->profile_picture);
             if ($objectPath) {
                 $this->storageService->delete($objectPath);
-            } elseif (str_starts_with($user->profile_picture, '/storage/')) {
-                $storagePath = str_replace('/storage/', '', $user->profile_picture);
-                \Storage::disk('public')->delete($storagePath);
             }
         }
 

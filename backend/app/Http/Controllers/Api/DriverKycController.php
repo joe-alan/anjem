@@ -42,13 +42,15 @@ class DriverKycController extends Controller
                 \Log::info('KTM photo stored', ['url' => $ktmUrl]);
             }
 
-            // Store profile photo
+            // Store profile photo — if not uploaded, keep existing (e.g. Google profile pic)
             $profilePhotoUrl = null;
             if ($request->hasFile('profile_photo')) {
                 $profilePhotoUrl = $this->kycService->storeProfilePhoto(
                     $request->file('profile_photo'), $user->id
                 );
                 \Log::info('Profile photo stored', ['url' => $profilePhotoUrl]);
+            } elseif ($user->profile_picture) {
+                \Log::info('Using existing profile picture', ['url' => $user->profile_picture]);
             }
 
             // Submit KYC data

@@ -41,7 +41,7 @@ class DriverProfileResource extends Resource
                 ImageColumn::make('user.profile_picture')
                     ->label('')
                     ->circular()
-                    ->defaultImageUrl(url('/images/default-avatar.svg'))
+                    ->defaultImageUrl('https://ui-avatars.com/api/?background=e2e8f0&color=94a3b8&name=U')
                     ->getStateUsing(fn (DriverProfile $record) => self::resolveImageUrl($record->user?->profile_picture))
                     ->size(32),
                 TextColumn::make('user.name')->label('Driver')->searchable()->sortable(),
@@ -102,7 +102,7 @@ class DriverProfileResource extends Resource
                 ImageEntry::make('user.profile_picture')
                     ->label('Photo')
                     ->circular()
-                    ->defaultImageUrl(url('/images/default-avatar.svg'))
+                    ->defaultImageUrl('https://ui-avatars.com/api/?background=e2e8f0&color=94a3b8&name=U')
                     ->getStateUsing(fn (DriverProfile $record) => self::resolveImageUrl($record->user?->profile_picture))
                     ->size(80),
                 TextEntry::make('user.name')->label('Name'),
