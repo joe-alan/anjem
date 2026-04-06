@@ -20,8 +20,13 @@ class AppServiceProvider extends ServiceProvider
         // Register Firebase services (deferred — only instantiated when resolved)
         $this->app->singleton(Factory::class, function () {
             $projectId = config('services.firebase.project_id');
+
+            // Return a bare Factory when credentials aren't configured yet
+            // (e.g. during composer install / package:discover on a fresh server).
+            // Any call to createAuth/createMessaging/createStorage will fail at
+            // runtime with a clear Firebase error instead of crashing the deploy.
             if (! $projectId) {
-                throw new \RuntimeException('Firebase credentials not configured. Set FIREBASE_PROJECT_ID in .env');
+                return new Factory;
             }
 
             return (new Factory)->withServiceAccount([
