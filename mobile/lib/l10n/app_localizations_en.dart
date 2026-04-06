@@ -650,6 +650,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emailCheckError => 'Could not check availability';
 
   @override
+  String get usingGooglePhoto => 'Using your Google profile photo';
+
+  @override
+  String get pleaseAgreeToTerms =>
+      'Please agree to the terms before submitting';
+
+  @override
+  String get kycAgreementLabel =>
+      'I agree to operate as a Driver in the Tembalang, Semarang area and its surroundings.';
+
+  @override
   String get kycRejectedBannerTitle => 'KYC Rejected';
 
   @override
@@ -1012,6 +1023,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'This action is permanent. All your data will be deleted. Type DELETE to confirm.';
 
   @override
+  String get deleteAccountBothRoleWarning =>
+      'You are registered as both a rider and driver. Deleting your account will remove all data for both roles.';
+
+  @override
   String get deleteAccountButton => 'Delete Account';
 
   @override
@@ -1314,6 +1329,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get editKycConfirmMessage =>
       'Editing will send you back to the KYC flow and you will need to be re-verified. All current verification data (student ID, vehicle info, uploaded documents) will be deleted. Your ride history and ratings will be kept.\n\nType WARJO to confirm.';
+
+  @override
+  String get editKycBothRoleWarning =>
+      'You are also registered as a rider. Editing your KYC will clear your profile photo and phone number for both roles.';
 
   @override
   String get editKycSuccess => 'KYC data cleared — please re-submit';

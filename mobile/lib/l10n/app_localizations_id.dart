@@ -554,7 +554,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get vehicleInfoPageSubtitle => 'Masukkan detail kendaraan Anda';
 
   @override
-  String get ktmPhotoPageTitle => 'Upload Foto KTM';
+  String get ktmPhotoPageTitle => 'Upload Foto';
 
   @override
   String get ktmPhotoPageSubtitle => 'Ambil foto KTM Anda yang jelas';
@@ -649,6 +649,16 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get emailCheckError => 'Tidak dapat memeriksa ketersediaan';
+
+  @override
+  String get usingGooglePhoto => 'Menggunakan foto profil Google Anda';
+
+  @override
+  String get pleaseAgreeToTerms => 'Harap setujui ketentuan sebelum mengirim';
+
+  @override
+  String get kycAgreementLabel =>
+      'Saya setuju untuk beroperasi sebagai Driver di area Tembalang, Semarang dan sekitarnya.';
 
   @override
   String get kycRejectedBannerTitle => 'KYC Ditolak';
@@ -1015,6 +1025,10 @@ class AppLocalizationsId extends AppLocalizations {
       'Tindakan ini permanen. Semua data Anda akan dihapus. Ketik HAPUS untuk konfirmasi.';
 
   @override
+  String get deleteAccountBothRoleWarning =>
+      'Anda terdaftar sebagai penumpang dan pengemudi. Menghapus akun akan menghapus semua data untuk kedua peran.';
+
+  @override
   String get deleteAccountButton => 'Hapus Akun';
 
   @override
@@ -1318,6 +1332,10 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get editKycConfirmMessage =>
       'Mengedit akan mengembalikan Anda ke alur KYC dan perlu diverifikasi ulang. Semua data verifikasi saat ini (NIM, info kendaraan, dokumen) akan dihapus. Riwayat anjem dan rating Anda akan tetap tersimpan.\n\nKetik WARJO untuk konfirmasi.';
+
+  @override
+  String get editKycBothRoleWarning =>
+      'Anda juga terdaftar sebagai penumpang. Mengedit KYC akan menghapus foto profil dan nomor telepon untuk kedua peran.';
 
   @override
   String get editKycSuccess => 'Data KYC dihapus — silakan ajukan ulang';

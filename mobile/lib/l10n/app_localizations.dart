@@ -1268,6 +1268,24 @@ abstract class AppLocalizations {
   /// **'Could not check availability'**
   String get emailCheckError;
 
+  /// No description provided for @usingGooglePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Using your Google profile photo'**
+  String get usingGooglePhoto;
+
+  /// No description provided for @pleaseAgreeToTerms.
+  ///
+  /// In en, this message translates to:
+  /// **'Please agree to the terms before submitting'**
+  String get pleaseAgreeToTerms;
+
+  /// No description provided for @kycAgreementLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'I agree to operate as a Driver in the Tembalang, Semarang area and its surroundings.'**
+  String get kycAgreementLabel;
+
   /// No description provided for @kycRejectedBannerTitle.
   ///
   /// In en, this message translates to:
@@ -1934,6 +1952,12 @@ abstract class AppLocalizations {
   /// **'This action is permanent. All your data will be deleted. Type DELETE to confirm.'**
   String get deleteAccountConfirmMessage;
 
+  /// No description provided for @deleteAccountBothRoleWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'You are registered as both a rider and driver. Deleting your account will remove all data for both roles.'**
+  String get deleteAccountBothRoleWarning;
+
   /// No description provided for @deleteAccountButton.
   ///
   /// In en, this message translates to:
@@ -2485,6 +2509,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Editing will send you back to the KYC flow and you will need to be re-verified. All current verification data (student ID, vehicle info, uploaded documents) will be deleted. Your ride history and ratings will be kept.\n\nType WARJO to confirm.'**
   String get editKycConfirmMessage;
+
+  /// No description provided for @editKycBothRoleWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'You are also registered as a rider. Editing your KYC will clear your profile photo and phone number for both roles.'**
+  String get editKycBothRoleWarning;
 
   /// No description provided for @editKycSuccess.
   ///

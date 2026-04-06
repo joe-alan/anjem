@@ -8,8 +8,11 @@ use App\Models\DriverProfile;
 use App\Models\User;
 use App\Services\NotificationService;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Forms\Get;
+use App\Events\DriverCreditsUpdated;
+use App\Services\CreditService;
 use Filament\Resources\Resource;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
@@ -164,6 +167,16 @@ class KycResource extends Resource
                             ->live()
                             ->required(),
 
+                        TextInput::make('credits')
+                            ->label('Grant Credits')
+                            ->numeric()
+                            ->integer()
+                            ->minValue(0)
+                            ->maxValue(100)
+                            ->default(100)
+                            ->helperText('Credits to grant on approval (0 to skip)')
+                            ->hidden(fn (Get $get) => $get('decision') !== 'approve'),
+
                         Textarea::make('reason')
                             ->label('Rejection Reason')
                             ->rows(3)
@@ -175,6 +188,11 @@ class KycResource extends Resource
                     ->action(function (User $record, array $data) {
                         if ($data['decision'] === 'approve') {
                             self::approveKyc($record, null);
+
+                            $credits = (int) ($data['credits'] ?? 0);
+                            if ($credits > 0) {
+                                self::grantCredits($record, $credits);
+                            }
                         } else {
                             self::rejectKyc($record, $data['reason']);
                         }
@@ -326,6 +344,34 @@ class KycResource extends Resource
         }
 
         broadcast(new DriverKycStatusChanged($record->fresh(['driverProfile']), false, $reason));
+    }
+
+    private static function grantCredits(User $record, int $amount): void
+    {
+        DB::transaction(function () use ($record, $amount) {
+            app(CreditService::class)->addCredits($record->id, $amount, 'KYC approval bonus');
+            $record->driverProfile->refresh();
+            AdminAuditLog::create([
+                'admin_id'    => auth()->id(),
+                'action_type' => 'credit_grant',
+                'target_type' => DriverProfile::class,
+                'target_id'   => $record->driverProfile->id,
+                'changes'     => [
+                    'amount'      => $amount,
+                    'new_balance' => $record->driverProfile->credits_balance,
+                ],
+                'reason'      => 'KYC approval bonus',
+                'ip_address'  => request()->ip(),
+                'user_agent'  => request()->userAgent(),
+            ]);
+        });
+
+        broadcast(new DriverCreditsUpdated(
+            $record->fresh(['driverProfile']),
+            $record->driverProfile->credits_balance,
+            $amount,
+            'grant'
+        ));
     }
 
     public static function getPages(): array
