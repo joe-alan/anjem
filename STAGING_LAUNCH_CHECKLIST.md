@@ -120,8 +120,10 @@
 | 5.1  | API rate limiting on auth endpoints                     | `throttle:10,1` on `/auth` prefix                      | ✅     |
 | 5.2  | API rate limiting on ride request endpoint              | `throttle:100,1` on `/requests`                        | ✅     |
 | 5.3  | Verify all user inputs validated via Form Requests      | 6+ Form Request classes in use                         | ✅     |
-| 5.4  | KYC document storage via Firebase Storage               | Use Firebase Storage instead of S3; set `FILESYSTEM_DISK` accordingly | 🔄     |
+| 5.4  | KYC document storage via Firebase Storage               | Uploads compressed to Firebase Storage, deletion on KYC reject/approve | ✅     |
 | 5.5  | Tighten CORS for production domain                      | Currently `*`; restrict to `api.anjem.me`              | 🔄     |
+| 5.13 | Account deletion (GDPR/PDP compliance)                  | Soft-delete + PII anonymization, FK cascades set to nullOnDelete       | ✅     |
+| 5.14 | Fix `rides.driver_id` FK (was referencing `driver_profiles` instead of `users`) | Latent schema bug, now corrected | ✅     |
 | 5.6  | Tighten Reverb `allowed_origins`                        | Currently `*` in `config/reverb.php`                   | ⬜     |
 | 5.7  | Set `APP_DEBUG=false` and `APP_ENV=production` in prod  | Currently `true`/`local`                               | ⬜     |
 | 5.8  | Set `CACHE_DRIVER=redis` in prod (currently `file`)     | File cache won't work multi-server                     | ⬜     |
