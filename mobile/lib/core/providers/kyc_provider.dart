@@ -126,7 +126,7 @@ class KycStateNotifier extends StateNotifier<KycState> {
     required String vehiclePlate,
     required String vehicleColor,
     required File ktmPhoto,
-    required File profilePhoto,
+    File? profilePhoto,
   }) async {
     print('KYC Provider: submitKyc called with file path: ${ktmPhoto.path}');
     state = state.copyWith(isLoading: true, error: null, successMessage: null);

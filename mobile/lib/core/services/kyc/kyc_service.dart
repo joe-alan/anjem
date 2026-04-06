@@ -34,7 +34,8 @@ class KycService {
       print('KYC Service: kyc_submitted = ${kycData['kyc_submitted']}');
 
       final submission = KycSubmission.fromJson(kycData);
-      print('KYC Service: KycSubmission created - isVerified=${submission.isVerified}');
+      print(
+          'KYC Service: KycSubmission created - isVerified=${submission.isVerified}');
       return submission;
     } on ApiException {
       rethrow;
@@ -50,7 +51,8 @@ class KycService {
 
   /// Check if student email is available for registration.
   /// Returns a record with `available` and `reason` (null, 'invalid_domain', or 'already_registered').
-  Future<({bool available, String? reason})> checkEmailAvailability(String studentEmail) async {
+  Future<({bool available, String? reason})> checkEmailAvailability(
+      String studentEmail) async {
     try {
       print('KYC Service: Checking email availability for $studentEmail');
       final response = await _apiService.post(
@@ -61,7 +63,7 @@ class KycService {
       print('KYC Service: Email availability response - ${response.data}');
 
       return (
-        available: response.data['available'] ?? false,
+        available: response.data['available'] as bool? ?? false,
         reason: response.data['reason'] as String?,
       );
     } on ApiException catch (e) {
@@ -87,7 +89,7 @@ class KycService {
     required String vehiclePlate,
     required String vehicleColor,
     required File ktmPhoto,
-    required File profilePhoto,
+    File? profilePhoto,
   }) async {
     try {
       print('KYC Service: Preparing form data...');
@@ -102,7 +104,8 @@ class KycService {
           ktmPhoto.path,
           filename: 'ktm_${DateTime.now().millisecondsSinceEpoch}$ktmExt',
         );
-        print('KYC Service: MultipartFile created successfully - ${ktmPhotoFile.filename}');
+        print(
+            'KYC Service: MultipartFile created successfully - ${ktmPhotoFile.filename}');
       } catch (e) {
         print('KYC Service: Error creating MultipartFile - ${e.toString()}');
         throw ApiException(
@@ -111,21 +114,26 @@ class KycService {
         );
       }
 
-      // Create MultipartFile for the profile photo
-      MultipartFile profilePhotoFile;
-      try {
-        final profileExt = path.extension(profilePhoto.path);
-        profilePhotoFile = await MultipartFile.fromFile(
-          profilePhoto.path,
-          filename: 'profile_${DateTime.now().millisecondsSinceEpoch}$profileExt',
-        );
-        print('KYC Service: Profile photo MultipartFile created - ${profilePhotoFile.filename}');
-      } catch (e) {
-        print('KYC Service: Error creating profile photo MultipartFile - ${e.toString()}');
-        throw ApiException(
-          message: 'Failed to read profile photo file: ${e.toString()}',
-          statusCode: null,
-        );
+      // Create MultipartFile for the profile photo (optional)
+      MultipartFile? profilePhotoFile;
+      if (profilePhoto != null) {
+        try {
+          final profileExt = path.extension(profilePhoto.path);
+          profilePhotoFile = await MultipartFile.fromFile(
+            profilePhoto.path,
+            filename:
+                'profile_${DateTime.now().millisecondsSinceEpoch}$profileExt',
+          );
+          print(
+              'KYC Service: Profile photo MultipartFile created - ${profilePhotoFile.filename}');
+        } catch (e) {
+          print(
+              'KYC Service: Error creating profile photo MultipartFile - ${e.toString()}');
+          throw ApiException(
+            message: 'Failed to read profile photo file: ${e.toString()}',
+            statusCode: null,
+          );
+        }
       }
 
       // Create multipart form data
@@ -138,11 +146,12 @@ class KycService {
         'vehicle_plate': vehiclePlate,
         'vehicle_color': vehicleColor,
         'ktm_photo': ktmPhotoFile,
-        'profile_photo': profilePhotoFile,
+        if (profilePhotoFile != null) 'profile_photo': profilePhotoFile,
       });
 
       print('KYC Service: Sending request to /driver/kyc/submit');
-      print('KYC Service: Request data - Fields: ${formData.fields.map((e) => e.key).join(", ")}, Files: ${formData.files.map((e) => e.key).join(", ")}');
+      print(
+          'KYC Service: Request data - Fields: ${formData.fields.map((e) => e.key).join(", ")}, Files: ${formData.files.map((e) => e.key).join(", ")}');
 
       final response = await _apiService.post(
         '/driver/kyc/submit',
@@ -161,7 +170,8 @@ class KycService {
       }
 
       if (response.data is! Map) {
-        print('KYC Service: Response is not a Map! It is: ${response.data.runtimeType}');
+        print(
+            'KYC Service: Response is not a Map! It is: ${response.data.runtimeType}');
         throw ApiException(
           message: 'Invalid response format from server',
           statusCode: response.statusCode,
@@ -172,8 +182,11 @@ class KycService {
       print('KYC Service: Response success field - ${responseData['success']}');
 
       if (responseData['success'] != true) {
-        final errorMsg = responseData['error'] ?? responseData['message'] ?? 'Failed to submit KYC';
-        print('KYC Service: Server returned success=false with message: $errorMsg');
+        final errorMsg = responseData['error'] ??
+            responseData['message'] ??
+            'Failed to submit KYC';
+        print(
+            'KYC Service: Server returned success=false with message: $errorMsg');
         throw ApiException(
           message: errorMsg,
           statusCode: response.statusCode,
@@ -210,12 +223,13 @@ class KycService {
       String errorMsg;
       if (e.response?.data != null && e.response!.data is Map) {
         errorMsg = e.response!.data['error'] ??
-                   e.response!.data['message'] ??
-                   'Failed to submit KYC';
+            e.response!.data['message'] ??
+            'Failed to submit KYC';
 
         // Log validation errors if present
         if (e.response!.data['errors'] != null) {
-          print('KYC Service: Validation errors - ${e.response!.data['errors']}');
+          print(
+              'KYC Service: Validation errors - ${e.response!.data['errors']}');
         }
       } else {
         errorMsg = e.message ?? 'Failed to submit KYC';
@@ -266,7 +280,8 @@ class KycService {
 
       if (response.data['success'] != true) {
         throw ApiException(
-          message: response.data['message'] ?? 'Failed to send verification code',
+          message:
+              response.data['message'] ?? 'Failed to send verification code',
           statusCode: response.statusCode,
         );
       }
