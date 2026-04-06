@@ -50,6 +50,11 @@ class FirebaseAuthService
         $picture = $firebaseUser['picture'] ?? null;
 
         if (! $user) {
+            // Anonymize any soft-deleted user with this email to free the unique constraint
+            User::onlyTrashed()
+                ->where('email', $firebaseUser['email'])
+                ->each(fn (User $u) => $u->update(['email' => "deleted_{$u->id}@removed"]));
+
             // Create new user with the device type they registered from
             $userData = [
                 'name' => $firebaseUser['name'] ?? 'User',

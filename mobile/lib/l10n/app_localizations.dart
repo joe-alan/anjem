@@ -1256,6 +1256,12 @@ abstract class AppLocalizations {
   /// **'✗ This email is already registered'**
   String get emailUnavailable;
 
+  /// No description provided for @emailInvalidDomain.
+  ///
+  /// In en, this message translates to:
+  /// **'✗ Email must be from an academic institution (*.ac.id)'**
+  String get emailInvalidDomain;
+
   /// No description provided for @emailCheckError.
   ///
   /// In en, this message translates to:

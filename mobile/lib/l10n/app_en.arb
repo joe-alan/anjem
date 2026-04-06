@@ -281,6 +281,7 @@
   "checkingAvailability": "Checking availability...",
   "emailAvailable": "\u2713 Email is available",
   "emailUnavailable": "\u2717 This email is already registered",
+  "emailInvalidDomain": "\u2717 Email must be from an academic institution (*.ac.id)",
   "emailCheckError": "Could not check availability",
   "kycRejectedBannerTitle": "KYC Rejected",
   "draftDataLoaded": "Draft data loaded (saved {timeAgo})",
