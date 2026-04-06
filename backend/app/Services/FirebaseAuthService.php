@@ -91,7 +91,8 @@ class FirebaseAuthService
             }
 
             // Update profile picture from Google if user hasn't uploaded their own
-            if ($picture && (! $user->profile_picture || str_starts_with($user->profile_picture, 'https://'))) {
+            // Skip overwrite for user-uploaded avatars stored in Firebase Storage
+            if ($picture && (! $user->profile_picture || (str_starts_with($user->profile_picture, 'https://') && ! str_contains($user->profile_picture, 'storage.googleapis.com')))) {
                 $user->update(['profile_picture' => $picture]);
             }
 

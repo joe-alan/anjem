@@ -12,6 +12,11 @@ use Illuminate\Support\Str;
 
 class KycVerificationService
 {
+    public function __construct(
+        private FirebaseStorageService $storageService,
+        private ImageCompressionService $compressionService,
+    ) {}
+
     /**
      * Validate that the email belongs to an academic institution (*.ac.id).
      */
@@ -108,25 +113,29 @@ class KycVerificationService
     }
 
     /**
-     * Store KTM photo and return the path
+     * Store KTM photo: compress and upload to Firebase Storage.
      */
     public function storeKtmPhoto($file, int $userId): string
     {
-        $filename = 'ktm_'.$userId.'_'.time().'.'.$file->getClientOriginalExtension();
-        $path = $file->storeAs('ktm_photos', $filename, 'public');
+        $compressed = $this->compressionService->compress(
+            $file->getRealPath(), 1920, 1080, 80
+        );
+        $objectPath = 'ktm_photos/ktm_' . $userId . '_' . time() . '.jpg';
 
-        return '/storage/'.$path;
+        return $this->storageService->upload($objectPath, $compressed, 'image/jpeg');
     }
 
     /**
-     * Store profile photo and return the path
+     * Store profile photo: compress and upload to Firebase Storage.
      */
     public function storeProfilePhoto($file, int $userId): string
     {
-        $filename = 'avatar_'.$userId.'_'.time().'.'.$file->getClientOriginalExtension();
-        $path = $file->storeAs('avatars', $filename, 'public');
+        $compressed = $this->compressionService->compress(
+            $file->getRealPath(), 512, 512, 80
+        );
+        $objectPath = 'avatars/avatar_' . $userId . '_' . time() . '.jpg';
 
-        return '/storage/'.$path;
+        return $this->storageService->upload($objectPath, $compressed, 'image/jpeg');
     }
 
     /**
@@ -243,17 +252,27 @@ class KycVerificationService
             return false;
         }
 
-        // Delete KTM photo from storage
+        // Delete KTM photo from storage (Firebase or legacy)
         if ($profile->ktm_url) {
-            $storagePath = str_replace('/storage/', '', $profile->ktm_url);
-            \Storage::disk('public')->delete($storagePath);
+            $objectPath = $this->storageService->extractObjectPath($profile->ktm_url);
+            if ($objectPath) {
+                $this->storageService->delete($objectPath);
+            } else {
+                $storagePath = str_replace('/storage/', '', $profile->ktm_url);
+                \Storage::disk('public')->delete($storagePath);
+            }
         }
 
-        // Delete profile photo from storage
+        // Delete profile photo from storage (Firebase or legacy)
         $user = User::find($userId);
-        if ($user?->profile_picture && str_starts_with($user->profile_picture, '/storage/')) {
-            $storagePath = str_replace('/storage/', '', $user->profile_picture);
-            \Storage::disk('public')->delete($storagePath);
+        if ($user?->profile_picture) {
+            $objectPath = $this->storageService->extractObjectPath($user->profile_picture);
+            if ($objectPath) {
+                $this->storageService->delete($objectPath);
+            } elseif (str_starts_with($user->profile_picture, '/storage/')) {
+                $storagePath = str_replace('/storage/', '', $user->profile_picture);
+                \Storage::disk('public')->delete($storagePath);
+            }
         }
 
         // Nullify KYC PII fields, reset verification

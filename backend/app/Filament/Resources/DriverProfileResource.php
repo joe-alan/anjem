@@ -3,10 +3,12 @@
 namespace App\Filament\Resources;
 
 use App\Models\DriverProfile;
+use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
@@ -36,6 +38,12 @@ class DriverProfileResource extends Resource
     {
         return $table
             ->columns([
+                ImageColumn::make('user.profile_picture')
+                    ->label('')
+                    ->circular()
+                    ->defaultImageUrl(url('/images/default-avatar.svg'))
+                    ->getStateUsing(fn (DriverProfile $record) => self::resolveImageUrl($record->user?->profile_picture))
+                    ->size(32),
                 TextColumn::make('user.name')->label('Driver')->searchable()->sortable(),
                 TextColumn::make('online_status')->label('Status')
                     ->state(fn (DriverProfile $record): string => $record->went_online_at ? 'Online' : 'Offline')
@@ -91,6 +99,12 @@ class DriverProfileResource extends Resource
     {
         return $infolist->schema([
             Section::make('Driver Info')->schema([
+                ImageEntry::make('user.profile_picture')
+                    ->label('Photo')
+                    ->circular()
+                    ->defaultImageUrl(url('/images/default-avatar.svg'))
+                    ->getStateUsing(fn (DriverProfile $record) => self::resolveImageUrl($record->user?->profile_picture))
+                    ->size(80),
                 TextEntry::make('user.name')->label('Name'),
                 TextEntry::make('user.email')->label('Email'),
                 TextEntry::make('user.phone_number')->label('Phone')->placeholder('-'),
@@ -100,6 +114,14 @@ class DriverProfileResource extends Resource
                 TextEntry::make('went_online_at')->label('Online Since')->dateTime()->placeholder('Offline'),
                 TextEntry::make('queue_joined_at')->label('In Queue Since')->dateTime()->placeholder('Not in queue'),
             ])->columns(2),
+
+            Section::make('KTM Document')->schema([
+                ImageEntry::make('ktm_url')
+                    ->label('')
+                    ->getStateUsing(fn (DriverProfile $record) => self::resolveImageUrl($record->ktm_url))
+                    ->height(200)
+                    ->placeholder('No KTM (deleted after approval)'),
+            ]),
 
             Section::make('Vehicle')->schema([
                 TextEntry::make('vehicle_type'),
@@ -130,6 +152,18 @@ class DriverProfileResource extends Resource
                 TextEntry::make('decline_window_start')->dateTime()->placeholder('-'),
             ])->columns(2),
         ]);
+    }
+
+    private static function resolveImageUrl(?string $url): ?string
+    {
+        if (! $url) {
+            return null;
+        }
+        if (str_starts_with($url, 'http')) {
+            return $url;
+        }
+
+        return url($url);
     }
 
     public static function getPages(): array

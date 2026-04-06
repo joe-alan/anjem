@@ -39,6 +39,7 @@ return [
         'client_id' => env('FIREBASE_CLIENT_ID'),
         'auth_uri' => env('FIREBASE_AUTH_URI', 'https://accounts.google.com/o/oauth2/auth'),
         'token_uri' => env('FIREBASE_TOKEN_URI', 'https://accounts.google.com/o/oauth2/token'),
+        'storage_bucket' => env('FIREBASE_STORAGE_BUCKET'),
     ],
 
     'google' => [

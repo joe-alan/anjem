@@ -5,11 +5,13 @@ use App\Events\UserAccountStatusChanged;
 use App\Models\AdminAuditLog;
 use App\Models\User;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -39,6 +41,12 @@ class RiderResource extends Resource
     {
         return $table
             ->columns([
+                ImageColumn::make('profile_picture')
+                    ->label('')
+                    ->circular()
+                    ->defaultImageUrl(url('/images/default-avatar.svg'))
+                    ->getStateUsing(fn (User $record) => self::resolveImageUrl($record->profile_picture))
+                    ->size(32),
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('email')->searchable()->copyable(),
                 TextColumn::make('phone_number')->label('Phone'),
@@ -109,10 +117,28 @@ class RiderResource extends Resource
         return $form;
     }
 
+    private static function resolveImageUrl(?string $url): ?string
+    {
+        if (! $url) {
+            return null;
+        }
+        if (str_starts_with($url, 'http')) {
+            return $url;
+        }
+
+        return url($url);
+    }
+
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist->schema([
             Section::make('Profile')->schema([
+                ImageEntry::make('profile_picture')
+                    ->label('Photo')
+                    ->circular()
+                    ->defaultImageUrl(url('/images/default-avatar.svg'))
+                    ->getStateUsing(fn (User $record) => self::resolveImageUrl($record->profile_picture))
+                    ->size(80),
                 TextEntry::make('name'),
                 TextEntry::make('email'),
                 TextEntry::make('phone_number')->label('Phone'),
