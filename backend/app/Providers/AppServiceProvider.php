@@ -17,13 +17,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Register Firebase services
+        // Register Firebase services (deferred — only instantiated when resolved)
         $this->app->singleton(Factory::class, function () {
+            $projectId = config('services.firebase.project_id');
+            if (! $projectId) {
+                throw new \RuntimeException('Firebase credentials not configured. Set FIREBASE_PROJECT_ID in .env');
+            }
+
             return (new Factory)->withServiceAccount([
                 'type' => 'service_account',
-                'project_id' => config('services.firebase.project_id'),
+                'project_id' => $projectId,
                 'private_key_id' => config('services.firebase.private_key_id'),
-                'private_key' => str_replace('\\n', "\n", config('services.firebase.private_key')),
+                'private_key' => str_replace('\\n', "\n", config('services.firebase.private_key', '')),
                 'client_email' => config('services.firebase.client_email'),
                 'client_id' => config('services.firebase.client_id'),
                 'auth_uri' => config('services.firebase.auth_uri'),
