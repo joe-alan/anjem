@@ -120,7 +120,7 @@
 | 5.1  | API rate limiting on auth endpoints                     | `throttle:10,1` on `/auth` prefix                      | ✅     |
 | 5.2  | API rate limiting on ride request endpoint              | `throttle:100,1` on `/requests`                        | ✅     |
 | 5.3  | Verify all user inputs validated via Form Requests      | 6+ Form Request classes in use                         | ✅     |
-| 5.4  | KYC document storage via S3                             | S3 config exists; set `FILESYSTEM_DISK=s3` in prod     | 🔄     |
+| 5.4  | KYC document storage via Firebase Storage               | Use Firebase Storage instead of S3; set `FILESYSTEM_DISK` accordingly | 🔄     |
 | 5.5  | Tighten CORS for production domain                      | Currently `*`; restrict to `api.anjem.me`              | 🔄     |
 | 5.6  | Tighten Reverb `allowed_origins`                        | Currently `*` in `config/reverb.php`                   | ⬜     |
 | 5.7  | Set `APP_DEBUG=false` and `APP_ENV=production` in prod  | Currently `true`/`local`                               | ⬜     |
