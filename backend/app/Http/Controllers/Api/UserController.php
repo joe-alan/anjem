@@ -138,9 +138,12 @@ class UserController extends Controller
             ]);
         }
 
-        // Revoke all tokens and clear FCM token + PII
+        // Revoke all tokens, anonymize identifiers, and clear PII
         $user->tokens()->delete();
         $user->update([
+            'name'            => 'Deleted User',
+            'email'           => "deleted_{$user->id}@removed",
+            'firebase_uid'    => "deleted_{$user->id}",
             'fcm_token'       => null,
             'phone_number'    => null,
             'profile_picture' => null,
