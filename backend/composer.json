@@ -16,7 +16,6 @@
         "laravel/reverb": "^1.6",
         "laravel/sanctum": "^3.3",
         "laravel/socialite": "^5.23",
-        "laravel/tinker": "^2.8",
         "matanyadaev/laravel-eloquent-spatial": "^4.5",
         "predis/predis": "^3.2",
         "sentry/sentry-laravel": "^4.24"
@@ -26,6 +25,7 @@
         "larastan/larastan": "^2.11",
         "laravel/pint": "^1.0",
         "laravel/sail": "^1.18",
+        "laravel/tinker": "^3.0",
         "mockery/mockery": "^1.4.4",
         "nunomaduro/collision": "^7.0",
         "phpstan/phpstan": "^1.12",
