@@ -31,7 +31,8 @@ class AuditLogResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('admin.name')->label('Admin')->searchable(),
+                TextColumn::make('admin.name')->label('Admin')->searchable()
+                    ->placeholder('<deleted user>'),
                 TextColumn::make('action_type')->label('Action')->badge()
                     ->color(fn(string $state): string => match(true) {
                         in_array($state, ['kyc_approve', 'driver_unsuspend', 'rider_unsuspend']) => 'success',
@@ -88,7 +89,7 @@ class AuditLogResource extends Resource
     {
         return $infolist->schema([
             Section::make('Audit Entry')->schema([
-                TextEntry::make('admin.name')->label('Admin'),
+                TextEntry::make('admin.name')->label('Admin')->placeholder('<deleted user>'),
                 TextEntry::make('action_type')->label('Action')->badge(),
                 TextEntry::make('target_type')->label('Target Type')
                     ->formatStateUsing(fn($state) => class_basename($state)),
