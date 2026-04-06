@@ -44,7 +44,8 @@ class DriverProfileResource extends Resource
                     ->defaultImageUrl('https://ui-avatars.com/api/?background=e2e8f0&color=94a3b8&name=U')
                     ->getStateUsing(fn (DriverProfile $record) => self::resolveImageUrl($record->user?->profile_picture))
                     ->size(32),
-                TextColumn::make('user.name')->label('Driver')->searchable()->sortable(),
+                TextColumn::make('user.name')->label('Driver')->searchable()->sortable()
+                    ->placeholder('<deleted user>'),
                 TextColumn::make('online_status')->label('Status')
                     ->state(fn (DriverProfile $record): string => $record->went_online_at ? 'Online' : 'Offline')
                     ->badge()
@@ -105,9 +106,9 @@ class DriverProfileResource extends Resource
                     ->defaultImageUrl('https://ui-avatars.com/api/?background=e2e8f0&color=94a3b8&name=U')
                     ->getStateUsing(fn (DriverProfile $record) => self::resolveImageUrl($record->user?->profile_picture))
                     ->size(80),
-                TextEntry::make('user.name')->label('Name'),
-                TextEntry::make('user.email')->label('Email'),
-                TextEntry::make('user.phone_number')->label('Phone')->placeholder('-'),
+                TextEntry::make('user.name')->label('Name')->placeholder('<deleted user>'),
+                TextEntry::make('user.email')->label('Email')->placeholder('<deleted>'),
+                TextEntry::make('user.phone_number')->label('Phone')->placeholder('<deleted>'),
                 TextEntry::make('is_verified')->label('KYC')->badge()
                     ->formatStateUsing(fn (bool $state): string => $state ? 'Verified' : 'Unverified')
                     ->color(fn (bool $state): string => $state ? 'success' : 'danger'),

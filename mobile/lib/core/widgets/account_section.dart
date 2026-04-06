@@ -59,9 +59,12 @@ class AccountSection extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () async {
-              Navigator.of(context).pop();
+              Navigator.of(context).pop(); // dismiss dialog
               ref.read(sessionStateProvider.notifier).clearSession();
               await ref.read(authStateProvider.notifier).signOut();
+              if (context.mounted) {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              }
             },
             child: Text(
               l10n.logoutTitle,
@@ -133,6 +136,9 @@ class AccountSection extends ConsumerWidget {
       if (response.data['success'] == true) {
         ref.read(sessionStateProvider.notifier).clearSession();
         await ref.read(authStateProvider.notifier).deleteAccount();
+        if (context.mounted) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
       } else {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

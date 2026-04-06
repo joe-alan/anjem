@@ -41,8 +41,10 @@ class RideResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('id')->label('ID')->sortable(),
-                TextColumn::make('rider.name')->label('Rider')->searchable(),
-                TextColumn::make('driver.name')->label('Driver')->searchable(),
+                TextColumn::make('rider.name')->label('Rider')->searchable()
+                    ->placeholder('<deleted user>'),
+                TextColumn::make('driver.name')->label('Driver')->searchable()
+                    ->placeholder('<deleted user>'),
                 TextColumn::make('route')->label('Route')
                     ->state(fn(Ride $record): string =>
                         ($record->pickupLocation?->name ?? '?') . ' → ' . ($record->destinationLocation?->name ?? '?')
@@ -188,8 +190,8 @@ class RideResource extends Resource
                         'in_progress' => 'primary', 'accepted' => 'info',
                         default => 'gray',
                     }),
-                TextEntry::make('rider.name')->label('Rider'),
-                TextEntry::make('driver.name')->label('Driver'),
+                TextEntry::make('rider.name')->label('Rider')->placeholder('<deleted user>'),
+                TextEntry::make('driver.name')->label('Driver')->placeholder('<deleted user>'),
                 TextEntry::make('pickupLocation.name')->label('Pickup'),
                 TextEntry::make('destinationLocation.name')->label('Destination'),
                 TextEntry::make('estimated_fare_rp')->label('Est. Fare')

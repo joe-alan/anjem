@@ -40,7 +40,8 @@ class RideRequestResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('id')->label('ID')->sortable(),
-                TextColumn::make('rider.name')->label('Rider')->searchable(),
+                TextColumn::make('rider.name')->label('Rider')->searchable()
+                    ->placeholder('<deleted user>'),
                 TextColumn::make('route')->label('Route')
                     ->state(fn (RideRequest $record): string =>
                         ($record->pickupLocation?->name ?? '?') . ' → ' . ($record->destinationLocation?->name ?? '?')
@@ -55,7 +56,7 @@ class RideRequestResource extends Resource
                         'cancelled'   => 'danger',
                         default       => 'gray',
                     }),
-                TextColumn::make('currentDriver.name')->label('Current Driver')->placeholder('-'),
+                TextColumn::make('currentDriver.name')->label('Current Driver')->placeholder('<deleted user>'),
                 TextColumn::make('estimated_fare_rp')->label('Est. Fare')
                     ->formatStateUsing(fn ($state) => $state ? 'Rp ' . number_format($state, 0, ',', '.') : '-'),
                 TextColumn::make('passenger_count')->label('Pax'),
@@ -92,7 +93,7 @@ class RideRequestResource extends Resource
         return $infolist->schema([
             Section::make('Request Details')->schema([
                 TextEntry::make('id')->label('ID'),
-                TextEntry::make('rider.name')->label('Rider'),
+                TextEntry::make('rider.name')->label('Rider')->placeholder('<deleted user>'),
                 TextEntry::make('pickupLocation.name')->label('Pickup'),
                 TextEntry::make('destinationLocation.name')->label('Destination'),
                 TextEntry::make('status')->badge()
@@ -109,7 +110,7 @@ class RideRequestResource extends Resource
             ])->columns(2),
 
             Section::make('Dispatch Info')->schema([
-                TextEntry::make('currentDriver.name')->label('Current Driver')->placeholder('-'),
+                TextEntry::make('currentDriver.name')->label('Current Driver')->placeholder('<deleted user>'),
                 TextEntry::make('matched_at')->dateTime()->placeholder('-'),
                 TextEntry::make('expires_at')->dateTime()->placeholder('-'),
                 TextEntry::make('expiry_generation')->label('Expiry Gen'),
