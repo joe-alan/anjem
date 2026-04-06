@@ -18,7 +18,6 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use App\Services\FirebaseStorageService;
 use App\Filament\Resources\KycResource\Pages;
 
@@ -207,8 +206,6 @@ class KycResource extends Resource
 
         if ($objectPath) {
             $storageService->delete($objectPath);
-        } elseif (str_starts_with($url, '/storage/')) {
-            Storage::disk('public')->delete(ltrim(str_replace('/storage', '', $url), '/'));
         }
     }
 

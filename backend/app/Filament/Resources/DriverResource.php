@@ -67,7 +67,7 @@ class DriverResource extends Resource
                 ImageColumn::make('profile_picture')
                     ->label('')
                     ->circular()
-                    ->defaultImageUrl(url('/images/default-avatar.svg'))
+                    ->defaultImageUrl('https://ui-avatars.com/api/?background=e2e8f0&color=94a3b8&name=U')
                     ->getStateUsing(fn (User $record) => self::resolveImageUrl($record->profile_picture))
                     ->size(32),
                 TextColumn::make('name')
@@ -315,7 +315,7 @@ class DriverResource extends Resource
                     ImageEntry::make('profile_picture')
                         ->label('Photo')
                         ->circular()
-                        ->defaultImageUrl(url('/images/default-avatar.svg'))
+                        ->defaultImageUrl('https://ui-avatars.com/api/?background=e2e8f0&color=94a3b8&name=U')
                         ->getStateUsing(fn (User $record) => self::resolveImageUrl($record->profile_picture))
                         ->size(80),
                     TextEntry::make('name'),
