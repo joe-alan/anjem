@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -58,41 +59,41 @@ class KycStateNotifier extends StateNotifier<KycState> {
   KycStateNotifier(this._kycService, this._ref) : super(const KycState()) {
     // Listen to auth state changes
     _ref.listen(authStateProvider, (previous, next) {
-      print('KYC Provider: Auth state changed - wasAuth=${previous?.isAuthenticated}, isAuth=${next.isAuthenticated}');
+      debugPrint('KYC Provider: Auth state changed - wasAuth=${previous?.isAuthenticated}, isAuth=${next.isAuthenticated}');
 
       // If user just logged in (transitioned from not authenticated to authenticated)
       if (previous != null && !previous.isAuthenticated && next.isAuthenticated) {
-        print('KYC Provider: User just logged in, loading KYC status');
+        debugPrint('KYC Provider: User just logged in, loading KYC status');
         _loadKycStatus();
       }
 
       // If user logged out, clear KYC state
       if (previous != null && previous.isAuthenticated && !next.isAuthenticated) {
-        print('KYC Provider: User logged out, clearing KYC state');
+        debugPrint('KYC Provider: User logged out, clearing KYC state');
         clearKycState();
       }
     });
 
     // Check if user is already authenticated on initialization
     final isAuthenticated = _ref.read(authStateProvider).isAuthenticated;
-    print('KYC Provider: Initializing - isAuthenticated=$isAuthenticated');
+    debugPrint('KYC Provider: Initializing - isAuthenticated=$isAuthenticated');
 
     if (isAuthenticated) {
-      print('KYC Provider: User is authenticated, loading KYC status...');
+      debugPrint('KYC Provider: User is authenticated, loading KYC status...');
       _loadKycStatus();
     } else {
-      print('KYC Provider: User not authenticated, skipping KYC status load');
+      debugPrint('KYC Provider: User not authenticated, skipping KYC status load');
     }
   }
 
   Future<void> _loadKycStatus() async {
-    print('KYC Provider: Loading KYC status...');
+    debugPrint('KYC Provider: Loading KYC status...');
     state = state.copyWith(isLoading: true);
 
     try {
       final kycSubmission = await _kycService.getKycStatus();
-      print('KYC Provider: KYC status loaded - isVerified=${kycSubmission.isVerified}');
-      print('KYC Provider: Full submission - $kycSubmission');
+      debugPrint('KYC Provider: KYC status loaded - isVerified=${kycSubmission.isVerified}');
+      debugPrint('KYC Provider: Full submission - $kycSubmission');
 
       state = state.copyWith(
         isLoading: false,
@@ -100,16 +101,16 @@ class KycStateNotifier extends StateNotifier<KycState> {
         error: null,
       );
 
-      print('KYC Provider: State updated - kycSubmission=${state.kycSubmission?.isVerified}');
+      debugPrint('KYC Provider: State updated - kycSubmission=${state.kycSubmission?.isVerified}');
     } on ApiException catch (e) {
-      print('KYC Provider: API Exception - ${e.message}');
+      debugPrint('KYC Provider: API Exception - ${e.message}');
       state = state.copyWith(
         isLoading: false,
         error: e.userFriendlyMessage,
       );
     } catch (e, stackTrace) {
-      print('KYC Provider: Exception - $e');
-      print('KYC Provider: Stack trace - $stackTrace');
+      debugPrint('KYC Provider: Exception - $e');
+      debugPrint('KYC Provider: Stack trace - $stackTrace');
       state = state.copyWith(
         isLoading: false,
         error: 'Failed to load KYC status',
@@ -128,7 +129,7 @@ class KycStateNotifier extends StateNotifier<KycState> {
     required File ktmPhoto,
     File? profilePhoto,
   }) async {
-    print('KYC Provider: submitKyc called with file path: ${ktmPhoto.path}');
+    debugPrint('KYC Provider: submitKyc called with file path: ${ktmPhoto.path}');
     state = state.copyWith(isLoading: true, error: null, successMessage: null);
 
     try {
@@ -261,7 +262,7 @@ class KycStateNotifier extends StateNotifier<KycState> {
   }
 
   void clearKycState() {
-    print('KYC Provider: Clearing KYC state');
+    debugPrint('KYC Provider: Clearing KYC state');
     state = const KycState();
   }
 
@@ -291,9 +292,9 @@ class KycStateNotifier extends StateNotifier<KycState> {
       if (currentPage != null) await prefs.setInt('kyc_draft_current_page', currentPage);
       await prefs.setString('kyc_draft_saved_at', DateTime.now().toIso8601String());
 
-      print('KYC Provider: Draft saved successfully');
+      debugPrint('KYC Provider: Draft saved successfully');
     } catch (e) {
-      print('KYC Provider: Error saving draft - $e');
+      debugPrint('KYC Provider: Error saving draft - $e');
     }
   }
 
@@ -303,7 +304,7 @@ class KycStateNotifier extends StateNotifier<KycState> {
       final prefs = await SharedPreferences.getInstance();
 
       if (!prefs.containsKey('kyc_draft_email')) {
-        print('KYC Provider: No draft data found');
+        debugPrint('KYC Provider: No draft data found');
         return null;
       }
 
@@ -319,10 +320,10 @@ class KycStateNotifier extends StateNotifier<KycState> {
         'saved_at': prefs.getString('kyc_draft_saved_at'),
       };
 
-      print('KYC Provider: Draft loaded - saved at ${draft['saved_at']}');
+      debugPrint('KYC Provider: Draft loaded - saved at ${draft['saved_at']}');
       return draft;
     } catch (e) {
-      print('KYC Provider: Error loading draft - $e');
+      debugPrint('KYC Provider: Error loading draft - $e');
       return null;
     }
   }
@@ -341,9 +342,9 @@ class KycStateNotifier extends StateNotifier<KycState> {
       await prefs.remove('kyc_draft_current_page');
       await prefs.remove('kyc_draft_saved_at');
 
-      print('KYC Provider: Draft cleared successfully');
+      debugPrint('KYC Provider: Draft cleared successfully');
     } catch (e) {
-      print('KYC Provider: Error clearing draft - $e');
+      debugPrint('KYC Provider: Error clearing draft - $e');
     }
   }
 }

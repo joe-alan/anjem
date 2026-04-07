@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../api/api_service.dart';
 import '../../models/ride_request.dart';
 import '../../models/fare_estimate.dart';
@@ -40,7 +41,7 @@ class RideRequestService {
         response.data['data'] as Map<String, dynamic>,
       );
     } catch (e) {
-      print('RideRequestService: Error getting estimate - $e');
+      debugPrint('RideRequestService: Error getting estimate - $e');
       rethrow;
     }
   }
@@ -72,7 +73,7 @@ class RideRequestService {
         response.data['data'] as Map<String, dynamic>,
       );
     } catch (e) {
-      print('RideRequestService: Error getting coordinate estimate - $e');
+      debugPrint('RideRequestService: Error getting coordinate estimate - $e');
       rethrow;
     }
   }
@@ -109,7 +110,7 @@ class RideRequestService {
         response.data['data'] as Map<String, dynamic>,
       );
     } catch (e) {
-      print('RideRequestService: Error creating request - $e');
+      debugPrint('RideRequestService: Error creating request - $e');
       rethrow;
     }
   }
@@ -154,7 +155,7 @@ class RideRequestService {
         response.data['data'] as Map<String, dynamic>,
       );
     } catch (e) {
-      print('RideRequestService: Error creating coordinate request - $e');
+      debugPrint('RideRequestService: Error creating coordinate request - $e');
       rethrow;
     }
   }
@@ -174,7 +175,7 @@ class RideRequestService {
         response.data['data'] as Map<String, dynamic>,
       );
     } catch (e) {
-      print('RideRequestService: Error getting request - $e');
+      debugPrint('RideRequestService: Error getting request - $e');
       rethrow;
     }
   }
@@ -191,7 +192,7 @@ class RideRequestService {
         );
       }
     } catch (e) {
-      print('RideRequestService: Error cancelling request - $e');
+      debugPrint('RideRequestService: Error cancelling request - $e');
       rethrow;
     }
   }
@@ -210,7 +211,7 @@ class RideRequestService {
         );
       }
     } catch (e) {
-      print('RideRequestService: Error declining request - $e');
+      debugPrint('RideRequestService: Error declining request - $e');
       // Don't rethrow — a failed decline shouldn't crash the driver app
     }
   }
@@ -236,7 +237,7 @@ class RideRequestService {
           )
           .toList();
     } catch (e) {
-      print('RideRequestService: Error getting requests - $e');
+      debugPrint('RideRequestService: Error getting requests - $e');
       rethrow;
     }
   }

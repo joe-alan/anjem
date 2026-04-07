@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase;
 import 'package:google_sign_in/google_sign_in.dart';
 import '../api/api_service.dart';
@@ -98,10 +99,10 @@ class AuthService {
   Future<bool> isAuthenticated() async {
     // Only check Sanctum token - Firebase is just for initial login
     final hasToken = await _apiService.hasToken();
-    print('AuthService: isAuthenticated check - hasToken: $hasToken');
+    debugPrint('AuthService: isAuthenticated check - hasToken: $hasToken');
     if (hasToken) {
       final token = await _apiService.getToken();
-      print('AuthService: Token exists (length: ${token?.length ?? 0})');
+      debugPrint('AuthService: Token exists (length: ${token?.length ?? 0})');
     }
     return hasToken;
   }
@@ -112,10 +113,10 @@ class AuthService {
   /// Get current user from backend
   Future<User> getCurrentUser() async {
     try {
-      print('AuthService: Fetching current user from /user endpoint');
+      debugPrint('AuthService: Fetching current user from /user endpoint');
       final response = await _apiService.get('/user');
 
-      print('AuthService: User fetch response - status: ${response.statusCode}');
+      debugPrint('AuthService: User fetch response - status: ${response.statusCode}');
 
       if (response.data['success'] != true) {
         throw ApiException(
@@ -125,13 +126,13 @@ class AuthService {
       }
 
       final user = User.fromJson(response.data['data']);
-      print('AuthService: User fetched successfully - id: ${user.id}, email: ${user.email}');
+      debugPrint('AuthService: User fetched successfully - id: ${user.id}, email: ${user.email}');
       return user;
     } on ApiException catch (e) {
-      print('AuthService: ApiException fetching user - ${e.message}');
+      debugPrint('AuthService: ApiException fetching user - ${e.message}');
       rethrow;
     } catch (e) {
-      print('AuthService: Exception fetching user - ${e.toString()}');
+      debugPrint('AuthService: Exception fetching user - ${e.toString()}');
       throw ApiException(
         message: 'Failed to get current user: ${e.toString()}',
         statusCode: null,
@@ -199,7 +200,7 @@ class AuthService {
       );
     } catch (e) {
       // Non-critical, log but don't throw
-      print('Failed to update FCM token: $e');
+      debugPrint('Failed to update FCM token: $e');
     }
   }
 
@@ -210,7 +211,7 @@ class AuthService {
       await _apiService.post('/auth/logout');
     } catch (e) {
       // Continue with logout even if backend call fails
-      print('Backend logout failed: $e');
+      debugPrint('Backend logout failed: $e');
     } finally {
       // Clear Sanctum token
       await _apiService.clearToken();

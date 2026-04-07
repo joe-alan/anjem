@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'api_provider.dart';
 
@@ -72,7 +73,7 @@ class DriverStatisticsNotifier extends AutoDisposeAsyncNotifier<DriverStatistics
       final apiService = ref.read(apiServiceProvider);
       final response = await apiService.get('/driver/statistics');
 
-      print('DriverStatistics: Fetched statistics - ${response.data}');
+      debugPrint('DriverStatistics: Fetched statistics - ${response.data}');
 
       if (response.data['success'] == true && response.data['data'] != null) {
         return DriverStatistics.fromJson(response.data['data']);
@@ -81,11 +82,11 @@ class DriverStatisticsNotifier extends AutoDisposeAsyncNotifier<DriverStatistics
       // Return default if no data
       return const DriverStatistics();
     } catch (e) {
-      print('DriverStatistics: Error fetching statistics - $e');
+      debugPrint('DriverStatistics: Error fetching statistics - $e');
 
       // Check if the error is because driver profile doesn't exist (404)
       if (e.toString().contains('404') || e.toString().contains('not found')) {
-        print('DriverStatistics: Driver profile not found - user likely hasn\'t completed KYC');
+        debugPrint('DriverStatistics: Driver profile not found - user likely hasn\'t completed KYC');
       }
 
       // Return default stats on error instead of throwing

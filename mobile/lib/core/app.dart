@@ -64,19 +64,19 @@ class AuthenticationWrapper extends ConsumerWidget {
     final kycState = ref.watch(kycStateProvider);
     final config = AppConfig.instance;
 
-    print('AuthWrapper: Building - isDriverApp=${config.isDriverApp}');
-    print('AuthWrapper: authState - isAuthenticated=${authState.isAuthenticated}, isLoading=${authState.isLoading}');
-    print('AuthWrapper: kycState - isLoading=${kycState.isLoading}, kycSubmission=${kycState.kycSubmission}, isVerified=${kycState.kycSubmission?.isVerified}');
+    debugPrint('AuthWrapper: Building - isDriverApp=${config.isDriverApp}');
+    debugPrint('AuthWrapper: authState - isAuthenticated=${authState.isAuthenticated}, isLoading=${authState.isLoading}');
+    debugPrint('AuthWrapper: kycState - isLoading=${kycState.isLoading}, kycSubmission=${kycState.kycSubmission}, isVerified=${kycState.kycSubmission?.isVerified}');
 
     // Show splash screen while checking authentication
     if (authState.isLoading) {
-      print('AuthWrapper: Showing splash - auth loading');
+      debugPrint('AuthWrapper: Showing splash - auth loading');
       return const SplashScreen();
     }
 
     // Show login screen if not authenticated
     if (!authState.isAuthenticated) {
-      print('AuthWrapper: Showing login - not authenticated');
+      debugPrint('AuthWrapper: Showing login - not authenticated');
       return const LoginScreen();
     }
 
@@ -84,7 +84,7 @@ class AuthenticationWrapper extends ConsumerWidget {
     if (config.isDriverApp) {
       // Still loading KYC status
       if (kycState.isLoading && kycState.kycSubmission == null) {
-        print('AuthWrapper: Showing splash - KYC loading');
+        debugPrint('AuthWrapper: Showing splash - KYC loading');
         return const SplashScreen();
       }
 
@@ -92,7 +92,7 @@ class AuthenticationWrapper extends ConsumerWidget {
       // KycFormScreen, which would incorrectly send a verified driver to
       // re-submit their KYC. Show a retry screen instead.
       if (kycState.error != null && kycState.kycSubmission == null) {
-        print('AuthWrapper: KYC load failed - showing retry: ${kycState.error}');
+        debugPrint('AuthWrapper: KYC load failed - showing retry: ${kycState.error}');
         return _KycLoadErrorScreen(error: kycState.error!);
       }
 
@@ -100,13 +100,13 @@ class AuthenticationWrapper extends ConsumerWidget {
       // the driver at the right screen without losing their progress.
       final kycSubmission = kycState.kycSubmission;
       final kycStatus = kycSubmission?.status;
-      print('AuthWrapper: kycStatus=$kycStatus');
+      debugPrint('AuthWrapper: kycStatus=$kycStatus');
 
       switch (kycStatus) {
         // Not submitted yet — show the full KYC form.
         case null:
         case KycStatus.notSubmitted:
-          print('AuthWrapper: Showing KYC form');
+          debugPrint('AuthWrapper: Showing KYC form');
           return const KycFormScreen();
 
         // KYC submitted but student email not yet verified — resume at the
@@ -114,7 +114,7 @@ class AuthenticationWrapper extends ConsumerWidget {
         case KycStatus.submitted:
           final email = kycSubmission!.studentEmail;
           if (email != null) {
-            print('AuthWrapper: Resuming email verification for $email');
+            debugPrint('AuthWrapper: Resuming email verification for $email');
             return EmailVerificationScreen(studentEmail: email);
           }
           // Fallback: email missing in profile, restart the form.
@@ -124,7 +124,7 @@ class AuthenticationWrapper extends ConsumerWidget {
         // The home screen handles displaying unverified status.
         case KycStatus.emailVerified:
         case KycStatus.verified:
-          print('AuthWrapper: Showing driver home - verified');
+          debugPrint('AuthWrapper: Showing driver home - verified');
           return const SessionCheckWrapper(
             defaultHomeScreen: DriverHomeScreen(),
           );
@@ -132,7 +132,7 @@ class AuthenticationWrapper extends ConsumerWidget {
     }
 
     // For rider app, check for active session
-    print('AuthWrapper: Showing rider home');
+    debugPrint('AuthWrapper: Showing rider home');
     return const SessionCheckWrapper(
       defaultHomeScreen: RiderHomeScreen(),
     );

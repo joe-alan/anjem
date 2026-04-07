@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:path/path.dart' as path;
@@ -13,14 +14,14 @@ class KycService {
   /// Get current KYC status
   Future<KycSubmission> getKycStatus() async {
     try {
-      print('KYC Service: Getting KYC status from /driver/kyc/status');
+      debugPrint('KYC Service: Getting KYC status from /driver/kyc/status');
       final response = await _apiService.get('/driver/kyc/status');
 
-      print('KYC Service: getKycStatus response - ${response.statusCode}');
-      print('KYC Service: getKycStatus data - ${response.data}');
+      debugPrint('KYC Service: getKycStatus response - ${response.statusCode}');
+      debugPrint('KYC Service: getKycStatus data - ${response.data}');
 
       if (response.data['success'] != true) {
-        print('KYC Service: getKycStatus failed - ${response.data['message']}');
+        debugPrint('KYC Service: getKycStatus failed - ${response.data['message']}');
         throw ApiException(
           message: response.data['message'] ?? 'Failed to get KYC status',
           statusCode: response.statusCode,
@@ -28,20 +29,20 @@ class KycService {
       }
 
       final kycData = response.data['data'];
-      print('KYC Service: KYC status data - $kycData');
-      print('KYC Service: is_verified = ${kycData['is_verified']}');
-      print('KYC Service: email_verified = ${kycData['email_verified']}');
-      print('KYC Service: kyc_submitted = ${kycData['kyc_submitted']}');
+      debugPrint('KYC Service: KYC status data - $kycData');
+      debugPrint('KYC Service: is_verified = ${kycData['is_verified']}');
+      debugPrint('KYC Service: email_verified = ${kycData['email_verified']}');
+      debugPrint('KYC Service: kyc_submitted = ${kycData['kyc_submitted']}');
 
       final submission = KycSubmission.fromJson(kycData);
-      print(
+      debugPrint(
           'KYC Service: KycSubmission created - isVerified=${submission.isVerified}');
       return submission;
     } on ApiException {
       rethrow;
     } catch (e, stackTrace) {
-      print('KYC Service: getKycStatus exception - $e');
-      print('KYC Service: Stack trace - $stackTrace');
+      debugPrint('KYC Service: getKycStatus exception - $e');
+      debugPrint('KYC Service: Stack trace - $stackTrace');
       throw ApiException(
         message: 'Failed to get KYC status: ${e.toString()}',
         statusCode: null,
@@ -54,24 +55,24 @@ class KycService {
   Future<({bool available, String? reason})> checkEmailAvailability(
       String studentEmail) async {
     try {
-      print('KYC Service: Checking email availability for $studentEmail');
+      debugPrint('KYC Service: Checking email availability for $studentEmail');
       final response = await _apiService.post(
         '/driver/kyc/check-email',
         data: {'student_email': studentEmail},
       );
 
-      print('KYC Service: Email availability response - ${response.data}');
+      debugPrint('KYC Service: Email availability response - ${response.data}');
 
       return (
         available: response.data['available'] as bool? ?? false,
         reason: response.data['reason'] as String?,
       );
     } on ApiException catch (e) {
-      print('KYC Service: ApiException checking email - ${e.message}');
+      debugPrint('KYC Service: ApiException checking email - ${e.message}');
       // On error, assume email is unavailable to be safe
       rethrow;
     } catch (e) {
-      print('KYC Service: Error checking email availability - $e');
+      debugPrint('KYC Service: Error checking email availability - $e');
       throw ApiException(
         message: 'Failed to check email availability: ${e.toString()}',
         statusCode: null,
@@ -92,9 +93,9 @@ class KycService {
     File? profilePhoto,
   }) async {
     try {
-      print('KYC Service: Preparing form data...');
-      print('KYC Service: KTM photo path - ${ktmPhoto.path}');
-      print('KYC Service: File exists - ${await ktmPhoto.exists()}');
+      debugPrint('KYC Service: Preparing form data...');
+      debugPrint('KYC Service: KTM photo path - ${ktmPhoto.path}');
+      debugPrint('KYC Service: File exists - ${await ktmPhoto.exists()}');
 
       // Create MultipartFile for the KTM photo
       MultipartFile ktmPhotoFile;
@@ -104,10 +105,10 @@ class KycService {
           ktmPhoto.path,
           filename: 'ktm_${DateTime.now().millisecondsSinceEpoch}$ktmExt',
         );
-        print(
+        debugPrint(
             'KYC Service: MultipartFile created successfully - ${ktmPhotoFile.filename}');
       } catch (e) {
-        print('KYC Service: Error creating MultipartFile - ${e.toString()}');
+        debugPrint('KYC Service: Error creating MultipartFile - ${e.toString()}');
         throw ApiException(
           message: 'Failed to read KTM photo file: ${e.toString()}',
           statusCode: null,
@@ -124,10 +125,10 @@ class KycService {
             filename:
                 'profile_${DateTime.now().millisecondsSinceEpoch}$profileExt',
           );
-          print(
+          debugPrint(
               'KYC Service: Profile photo MultipartFile created - ${profilePhotoFile.filename}');
         } catch (e) {
-          print(
+          debugPrint(
               'KYC Service: Error creating profile photo MultipartFile - ${e.toString()}');
           throw ApiException(
             message: 'Failed to read profile photo file: ${e.toString()}',
@@ -149,8 +150,8 @@ class KycService {
         if (profilePhotoFile != null) 'profile_photo': profilePhotoFile,
       });
 
-      print('KYC Service: Sending request to /driver/kyc/submit');
-      print(
+      debugPrint('KYC Service: Sending request to /driver/kyc/submit');
+      debugPrint(
           'KYC Service: Request data - Fields: ${formData.fields.map((e) => e.key).join(", ")}, Files: ${formData.files.map((e) => e.key).join(", ")}');
 
       final response = await _apiService.post(
@@ -158,9 +159,9 @@ class KycService {
         data: formData,
       );
 
-      print('KYC Service: Response received - ${response.statusCode}');
-      print('KYC Service: Response data type - ${response.data.runtimeType}');
-      print('KYC Service: Response data - ${response.data}');
+      debugPrint('KYC Service: Response received - ${response.statusCode}');
+      debugPrint('KYC Service: Response data type - ${response.data.runtimeType}');
+      debugPrint('KYC Service: Response data - ${response.data}');
 
       if (response.data == null) {
         throw ApiException(
@@ -170,7 +171,7 @@ class KycService {
       }
 
       if (response.data is! Map) {
-        print(
+        debugPrint(
             'KYC Service: Response is not a Map! It is: ${response.data.runtimeType}');
         throw ApiException(
           message: 'Invalid response format from server',
@@ -179,13 +180,13 @@ class KycService {
       }
 
       final responseData = response.data as Map<String, dynamic>;
-      print('KYC Service: Response success field - ${responseData['success']}');
+      debugPrint('KYC Service: Response success field - ${responseData['success']}');
 
       if (responseData['success'] != true) {
         final errorMsg = responseData['error'] ??
             responseData['message'] ??
             'Failed to submit KYC';
-        print(
+        debugPrint(
             'KYC Service: Server returned success=false with message: $errorMsg');
         throw ApiException(
           message: errorMsg,
@@ -193,18 +194,18 @@ class KycService {
         );
       }
 
-      print('KYC Service: Parsing response data...');
+      debugPrint('KYC Service: Parsing response data...');
       final kycData = responseData['data'];
-      print('KYC Service: KYC data - $kycData');
-      print('KYC Service: KYC data type - ${kycData.runtimeType}');
+      debugPrint('KYC Service: KYC data - $kycData');
+      debugPrint('KYC Service: KYC data type - ${kycData.runtimeType}');
 
       try {
         final submission = KycSubmission.fromJson(kycData);
-        print('KYC Service: KycSubmission parsed successfully!');
+        debugPrint('KYC Service: KycSubmission parsed successfully!');
         return submission;
       } catch (e, stackTrace) {
-        print('KYC Service: Error parsing KycSubmission - $e');
-        print('KYC Service: Stack trace - $stackTrace');
+        debugPrint('KYC Service: Error parsing KycSubmission - $e');
+        debugPrint('KYC Service: Stack trace - $stackTrace');
         throw ApiException(
           message: 'Failed to parse KYC response: $e',
           statusCode: response.statusCode,
@@ -213,12 +214,12 @@ class KycService {
     } on ApiException {
       rethrow;
     } on DioException catch (e) {
-      print('KYC Service: DioException caught!');
-      print('KYC Service: Error type - ${e.type}');
-      print('KYC Service: Error message - ${e.message}');
-      print('KYC Service: Status code - ${e.response?.statusCode}');
-      print('KYC Service: Response data - ${e.response?.data}');
-      print('KYC Service: Response headers - ${e.response?.headers}');
+      debugPrint('KYC Service: DioException caught!');
+      debugPrint('KYC Service: Error type - ${e.type}');
+      debugPrint('KYC Service: Error message - ${e.message}');
+      debugPrint('KYC Service: Status code - ${e.response?.statusCode}');
+      debugPrint('KYC Service: Response data - ${e.response?.data}');
+      debugPrint('KYC Service: Response headers - ${e.response?.headers}');
 
       String errorMsg;
       if (e.response?.data != null && e.response!.data is Map) {
@@ -228,7 +229,7 @@ class KycService {
 
         // Log validation errors if present
         if (e.response!.data['errors'] != null) {
-          print(
+          debugPrint(
               'KYC Service: Validation errors - ${e.response!.data['errors']}');
         }
       } else {
@@ -240,8 +241,8 @@ class KycService {
         statusCode: e.response?.statusCode,
       );
     } catch (e, stackTrace) {
-      print('KYC Service: Unexpected exception - ${e.toString()}');
-      print('KYC Service: Stack trace - ${stackTrace.toString()}');
+      debugPrint('KYC Service: Unexpected exception - ${e.toString()}');
+      debugPrint('KYC Service: Stack trace - ${stackTrace.toString()}');
       throw ApiException(
         message: 'Failed to submit KYC: ${e.toString()}',
         statusCode: null,

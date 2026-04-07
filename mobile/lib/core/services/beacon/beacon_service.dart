@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../api/api_service.dart';
 import '../../models/location.dart';
 
@@ -22,7 +23,7 @@ class BeaconService {
           .map((json) => Location.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      print('BeaconService: Error fetching beacons - $e');
+      debugPrint('BeaconService: Error fetching beacons - $e');
       rethrow;
     }
   }
@@ -51,7 +52,7 @@ class BeaconService {
           .map((json) => Location.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      print('BeaconService: Error fetching nearby beacons - $e');
+      debugPrint('BeaconService: Error fetching nearby beacons - $e');
       rethrow;
     }
   }

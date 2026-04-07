@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../api/api_service.dart';
 import '../api/api_exception.dart';
 import '../../models/session_state.dart';
@@ -19,10 +20,10 @@ class SessionService {
   Future<SessionState> getSessionState() async {
     try {
       final data = await _apiService.getSessionState();
-      print('DEBUG SessionService: Received data: $data');
+      debugPrint('DEBUG SessionService: Received data: $data');
       return SessionState.fromJson(data);
     } on ApiException catch (e) {
-      print('ERROR SessionService: ApiException - ${e.message}, code: ${e.statusCode}');
+      debugPrint('ERROR SessionService: ApiException - ${e.message}, code: ${e.statusCode}');
 
       // If 401, user needs to re-authenticate
       if (e.statusCode == 401) {
@@ -35,7 +36,7 @@ class SessionService {
       // If rate limited, return idle state instead of crashing
       // This prevents the app from crashing when backend is rate-limited
       if (e.isRateLimitError) {
-        print('WARN SessionService: Rate limit hit, returning idle state');
+        debugPrint('WARN SessionService: Rate limit hit, returning idle state');
         return SessionState(
           state: SessionStateType.idle,
           driverContext: const DriverContext(
@@ -47,8 +48,8 @@ class SessionService {
 
       rethrow;
     } catch (e, stackTrace) {
-      print('ERROR SessionService: Exception - $e');
-      print('Stack trace: $stackTrace');
+      debugPrint('ERROR SessionService: Exception - $e');
+      debugPrint('Stack trace: $stackTrace');
       throw ApiException(
         message: 'Failed to get session state: ${e.toString()}',
       );
