@@ -10,13 +10,12 @@ class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        $admin = User::updateOrCreate(
+        $admin = User::firstOrCreate(
             ['email' => 'admin@anjem.app'],
             [
                 'name' => 'Admin',
                 'password' => Hash::make('admin123'),
                 'role' => 'both',
-                'is_admin' => true,
                 'email_verified_at' => now(),
                 'is_active' => true,
                 'last_active_at' => now(),
