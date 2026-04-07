@@ -57,7 +57,7 @@ dependencies:
 
   # Location Services
   geolocator: ^13.0.1
-  location: ^7.0.0
+  location: ^8.0.1
   mapbox_maps_flutter: ^2.3.0
 
   # Local Storage & Cache
