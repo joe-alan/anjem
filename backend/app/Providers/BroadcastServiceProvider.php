@@ -15,8 +15,9 @@ class BroadcastServiceProvider extends ServiceProvider
         // Mobile API (bearer token)
         Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
-        // Admin panel (session-based, served on admin subdomain)
+        // Admin panel (session-based)
         Broadcast::routes([
+            'prefix' => 'admin',
             'middleware' => ['web', 'auth'],
         ]);
 

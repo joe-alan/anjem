@@ -41,8 +41,7 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('admin')
-            ->domain(env('FILAMENT_DOMAIN', 'admin.anjem.me'))
-            ->path('')
+            ->path('admin')
             ->login()
             ->colors([
                 'primary' => Color::Indigo,
