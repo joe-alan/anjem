@@ -288,13 +288,13 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
       );
 
       // Subscribe to WebSocket for ride matching
-      print('RideRequestProvider: Request created, userId=$_activeUserId');
+      debugPrint('RideRequestProvider: Request created, userId=$_activeUserId');
       if (_activeUserId != null) {
-        print('RideRequestProvider: Calling _subscribeToMatching()');
+        debugPrint('RideRequestProvider: Calling _subscribeToMatching()');
         await _subscribeToMatching();
         _startMatchPolling();
       } else {
-        print(
+        debugPrint(
             'RideRequestProvider: ⚠️ userId is NULL, cannot subscribe to WebSocket!');
       }
     } on CooldownException catch (e) {
@@ -368,10 +368,10 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
   Future<void> _subscribeToMatching() async {
     final userId = _activeUserId;
 
-    print('RideRequestProvider._subscribeToMatching: START for userId=$userId');
+    debugPrint('RideRequestProvider._subscribeToMatching: START for userId=$userId');
 
     if (userId == null) {
-      print(
+      debugPrint(
           'RideRequestProvider._subscribeToMatching: userId is null, skipping subscription');
       return;
     }
@@ -379,8 +379,8 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
     await _wsService.subscribeToUserChannel(
       userId: userId,
       onRideMatched: (eventData) {
-        print('🎉 RIDE MATCHED CALLBACK TRIGGERED!');
-        print('Event data received: $eventData');
+        debugPrint('🎉 RIDE MATCHED CALLBACK TRIGGERED!');
+        debugPrint('Event data received: $eventData');
 
         try {
           // Transform WebSocket event data to Ride model format
@@ -479,11 +479,11 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
           );
           _stopMatchPolling();
 
-          print('✅ State updated with matched ride: ${ride.id}');
+          debugPrint('✅ State updated with matched ride: ${ride.id}');
         } catch (e, stackTrace) {
-          print('❌ ERROR parsing ride match event: $e');
-          print('Stack trace: $stackTrace');
-          print('Event data was: $eventData');
+          debugPrint('❌ ERROR parsing ride match event: $e');
+          debugPrint('Stack trace: $stackTrace');
+          debugPrint('Event data was: $eventData');
 
           // ✅ Don't update state on parse error - keeps user in waiting screen
           // Navigation only happens when matchedRide is not null
@@ -514,7 +514,7 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
       onAccountStatusChanged: (eventData) {
         final isSuspended = eventData['is_suspended'] as bool? ?? false;
         if (isSuspended) {
-          print('RideRequestProvider: Account suspended by admin — clearing ride request state');
+          debugPrint('RideRequestProvider: Account suspended by admin — clearing ride request state');
           _stopMatchPolling();
           state = const RideRequestState();
         }
@@ -523,14 +523,14 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
       onRideStatusUpdated: (eventData) {
         final status = eventData['status'] as String?;
         if (status == 'completed' || status == 'cancelled') {
-          print('RideRequestProvider: Ride $status via admin on user channel — clearing request state');
+          debugPrint('RideRequestProvider: Ride $status via admin on user channel — clearing request state');
           _stopMatchPolling();
           state = const RideRequestState();
         }
       },
     );
 
-    print(
+    debugPrint(
         'RideRequestProvider._subscribeToMatching: subscribeToUserChannel called');
   }
 
@@ -564,7 +564,7 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
   /// Set request from session resume (called by SessionCheckWrapper)
   /// This syncs the provider state with backend session and subscribes to WebSocket
   Future<void> setRequestFromSession(RideRequest request) async {
-    print('RideRequestProvider: Setting request from session: ${request.id}');
+    debugPrint('RideRequestProvider: Setting request from session: ${request.id}');
 
     // Update state with the request
     state = RideRequestState(
@@ -575,24 +575,24 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
 
     // Subscribe to WebSocket for ride matching
     if (_activeUserId != null) {
-      print('RideRequestProvider: Subscribing to WebSocket for session-restored request');
+      debugPrint('RideRequestProvider: Subscribing to WebSocket for session-restored request');
       await _subscribeToMatching();
       _startMatchPolling();
     } else {
-      print('RideRequestProvider: ⚠️ userId is NULL, cannot subscribe to WebSocket!');
+      debugPrint('RideRequestProvider: ⚠️ userId is NULL, cannot subscribe to WebSocket!');
     }
   }
 
   /// Check for existing pending requests and subscribe to them
   Future<void> _checkPendingRequest() async {
     if (_activeUserId == null) {
-      print(
+      debugPrint(
           'RideRequestProvider: User ID unavailable, deferring pending request check');
       return;
     }
 
     try {
-      print(
+      debugPrint(
           'RideRequestProvider: Checking for existing pending/matched requests...');
 
       // First check for pending requests
@@ -601,11 +601,11 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
       if (pendingRequests.isNotEmpty) {
         // Load the first pending request
         final request = pendingRequests.first;
-        print('RideRequestProvider: Found pending request #${request.id}');
+        debugPrint('RideRequestProvider: Found pending request #${request.id}');
         state = state.copyWith(request: request);
 
         // Subscribe to WebSocket for this request
-        print(
+        debugPrint(
             'RideRequestProvider: Subscribing to WebSocket for pending request');
         await _subscribeToMatching();
         _startMatchPolling();
@@ -617,7 +617,7 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
 
       if (matchedRequests.isNotEmpty) {
         final request = matchedRequests.first;
-        print(
+        debugPrint(
             'RideRequestProvider: Found matched request #${request.id}, fetching ride details...');
 
         // Fetch the full ride details via API
@@ -634,20 +634,20 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
                 matchedRide: ride,
                 successMessage: 'Driver matched! Resume your ride.',
               );
-              print(
+              debugPrint(
                   'RideRequestProvider: Loaded existing matched ride #${ride.id}');
               _stopMatchPolling();
             }
           }
         } catch (e) {
-          print('RideRequestProvider: Error fetching ride details - $e');
+          debugPrint('RideRequestProvider: Error fetching ride details - $e');
         }
       } else {
-        print('RideRequestProvider: No pending or matched requests found');
+        debugPrint('RideRequestProvider: No pending or matched requests found');
         _stopMatchPolling();
       }
     } catch (e) {
-      print('RideRequestProvider: Error checking pending requests - $e');
+      debugPrint('RideRequestProvider: Error checking pending requests - $e');
       // Don't show error to user for background check
     }
   }
@@ -735,7 +735,7 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
         return true;
       }
     } catch (e) {
-      print('RideRequestProvider: Match polling error - $e');
+      debugPrint('RideRequestProvider: Match polling error - $e');
     }
 
     return false;
@@ -766,7 +766,7 @@ class RideRequestNotifier extends StateNotifier<RideRequestState> {
           }
         }
       } catch (e) {
-        print(
+        debugPrint(
             'RideRequestProvider: Error loading ride for status $status - $e');
       }
     }

@@ -46,7 +46,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
   void initState() {
     super.initState();
 
-    print('🔄 [Rider] RiderActiveRideScreen initState for ride ${widget.initialRide.id}');
+    debugPrint('🔄 [Rider] RiderActiveRideScreen initState for ride ${widget.initialRide.id}');
 
     // ✅ Clear any previous ride's polylines
     _polylines = {};
@@ -57,12 +57,12 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
     // Set initial ride in provider, then immediately fetch full data from API
     // (the initial ride from WebSocket may lack driver phone/photo)
     Future.microtask(() {
-      print('📝 [Rider] Setting ride ${widget.initialRide.id} in provider');
+      debugPrint('📝 [Rider] Setting ride ${widget.initialRide.id} in provider');
       ref.read(activeRideProvider.notifier).setRide(widget.initialRide);
       _refreshFullRide();
       _fetchAndDisplayRoute().catchError((e) {
         // Silently handle - error already logged inside _fetchAndDisplayRoute
-        print('⚠️ [Rider] Route fetch error handled: $e');
+        debugPrint('⚠️ [Rider] Route fetch error handled: $e');
       });
     });
 
@@ -86,7 +86,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         ref.read(activeRideProvider.notifier).setRide(fullRide);
       }
     } catch (e) {
-      print('⚠️ [Rider] Full ride refresh failed: $e');
+      debugPrint('⚠️ [Rider] Full ride refresh failed: $e');
     }
   }
 
@@ -106,7 +106,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
       // Check if status changed
       final currentRide = ref.read(activeRideProvider).ride;
       if (updatedRide.status != currentRide?.status) {
-        print('🔄 [Rider] Poll detected status change: ${currentRide?.status} → ${updatedRide.status}');
+        debugPrint('🔄 [Rider] Poll detected status change: ${currentRide?.status} → ${updatedRide.status}');
 
         // Update provider with new ride data
         ref.read(activeRideProvider.notifier).setRide(updatedRide);
@@ -132,7 +132,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         }
       }
     } catch (e) {
-      print('⚠️ [Rider] Poll error (will retry): $e');
+      debugPrint('⚠️ [Rider] Poll error (will retry): $e');
       // Don't stop polling on error - will retry next interval
     }
   }
@@ -152,7 +152,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
     final rideState = ref.read(activeRideProvider);
     final ride = rideState.ride ?? widget.initialRide;
 
-    print('🗺️  [Rider] _fetchAndDisplayRoute — status: ${ride.status}');
+    debugPrint('🗺️  [Rider] _fetchAndDisplayRoute — status: ${ride.status}');
 
     try {
       final pickupLatLng = LatLng(
@@ -170,7 +170,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         // Driver heading to pickup — show driver → pickup so rider sees driver approaching
         final driverLoc = rideState.driverLocation;
         if (driverLoc == null) {
-          print('⚠️ [Rider] No driver location yet, clearing polyline');
+          debugPrint('⚠️ [Rider] No driver location yet, clearing polyline');
           if (mounted) setState(() { _polylines = {}; });
           return;
         }
@@ -182,7 +182,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         // Ride started — show pickup → destination (backend geometry preferred)
         routePoints = ride.routeCoordinates ?? [];
         if (routePoints.isEmpty) {
-          print('🗺️  [Rider] No backend geometry, fetching from Mapbox directly');
+          debugPrint('🗺️  [Rider] No backend geometry, fetching from Mapbox directly');
           routePoints = await _directionsService.getRoute(
             origin: pickupLatLng,
             destination: destLatLng,
@@ -195,11 +195,11 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
       }
 
       if (routePoints.isEmpty) {
-        print('⚠️ [Rider] Route is empty - continuing without route line');
+        debugPrint('⚠️ [Rider] Route is empty - continuing without route line');
         return;
       }
 
-      print('✅ [Rider] Route fetched: ${routePoints.length} points');
+      debugPrint('✅ [Rider] Route fetched: ${routePoints.length} points');
 
       if (mounted) {
         setState(() {
@@ -214,7 +214,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         });
       }
     } catch (e) {
-      print('❌ [Rider] Unexpected error fetching route: $e');
+      debugPrint('❌ [Rider] Unexpected error fetching route: $e');
     }
   }
 
@@ -258,23 +258,23 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
       // Update route when status changes (but only if it's for the current ride)
       if (previous?.ride?.status != next.ride?.status &&
           next.ride?.id == widget.initialRide.id) {
-        print('🔄 [Rider] Status changed to ${next.ride?.status}, refetching route');
+        debugPrint('🔄 [Rider] Status changed to ${next.ride?.status}, refetching route');
         _fetchAndDisplayRoute().catchError((e) {
-          print('⚠️ [Rider] Route fetch error handled: $e');
+          debugPrint('⚠️ [Rider] Route fetch error handled: $e');
         });
       }
 
       // Update markers when ride data or driver location changes (only for current ride)
       if ((previous?.ride != next.ride || previous?.driverLocation != next.driverLocation) &&
           next.ride?.id == widget.initialRide.id) {
-        print('🎯 [Rider] Updating markers for ride ${next.ride?.id}');
+        debugPrint('🎯 [Rider] Updating markers for ride ${next.ride?.id}');
         setState(() {
           _buildMarkers(next.ride ?? widget.initialRide, next.driverLocation);
         });
         // Re-fetch route when driver location changes so polyline tracks driver movement
         if (previous?.driverLocation != next.driverLocation) {
           _fetchAndDisplayRoute().catchError((e) {
-            print('⚠️ [Rider] Route fetch on driver location update error: $e');
+            debugPrint('⚠️ [Rider] Route fetch on driver location update error: $e');
           });
         }
       }
@@ -739,7 +739,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
   }
 
   void _buildMarkers(Ride ride, LatLng? driverLocation) {
-    print('🎯 [Rider] Building markers - driver location: ${driverLocation != null}');
+    debugPrint('🎯 [Rider] Building markers - driver location: ${driverLocation != null}');
 
     // Create NEW set of markers (important for Flutter to detect changes)
     final newMarkers = <MapMarker>{};
@@ -780,7 +780,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
     }
 
     _markers = newMarkers;
-    print('✅ [Rider] Built ${_markers.length} markers');
+    debugPrint('✅ [Rider] Built ${_markers.length} markers');
   }
 
   void _fitBounds(Ride ride, LatLng? driverLocation) {

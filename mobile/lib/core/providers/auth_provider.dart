@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/auth/auth_service.dart';
 import '../services/api/api_exception.dart';
@@ -91,9 +92,9 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
           // Initialize WebSocket before setting isAuthenticated — providers that
           // watch auth state subscribe to WS channels on first build, so the
           // connection must be ready before the home screen is rendered.
-          print('AuthProvider: Calling _initializeWebSocket()');
+          debugPrint('AuthProvider: Calling _initializeWebSocket()');
           await _initializeWebSocket();
-          print('AuthProvider: _initializeWebSocket() completed');
+          debugPrint('AuthProvider: _initializeWebSocket() completed');
           state = state.copyWith(
             isLoading: false,
             isAuthenticated: true,
@@ -102,11 +103,11 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
           );
         } catch (e) {
           // If user fetch fails with 401, token is expired - log them out
-          print('Failed to fetch user data: $e');
+          debugPrint('Failed to fetch user data: $e');
 
           // Check if it's an auth error (401)
           if (e is ApiException && e.statusCode == 401) {
-            print('Token expired or invalid - clearing auth state');
+            debugPrint('Token expired or invalid - clearing auth state');
             await _authService.signOut();
             state = state.copyWith(
               isLoading: false,
@@ -133,7 +134,7 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
         );
       }
     } catch (e) {
-      print('Auth check failed: $e');
+      debugPrint('Auth check failed: $e');
       // Check if we have a token even if auth check failed
       final hasToken = await _authService.isAuthenticated();
       state = state.copyWith(
@@ -212,7 +213,7 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(user: user);
     } catch (e) {
       // Silently fail, user data will be stale
-      print('Failed to refresh user: $e');
+      debugPrint('Failed to refresh user: $e');
     }
   }
 
@@ -236,27 +237,27 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> _initializeWebSocket() async {
-    print('======================================');
-    print('WEBSOCKET INIT START - THIS MUST PRINT!!!');
-    print('======================================');
+    debugPrint('======================================');
+    debugPrint('WEBSOCKET INIT START - THIS MUST PRINT!!!');
+    debugPrint('======================================');
 
     try {
-      print('Step 1: About to call _wsService.initialize()');
+      debugPrint('Step 1: About to call _wsService.initialize()');
       await _wsService.initialize();
 
-      print('Step 2: About to call _wsService.connect()');
+      debugPrint('Step 2: About to call _wsService.connect()');
       await _wsService.connect();
 
-      print('Step 3: WebSocket initialized and connected successfully!');
+      debugPrint('Step 3: WebSocket initialized and connected successfully!');
     } catch (e, stackTrace) {
-      print('WEBSOCKET ERROR: $e');
-      print('STACK TRACE: $stackTrace');
+      debugPrint('WEBSOCKET ERROR: $e');
+      debugPrint('STACK TRACE: $stackTrace');
       // Don't throw - WebSocket is not critical for initial app function
     }
 
-    print('======================================');
-    print('WEBSOCKET INIT END');
-    print('======================================');
+    debugPrint('======================================');
+    debugPrint('WEBSOCKET INIT END');
+    debugPrint('======================================');
   }
 }
 

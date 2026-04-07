@@ -25,7 +25,7 @@ void main() async {
   MapboxOptions.setAccessToken(MapboxConfig.accessToken);
 
   // Initialize app config for Rider
-  const sentryDsn = 'https://fe97fd76734a76bf9909eb40263a084a@o4511166441455616.ingest.us.sentry.io/4511167242305536';
+  const sentryDsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
 
   AppConfig.initialize(
     flavor: AppFlavor.rider,
@@ -41,20 +41,24 @@ void main() async {
     sentryDsn: sentryDsn,
   );
 
-  await SentryFlutter.init(
-    (options) {
-      options.dsn = sentryDsn;
-      options.environment = const String.fromEnvironment('SENTRY_ENV', defaultValue: 'development');
-      options.sendDefaultPii = true;
-      options.enableLogs = true;
-      options.tracesSampleRate = 0.2;
-      options.profilesSampleRate = 1.0;
-      options.attachScreenshot = true;
-      options.replay.sessionSampleRate = 0.1;
-      options.replay.onErrorSampleRate = 1.0;
-    },
-    appRunner: () => runApp(
-      const ProviderScope(child: AnjerApp()),
-    ),
-  );
+  if (sentryDsn.isNotEmpty) {
+    await SentryFlutter.init(
+      (options) {
+        options.dsn = sentryDsn;
+        options.environment = const String.fromEnvironment('SENTRY_ENV', defaultValue: 'development');
+        options.sendDefaultPii = false;
+        options.enableLogs = true;
+        options.tracesSampleRate = 0.2;
+        options.profilesSampleRate = 1.0;
+        options.attachScreenshot = false;
+        options.replay.sessionSampleRate = 0.0;
+        options.replay.onErrorSampleRate = 1.0;
+      },
+      appRunner: () => runApp(
+        const ProviderScope(child: AnjerApp()),
+      ),
+    );
+  } else {
+    runApp(const ProviderScope(child: AnjerApp()));
+  }
 }

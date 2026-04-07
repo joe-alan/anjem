@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'package:pusher_client_socket/pusher_client_socket.dart';
 import '../../config/app_config.dart';
@@ -47,7 +48,7 @@ class WebSocketService {
       try {
         entry.value.subscribe();
       } catch (e, st) {
-        print('Failed to resubscribe to ${entry.key}: $e\n$st');
+        debugPrint('Failed to resubscribe to ${entry.key}: $e\n$st');
       }
     }
   }
@@ -58,7 +59,7 @@ class WebSocketService {
     try {
       final config = AppConfig.instance;
 
-      print(
+      debugPrint(
           'Initializing WebSocket with Reverb at ${config.pusherHost}:${config.pusherPort}');
 
       final options = PusherOptions(
@@ -84,7 +85,7 @@ class WebSocketService {
 
       // Setup connection established listener
       _pusher!.onConnectionEstablished((data) {
-        print('Connection established: $data');
+        debugPrint('Connection established: $data');
         _isConnected = true;
         _reconnectAttempts = 0;
         _reconnectTimer?.cancel();
@@ -94,7 +95,7 @@ class WebSocketService {
 
       // Setup error listener
       _pusher!.onConnectionError((error) {
-        print('WebSocket connection error: $error');
+        debugPrint('WebSocket connection error: $error');
         _isConnected = false;
         _connectionStateController.add(WsConnectionState.disconnected);
         if (!_intentionalDisconnect) _scheduleReconnect();
@@ -102,7 +103,7 @@ class WebSocketService {
 
       // Setup disconnected listener
       _pusher!.onDisconnected((data) {
-        print('WebSocket disconnected: $data');
+        debugPrint('WebSocket disconnected: $data');
         _isConnected = false;
         _connectionStateController.add(WsConnectionState.disconnected);
         if (!_intentionalDisconnect) _scheduleReconnect();
@@ -110,13 +111,13 @@ class WebSocketService {
 
       // Setup general error listener
       _pusher!.onError((error) {
-        print('WebSocket error: $error');
+        debugPrint('WebSocket error: $error');
       });
 
       _isInitialized = true;
-      print('WebSocket initialization successful');
+      debugPrint('WebSocket initialization successful');
     } catch (e) {
-      print('Failed to initialize Pusher: $e');
+      debugPrint('Failed to initialize Pusher: $e');
       rethrow;
     }
   }
@@ -130,9 +131,9 @@ class WebSocketService {
       _intentionalDisconnect = false;
       _connectionStateController.add(WsConnectionState.connecting);
       _pusher?.connect();
-      print('Connecting to WebSocket...');
+      debugPrint('Connecting to WebSocket...');
     } catch (e) {
-      print('Failed to connect to WebSocket: $e');
+      debugPrint('Failed to connect to WebSocket: $e');
       rethrow;
     }
   }
@@ -151,7 +152,7 @@ class WebSocketService {
           try {
             channel.unsubscribe();
           } catch (e) {
-            print('Error unsubscribing from $channelName: $e');
+            debugPrint('Error unsubscribing from $channelName: $e');
           }
         }
       }
@@ -160,9 +161,9 @@ class WebSocketService {
 
       _pusher?.disconnect();
       _isConnected = false;
-      print('WebSocket disconnected');
+      debugPrint('WebSocket disconnected');
     } catch (e) {
-      print('Failed to disconnect from WebSocket: $e');
+      debugPrint('Failed to disconnect from WebSocket: $e');
     }
   }
 
@@ -176,20 +177,20 @@ class WebSocketService {
 
     try {
       if (_channels.containsKey(channelName)) {
-        print('Already subscribed to $channelName');
+        debugPrint('Already subscribed to $channelName');
         return;
       }
 
       final channel = _pusher!.private(channelName);
       if (!_isConnected) {
-        print(
+        debugPrint(
             'WebSocket currently disconnected, will subscribe to $channelName once connection is ready');
       }
       channel.subscribe();
 
       // Listen for ride status updates
       channel.bind('ride.status.updated', (data) {
-        print('Received ride status update: $data');
+        debugPrint('Received ride status update: $data');
         if (data != null) {
           onStatusUpdate(data as Map<String, dynamic>);
         }
@@ -197,7 +198,7 @@ class WebSocketService {
 
       // Listen for driver location updates
       channel.bind('driver.location.updated', (data) {
-        print('Received driver location update: $data');
+        debugPrint('Received driver location update: $data');
         if (data != null) {
           final locationData = data as Map<String, dynamic>;
           final lat = (locationData['latitude'] as num).toDouble();
@@ -207,9 +208,9 @@ class WebSocketService {
       });
 
       _channels[channelName] = channel;
-      print('Subscribed to ride channel: $channelName');
+      debugPrint('Subscribed to ride channel: $channelName');
     } catch (e) {
-      print('Failed to subscribe to ride channel: $e');
+      debugPrint('Failed to subscribe to ride channel: $e');
       rethrow;
     }
   }
@@ -229,7 +230,7 @@ class WebSocketService {
 
     try {
       if (_channels.containsKey(channelName)) {
-        print('Already subscribed to $channelName');
+        debugPrint('Already subscribed to $channelName');
         return;
       }
 
@@ -240,35 +241,35 @@ class WebSocketService {
 
       final channel = _pusher!.private(channelName);
       if (!_isConnected) {
-        print(
+        debugPrint(
             'WebSocket currently disconnected, will subscribe to $channelName once connection is ready');
       }
       channel.subscribe();
 
       // Listen for ride match events
-      print('Setting up event binding for: ride.request.matched');
+      debugPrint('Setting up event binding for: ride.request.matched');
       channel.bind('ride.request.matched', (data) {
-        print('═══════════════════════════════════════');
-        print('🎊 WEBSOCKET EVENT RECEIVED! 🎊');
-        print('Event: ride.request.matched');
-        print('Data type: ${data.runtimeType}');
-        print('Data: $data');
-        print('═══════════════════════════════════════');
+        debugPrint('═══════════════════════════════════════');
+        debugPrint('🎊 WEBSOCKET EVENT RECEIVED! 🎊');
+        debugPrint('Event: ride.request.matched');
+        debugPrint('Data type: ${data.runtimeType}');
+        debugPrint('Data: $data');
+        debugPrint('═══════════════════════════════════════');
 
         if (data != null) {
-          print('Calling onRideMatched callback...');
+          debugPrint('Calling onRideMatched callback...');
           onRideMatched(data as Map<String, dynamic>);
-          print('onRideMatched callback completed');
+          debugPrint('onRideMatched callback completed');
         } else {
-          print('⚠️ Data is NULL!');
+          debugPrint('⚠️ Data is NULL!');
         }
       });
-      print('Event binding completed for ride.request.matched');
+      debugPrint('Event binding completed for ride.request.matched');
 
       // Listen for no-drivers-available notification (shows countdown on rider)
       if (onNoDriversAvailable != null) {
         channel.bind('ride.no_drivers_available', (data) {
-          print('Received ride.no_drivers_available: $data');
+          debugPrint('Received ride.no_drivers_available: $data');
           if (data != null) {
             onNoDriversAvailable(data as Map<String, dynamic>);
           }
@@ -278,7 +279,7 @@ class WebSocketService {
       // Listen for expiry broadcast from ExpireRideRequest job
       if (onRequestExpired != null) {
         channel.bind('ride.request.cancelled', (data) {
-          print('Received ride.request.cancelled on user channel: $data');
+          debugPrint('Received ride.request.cancelled on user channel: $data');
           if (data != null) {
             onRequestExpired(data as Map<String, dynamic>);
           }
@@ -288,7 +289,7 @@ class WebSocketService {
       // Listen for search-resumed signal when a new driver joins during countdown
       if (onSearchResumed != null) {
         channel.bind('ride.search.resumed', (data) {
-          print('Received ride.search.resumed: $data');
+          debugPrint('Received ride.search.resumed: $data');
           if (data != null) {
             onSearchResumed(data as Map<String, dynamic>);
           }
@@ -298,7 +299,7 @@ class WebSocketService {
       // Listen for admin account suspension / unsuspension
       if (onAccountStatusChanged != null) {
         channel.bind('account.status.changed', (data) {
-          print('Received account.status.changed (rider): $data');
+          debugPrint('Received account.status.changed (rider): $data');
           if (data != null) {
             onAccountStatusChanged(data as Map<String, dynamic>);
           }
@@ -309,7 +310,7 @@ class WebSocketService {
       // the "Finding Driver" screen (not yet subscribed to the ride channel).
       if (onRideStatusUpdated != null) {
         channel.bind('ride.status.updated', (data) {
-          print('Received ride.status.updated on user channel: $data');
+          debugPrint('Received ride.status.updated on user channel: $data');
           if (data != null) {
             onRideStatusUpdated(data as Map<String, dynamic>);
           }
@@ -317,9 +318,9 @@ class WebSocketService {
       }
 
       _channels[channelName] = channel;
-      print('Subscribed to user channel: $channelName');
+      debugPrint('Subscribed to user channel: $channelName');
     } catch (e) {
-      print('Failed to subscribe to user channel: $e');
+      debugPrint('Failed to subscribe to user channel: $e');
       rethrow;
     }
   }
@@ -340,20 +341,20 @@ class WebSocketService {
 
     try {
       if (_channels.containsKey(channelName)) {
-        print('Already subscribed to $channelName');
+        debugPrint('Already subscribed to $channelName');
         return;
       }
 
       final channel = _pusher!.private(channelName);
       if (!_isConnected) {
-        print(
+        debugPrint(
             'WebSocket currently disconnected, will subscribe to $channelName once connection is ready');
       }
       channel.subscribe();
 
       // Listen for new ride request events
       channel.bind('ride.request.new', (data) {
-        print('Received new ride request: $data');
+        debugPrint('Received new ride request: $data');
         if (data != null) {
           onNewRideRequest(data as Map<String, dynamic>);
         }
@@ -362,7 +363,7 @@ class WebSocketService {
       // Listen for FIFO queue position updates
       if (onQueuePositionChanged != null) {
         channel.bind('queue.position.changed', (data) {
-          print('Received queue position update: $data');
+          debugPrint('Received queue position update: $data');
           if (data != null) {
             onQueuePositionChanged(data as Map<String, dynamic>);
           }
@@ -372,7 +373,7 @@ class WebSocketService {
       // Listen for ride request cancellations (rider cancelled or admin cancelled while dispatched)
       if (onRequestCancelled != null) {
         channel.bind('ride.request.cancelled', (data) {
-          print('Received ride request cancellation: $data');
+          debugPrint('Received ride request cancellation: $data');
           if (data != null) {
             onRequestCancelled(data as Map<String, dynamic>);
           }
@@ -382,7 +383,7 @@ class WebSocketService {
       // Listen for session displacement (another device logged in as this driver)
       if (onSessionReplaced != null) {
         channel.bind('session.replaced', (data) {
-          print('Received session.replaced — signing out displaced device');
+          debugPrint('Received session.replaced — signing out displaced device');
           onSessionReplaced(data as Map<String, dynamic>? ?? {});
         });
       }
@@ -390,7 +391,7 @@ class WebSocketService {
       // Listen for driver online status changes (e.g. auto-kick on zero credits)
       if (onDriverStatusChanged != null) {
         channel.bind('driver.status.changed', (data) {
-          print('Received driver.status.changed: $data');
+          debugPrint('Received driver.status.changed: $data');
           if (data != null) {
             onDriverStatusChanged(data as Map<String, dynamic>);
           }
@@ -400,7 +401,7 @@ class WebSocketService {
       // Listen for admin KYC approval / rejection
       if (onKycStatusChanged != null) {
         channel.bind('driver.kyc.updated', (data) {
-          print('Received driver.kyc.updated: $data');
+          debugPrint('Received driver.kyc.updated: $data');
           if (data != null) {
             onKycStatusChanged(data as Map<String, dynamic>);
           }
@@ -410,7 +411,7 @@ class WebSocketService {
       // Listen for admin credit grant / deduct
       if (onCreditsUpdated != null) {
         channel.bind('driver.credits.updated', (data) {
-          print('Received driver.credits.updated: $data');
+          debugPrint('Received driver.credits.updated: $data');
           if (data != null) {
             onCreditsUpdated(data as Map<String, dynamic>);
           }
@@ -420,7 +421,7 @@ class WebSocketService {
       // Listen for admin account suspension / unsuspension
       if (onAccountStatusChanged != null) {
         channel.bind('account.status.changed', (data) {
-          print('Received account.status.changed (driver): $data');
+          debugPrint('Received account.status.changed (driver): $data');
           if (data != null) {
             onAccountStatusChanged(data as Map<String, dynamic>);
           }
@@ -428,9 +429,9 @@ class WebSocketService {
       }
 
       _channels[channelName] = channel;
-      print('Subscribed to driver channel: private-$channelName');
+      debugPrint('Subscribed to driver channel: private-$channelName');
     } catch (e) {
-      print('Failed to subscribe to driver channel: $e');
+      debugPrint('Failed to subscribe to driver channel: $e');
       rethrow;
     }
   }
@@ -444,29 +445,29 @@ class WebSocketService {
 
     try {
       if (_channels.containsKey(channelName)) {
-        print('Already subscribed to $channelName');
+        debugPrint('Already subscribed to $channelName');
         return;
       }
 
       final channel = _pusher!.presence(channelName);
       if (!_isConnected) {
-        print(
+        debugPrint(
             'WebSocket currently disconnected, will subscribe to $channelName once connection is ready');
       }
       channel.subscribe();
 
       // Listen for queue position updates
       channel.bind('queue.position.changed', (data) {
-        print('Received queue position update: $data');
+        debugPrint('Received queue position update: $data');
         if (data != null) {
           onQueuePositionChanged(data as Map<String, dynamic>);
         }
       });
 
       _channels[channelName] = channel;
-      print('Subscribed to beacon channel: $channelName');
+      debugPrint('Subscribed to beacon channel: $channelName');
     } catch (e) {
-      print('Failed to subscribe to beacon channel: $e');
+      debugPrint('Failed to subscribe to beacon channel: $e');
       rethrow;
     }
   }
@@ -479,11 +480,11 @@ class WebSocketService {
         if (channel != null) {
           channel.unsubscribe();
           _channels.remove(channelName);
-          print('Unsubscribed from channel: $channelName');
+          debugPrint('Unsubscribed from channel: $channelName');
         }
       }
     } catch (e) {
-      print('Failed to unsubscribe from $channelName: $e');
+      debugPrint('Failed to unsubscribe from $channelName: $e');
     }
   }
 
