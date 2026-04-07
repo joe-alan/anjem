@@ -86,7 +86,8 @@ class FirebaseAuthService
             }
 
             // Upgrade role to 'both' if they sign in from different app
-            if ($user->role !== 'both' && $user->role !== $deviceType) {
+            // Never downgrade admin users
+            if ($user->role !== 'both' && $user->role !== 'admin' && $user->role !== $deviceType) {
                 $oldRole = $user->role;
                 $user->update(['role' => 'both']);
 
