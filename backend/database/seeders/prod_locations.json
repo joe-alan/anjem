@@ -1,0 +1,1738 @@
+[
+    {
+        "name": "Pangeran Diponegoro Statue",
+        "address": "Jl. Nasional 14 No.76-84, Srondol Kulon, Kec. Banyumanik, Kota Semarang, Jawa Tengah 50263",
+        "latitude": -7.0486122,
+        "longitude": 110.4198681,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Muladi Dome - Diponegoro University Convention Center",
+        "address": "Jl. Prof. Soedarto No.50239, RW.4, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275",
+        "latitude": -7.0534169,
+        "longitude": 110.4329747,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Semarang State Polytechnic",
+        "address": "Jl. Prof. Soedarto, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275",
+        "latitude": -7.0521006,
+        "longitude": 110.4353347,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Gedung Kuliah Terpadu POLINES Ir. Ign. Darmojo",
+        "address": "Tembalang, Semarang City, Central Java 50275",
+        "latitude": -7.0515909,
+        "longitude": 110.4336979,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "POLINES TN Canteen",
+        "address": "Jl. Banyu Putih Raya No.14, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275",
+        "latitude": -7.0515103,
+        "longitude": 110.4341777,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Lapangan Hijau Polines",
+        "address": "Jl. Banyu Putih Raya No.14, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275",
+        "latitude": -7.0525405,
+        "longitude": 110.434056,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Kantin Sekolah Vokasi Undip",
+        "address": "Jl. Banyu Putih Raya No.14, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275",
+        "latitude": -7.0508538,
+        "longitude": 110.4350236,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Lapangan Tembak Tembalang",
+        "address": "Jl. Mangunharjo No.1, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275",
+        "latitude": -7.0478905,
+        "longitude": 110.4464522,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Dekanat Sekolah Vokasi Universitas Diponegoro",
+        "address": "Jl. Gubernur Mochtar, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275",
+        "latitude": -7.0504063,
+        "longitude": 110.4356673,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Fakultas Ilmu Sosial dan Ilmu Politik (FISIP) UNDIP",
+        "address": "Jl. Prof. Soedarto, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50139",
+        "latitude": -7.0517602,
+        "longitude": 110.4373601,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Faculty of Law Universitas Diponegoro",
+        "address": "Jl. Dr. Antonius Suroyo, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275",
+        "latitude": -7.0512588,
+        "longitude": 110.4364985,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Fakultas Ilmu Budaya Universitas Diponegoro",
+        "address": "Jl. Dr. Antonius Suroyo, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275",
+        "latitude": -7.0502702,
+        "longitude": 110.4363925,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Widya Puraya UNDIP",
+        "address": "Tembalang, Semarang City, Central Java 50275",
+        "latitude": -7.0492826,
+        "longitude": 110.4383814,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Diponegoro University Rectorate",
+        "address": "Diponegoro University, Univ Jl. Prof. H. Soedarto, S.H., Tembalang, Semarang City, Central Java 50275",
+        "latitude": -7.0488231,
+        "longitude": 110.4380076,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Art Center Universitas Diponegoro",
+        "address": "Jl. Prof. Soedarto, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275",
+        "latitude": -7.0496896,
+        "longitude": 110.437746,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Library and UNDIP Press",
+        "address": "Komplek Gedung Widya Puraya, Jl. Prof. Soedarto SH, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275",
+        "latitude": -7.0483571,
+        "longitude": 110.4378301,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Electrical Engineering Diponegoro University",
+        "address": "Jl. Prof. Soedarto, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275",
+        "latitude": -7.0497917,
+        "longitude": 110.4399455,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Urban and Regional Planning Department Diponegoro University",
+        "address": "Jl. Prof. Soedarto, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275",
+        "latitude": -7.0515898,
+        "longitude": 110.4389465,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Gedung Auditorium Prof. Soedarto, S.H.",
+        "address": "Prof. Soedharto Building, Tembalang, Semarang City, Central Java 50275",
+        "latitude": -7.0528382,
+        "longitude": 110.4400642,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Gedung ICT Undip",
+        "address": "Jl. Prof. Soedarto, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275",
+        "latitude": -7.0544358,
+        "longitude": 110.4390178,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Faculty of Economics and Business Diponegoro University",
+        "address": "Tembalang, Semarang City, Central Java 50275",
+        "latitude": -7.0470759,
+        "longitude": 110.4417576,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Rumah Sakit Nasional Diponegoro",
+        "address": "Tembalang, Semarang City, Central Java 50275",
+        "latitude": -7.0478033,
+        "longitude": 110.4436218,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Fakultas Kedokteran (FK) UNDIP",
+        "address": "Jl. Prof. Soedarto, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275",
+        "latitude": -7.0494635,
+        "longitude": 110.4445947,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Faculty of Public Health Universitas Diponegoro",
+        "address": "Jl. Prof. Jacub Rais, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275",
+        "latitude": -7.0493931,
+        "longitude": 110.4428137,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Faculty of Fisheries and Marine Sciences Diponegoro University",
+        "address": "Jl. Prof. Jacub Rais, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275",
+        "latitude": -7.0504446,
+        "longitude": 110.4424751,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Teknik Mesin Universitas Diponegoro",
+        "address": "Jl. Prof. Jacub Rais, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275",
+        "latitude": -7.0502383,
+        "longitude": 110.4417965,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Faculty of Animal and Agricultural Sciences Universitas Diponegoro",
+        "address": "Jl. Prof. Soedarto, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah",
+        "latitude": -7.0526652,
+        "longitude": 110.4416951,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Stadion Universitas Diponegoro",
+        "address": "Jl. Prof. Soedarto, SH, Kec. Tembalang, Kota Semarang, Jawa Tengah 50277",
+        "latitude": -7.0546816,
+        "longitude": 110.4458515,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Kompleks Rusunawa UNDIP",
+        "address": "Jl. Prof. Soedarto, Bulusan, Kec. Tembalang, Kota Semarang, Jawa Tengah 50277",
+        "latitude": -7.0550833,
+        "longitude": 110.4440412,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Polytechnic of Public Works",
+        "address": "Jl. Prof. Soedarto No.15, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275",
+        "latitude": -7.056172,
+        "longitude": 110.4422666,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Masjid Kampus Universitas Diponegoro",
+        "address": "Jl. Prof. Soedarto, Tembalang, Kec. Tembalang, Kota Semarang, Jawa Tengah 50275",
+        "latitude": -7.0551738,
+        "longitude": 110.4370363,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "J&T Semarang Gateway",
+        "address": "Jl. Siliwangi, Semarang, 50146, Indonesia",
+        "latitude": -6.98709325,
+        "longitude": 110.36959303,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Rolling Door and Folding Gate and Pintu Lipat",
+        "address": "Jl. Wolter Monginsidi No.789 A, Semarang, 50196, Indonesia",
+        "latitude": -6.98942149,
+        "longitude": 110.4736242,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "J&T Cargo Semarang Gateway",
+        "address": "Jl. Kawasan Industri Bukit Semarang Baru Jl. Taman Industri No.2 Blok A2, Semarang, 50219, Indonesia",
+        "latitude": -7.04547331,
+        "longitude": 110.32835625,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Kalikangkung Toll Gate",
+        "address": "Jl. Tol Semarang - Batang, Semarang, 50244, Indonesia",
+        "latitude": -6.98755781,
+        "longitude": 110.31699997,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Warjo Kalisidi",
+        "address": "Semarang, 50519, Indonesia",
+        "latitude": -7.12907909,
+        "longitude": 110.36982305,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Warjo Bu Chandra",
+        "address": "Jl. Sidoluhur Raya No.4, Semarang, 50197, Indonesia",
+        "latitude": -6.97653158,
+        "longitude": 110.46092854,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Warjok Mm Eno",
+        "address": "Jl. Gg. 2, Semarang, 50229, Indonesia",
+        "latitude": -7.03462057,
+        "longitude": 110.40333477,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "WARJOK MBAK NING",
+        "address": "Semarang, 50265, Indonesia",
+        "latitude": -7.10466806,
+        "longitude": 110.40673554,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Warjok Warung Pojok",
+        "address": "Jl. Perbalan Timur No.3, Demak, 59567, Indonesia",
+        "latitude": -7.02600793,
+        "longitude": 110.51192865,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Parjo Klentengsari",
+        "address": "Jl. Klentengsari, Semarang, 50268, Indonesia",
+        "latitude": -7.05834929,
+        "longitude": 110.42721675,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "PARJO - Mulawarman",
+        "address": "Jl. Mulawarman Selatan Raya, Semarang, 50278, Indonesia",
+        "latitude": -7.07083347,
+        "longitude": 110.44010427,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Bakmi Jawa Pak Paijo",
+        "address": "Jalan Kanfer Blok N14, Semarang, 50267, Indonesia",
+        "latitude": -7.07078236,
+        "longitude": 110.4254888,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Kost Pak Parjo",
+        "address": "Semarang, 50275, Indonesia",
+        "latitude": -7.05651663,
+        "longitude": 110.43649896,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Nasi Goreng Tegal Mas Parjo",
+        "address": "Jl. Wolter Monginsidi, Semarang, 50231, Indonesia",
+        "latitude": -6.97052878,
+        "longitude": 110.48161166,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Indomaret Fresh Undip Tembalang",
+        "address": "Jl. Prof. Soedarto No.7, Semarang, 50275, Indonesia",
+        "latitude": -7.05618821,
+        "longitude": 110.43897395,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Gerbang Tol Banyumanik",
+        "address": "Banyumanik Toll Plaza, Semarang, 50268, Indonesia",
+        "latitude": -7.06574424,
+        "longitude": 110.43174507,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Indomaret Gebang Anom",
+        "address": "Jl. Gebang Anom Raya, Semarang, 50117, Indonesia",
+        "latitude": -6.9645999,
+        "longitude": 110.46964148,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Gerbang Tol Muktiharjo",
+        "address": "Jl. Tol Tanjungmas - Srondol, Semarang, 50163, Indonesia",
+        "latitude": -6.9731473,
+        "longitude": 110.4500877,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Gerbang Timur MAJT",
+        "address": "Jl. Gajah Raya No.14, Semarang, 50166, Indonesia",
+        "latitude": -6.9846934,
+        "longitude": 110.44774319,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Kost Gerbang Biru",
+        "address": "Jl. Kaligawe Raya No.9, Semarang, 50174, Indonesia",
+        "latitude": -6.95770011,
+        "longitude": 110.44814844,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Patung Kuda Citraland BSB City",
+        "address": "Jl. Raya Semarang-Boja, Semarang, 50212, Indonesia",
+        "latitude": -7.0265511,
+        "longitude": 110.33469615,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "BUBUR KACANG IJO MADURA PATUNG KUDA",
+        "address": "Jl. Kudu Raya, Semarang, 50116, Indonesia",
+        "latitude": -6.97238621,
+        "longitude": 110.48954547,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Pasar malam patung kuda",
+        "address": "Patung kuda, Semarang, 50117, Indonesia",
+        "latitude": -6.96973543,
+        "longitude": 110.49300725,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Angkringan Patung Kuda",
+        "address": "Jl. Kudu Raya, Semarang, 50117, Indonesia",
+        "latitude": -6.9715343,
+        "longitude": 110.49017925,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "UNNES",
+        "address": "Semarang, 50229, Indonesia",
+        "latitude": -7.05063006,
+        "longitude": 110.39242059,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Auditorium Prof. Wuryanto UNNES",
+        "address": "Gedung Prof. Wuryanto UNNES, Semarang, 50229, Indonesia",
+        "latitude": -7.05105425,
+        "longitude": 110.39155169,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Bento Kopi Unnes",
+        "address": "Semarang, 50229, Indonesia",
+        "latitude": -7.04030427,
+        "longitude": 110.39170043,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Salon Semarang | Salon UNNES | Lydia Beauty Salon",
+        "address": "Gedung KWU UNNES, Semarang, 50229, Indonesia",
+        "latitude": -7.04916002,
+        "longitude": 110.39458575,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Masjid Al- Kaustar FSM UNDIP",
+        "address": "Jl. Prof. Soedarto, Semarang, 50275, Indonesia",
+        "latitude": -7.04901799,
+        "longitude": 110.44146212,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Parkir FSM Undip",
+        "address": "Semarang, 50275, Indonesia",
+        "latitude": -7.04800687,
+        "longitude": 110.44155169,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Klinik Pratama Diani Beauty House",
+        "address": "Jl. Banyu Putih Raya No.32, Semarang, 50275, Indonesia",
+        "latitude": -7.05247492,
+        "longitude": 110.43252924,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Pusat Akrilik Advertising",
+        "address": "Jl. Melati III Jl. Bunga Raya Bukit Diponegoro No.E247, Semarang, 50276, Indonesia",
+        "latitude": -7.04148081,
+        "longitude": 110.44347951,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Puskesmas Srondol",
+        "address": "Jl. Setia Budi No.209, Semarang, 50263, Indonesia",
+        "latitude": -7.05891998,
+        "longitude": 110.41424235,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Pusat Neon Box Semarang (ASLI)",
+        "address": "Jl. Bulusan Selatan I, Semarang, 50277, Indonesia",
+        "latitude": -7.06372558,
+        "longitude": 110.44587132,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Pusat Koper Semarang",
+        "address": "Gg. Pinggir No.94, Semarang, 50139, Indonesia",
+        "latitude": -6.97752397,
+        "longitude": 110.42764548,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Balai Sasana Widya Praja Badan Diklat Provinsi Jawa Tengah",
+        "address": "Graha Widya Praja Bpsdmd Prov Jateng, Semarang, 50263, Indonesia",
+        "latitude": -7.0559751,
+        "longitude": 110.41162471,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Widya Mitra",
+        "address": "Jl. MT. Haryono No.360, Semarang, 50613, Indonesia",
+        "latitude": -6.97749029,
+        "longitude": 110.43139519,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "SMK Widya Praja Ungaran",
+        "address": "Jl. Jenderal Gatot Subroto No.63, Semarang, 50517, Indonesia",
+        "latitude": -7.1218454,
+        "longitude": 110.41024267,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "STIE Widya Manggala",
+        "address": "Jl. Sriwijaya No.32 and, Semarang, 50242, Indonesia",
+        "latitude": -7.00198787,
+        "longitude": 110.42492978,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Widya Husada Semarang University",
+        "address": "Jl. Subali Raya No.12, Semarang, 50146, Indonesia",
+        "latitude": -6.9848576,
+        "longitude": 110.36656263,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Gps Tracker Semarang Berdikari",
+        "address": "Jl. Puspogiwang V No.4, Semarang, 50149, Indonesia",
+        "latitude": -6.9848545,
+        "longitude": 110.38863569,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "GPS Tracker Leon Jaya Mandiri",
+        "address": "Jl. Kencono Wungu II No.41A, Semarang, 50149, Indonesia",
+        "latitude": -6.9810352,
+        "longitude": 110.39174882,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Toko GPS Tracker",
+        "address": "Jl. Sriwibowo Utr V No.59, Semarang, 50184, Indonesia",
+        "latitude": -6.98931548,
+        "longitude": 110.36767829,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Pusat GPS Tracker Mobil Motor Truck Bus Terlengkap",
+        "address": "Jrakah, Semarang, 50151, Indonesia",
+        "latitude": -6.98612812,
+        "longitude": 110.35862398,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Track Moropand Morosari Bedono Sayung",
+        "address": "Jl. Morosari-Sayung, Demak, 59563, Indonesia",
+        "latitude": -6.92637936,
+        "longitude": 110.48499357,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Rocket Chicken UNNES",
+        "address": "Jl. Taman Siswa No.101, Semarang, 50229, Indonesia",
+        "latitude": -7.0538343,
+        "longitude": 110.39491905,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Rocket Chicken",
+        "address": "Jl. Menoreh Raya No.26, Semarang, 50232, Indonesia",
+        "latitude": -7.01443379,
+        "longitude": 110.39003183,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Rocket Chicken Pamularsih",
+        "address": "Jl. Simongan No.46, Semarang, 50148, Indonesia",
+        "latitude": -6.99297133,
+        "longitude": 110.39900698,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Rocket Chicken Meteseh",
+        "address": "Jl. Profesor Suharso, Semarang, 50271, Indonesia",
+        "latitude": -7.05725123,
+        "longitude": 110.46304089,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Ride to Jannah Clothes",
+        "address": "Jl. Sendang Pakel Raya, Semarang, 50266, Indonesia",
+        "latitude": -7.08300451,
+        "longitude": 110.42932234,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Wahana Permainan Happy Rides",
+        "address": "Jl. Akasia III No.3a No.c8, Semarang, 50275, Indonesia",
+        "latitude": -7.07060261,
+        "longitude": 110.30502979,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "RIDER TUA JANGLI",
+        "address": "jl jangli tlawah 5 rt 02 rw 05 no 37, Semarang, 50255, Indonesia",
+        "latitude": -7.02600831,
+        "longitude": 110.43046535,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Simply Rider Basecamp",
+        "address": "Jl. Kamiluto Raya No.20, Semarang, 50197, Indonesia",
+        "latitude": -6.9807213,
+        "longitude": 110.46544847,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Day Care ridel",
+        "address": "Jl. Beruang Raya No.70, Semarang, 50248, Indonesia",
+        "latitude": -6.9991934,
+        "longitude": 110.45154766,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Alfamart",
+        "address": "Jl. Setia Budi No.37, Semarang, 50262, Indonesia",
+        "latitude": -7.04455807,
+        "longitude": 110.42120562,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Alfamart",
+        "address": "Jl. KH. Sirojudin No.15, Semarang, 50275, Indonesia",
+        "latitude": -7.05707338,
+        "longitude": 110.43548867,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Alfamart",
+        "address": "Jl. Kesatrian No.91, Semarang, 50254, Indonesia",
+        "latitude": -7.02711984,
+        "longitude": 110.42760593,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Alfamart",
+        "address": "Jl. Timoho Raya No.Kel, Semarang, 50277, Indonesia",
+        "latitude": -7.06063242,
+        "longitude": 110.44743668,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Kandang Rusa Waduk UNDIP",
+        "address": "Jl. Jurang Blimbing No.D.03, Semarang, 50275, Indonesia",
+        "latitude": -7.0520568,
+        "longitude": 110.44611407,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Taman Rusa Graha Padma",
+        "address": "Semarang, 50149, Indonesia",
+        "latitude": -6.97488814,
+        "longitude": 110.36910452,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Kandang Rusa Marina",
+        "address": "Semarang, 50144, Indonesia",
+        "latitude": -6.94988898,
+        "longitude": 110.39040856,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Rusa",
+        "address": "Jl. Pamularsih Raya No.18, Semarang, 50141, Indonesia",
+        "latitude": -6.99014009,
+        "longitude": 110.39628925,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "PAUD Rusa",
+        "address": "Jl. Berdikari No.49, Semarang, 50263, Indonesia",
+        "latitude": -7.06069655,
+        "longitude": 110.40805527,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Rusunawa Kaligawe",
+        "address": "Jl. Sawah Besar. XIII, Semarang, 50163, Indonesia",
+        "latitude": -6.97204997,
+        "longitude": 110.44856878,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Rusunawa Karangroto Baru",
+        "address": "Jalan Raya Banjardowo Kudu, Semarang, 50117, Indonesia",
+        "latitude": -6.97263351,
+        "longitude": 110.49447289,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Rusunawa Kudu Genuk",
+        "address": "Jl. Kidalem Raya, Demak, 59563, Indonesia",
+        "latitude": -6.95611441,
+        "longitude": 110.50364327,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Perpustakaan FH Universitas Semarang",
+        "address": "Jl. Soekarno Hatta, Semarang, 50196, Indonesia",
+        "latitude": -6.98192651,
+        "longitude": 110.45247913,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Dinas Kearsipan dan Perpustakaan Provinsi Jawa Tengah",
+        "address": "C, Semarang, 50263, Indonesia",
+        "latitude": -7.05856963,
+        "longitude": 110.41175277,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Dinas Arsip dan Perpustakaan Kota Semarang",
+        "address": "Jl. Prof. Soedarto No.116, Semarang, 50269, Indonesia",
+        "latitude": -7.05310541,
+        "longitude": 110.42799234,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Perpustakaan Pusat UNISSULA",
+        "address": "Semarang, 50112, Indonesia",
+        "latitude": -6.95459512,
+        "longitude": 110.45798095,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Fakultas Sains dan Teknologi",
+        "address": "Semarang, 50185, Indonesia",
+        "latitude": -6.99185097,
+        "longitude": 110.34589216,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Fore Coffee",
+        "address": "Jl. Setia Budi No.58, Semarang, 50269, Indonesia",
+        "latitude": -7.04753441,
+        "longitude": 110.42055634,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "POM MINI BERKAH TEMBALANG",
+        "address": "Semarang, 50277, Indonesia",
+        "latitude": -7.05701854,
+        "longitude": 110.443372,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Forever Store Semarang",
+        "address": "Jl. Jangli Gabeng Barat, Semarang, 50274, Indonesia",
+        "latitude": -7.02969741,
+        "longitude": 110.44112593,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Fore Coffee",
+        "address": "Jl. Pemuda No.150, Semarang, 50132, Indonesia",
+        "latitude": -6.98269604,
+        "longitude": 110.41186342,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Rocket Chicken Ngesrep Semarang",
+        "address": "Jl. Prof. Soedarto No.45, Semarang, 50269, Indonesia",
+        "latitude": -7.05025599,
+        "longitude": 110.42342713,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Ngesrep",
+        "address": "Ngesrep, 50261, Banyumanik, Semarang, Central Java, Indonesia",
+        "latitude": -7.033208,
+        "longitude": 110.4244,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Ngesrepbalong",
+        "address": "Ngesrepbalong, 51383, Limbangan, Kendal, Central Java, Indonesia",
+        "latitude": -7.146851,
+        "longitude": 110.30675,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Antarakata Coffee and Space",
+        "address": "Jl. Durian Raya No.65 - 67, Semarang, 50263, Indonesia",
+        "latitude": -7.06468323,
+        "longitude": 110.42681633,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "I-Weni Gallery",
+        "address": "Semarang, 50275, Indonesia",
+        "latitude": -7.06149097,
+        "longitude": 110.43914278,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Antarakata Coffee Majapahit",
+        "address": "Jl. Majapahit, Semarang, 50198, Indonesia",
+        "latitude": -7.00630239,
+        "longitude": 110.45696317,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Antarakata Coffee",
+        "address": "Jl. Ahmad Yani No.162, Semarang, 50241, Indonesia",
+        "latitude": -6.9931697,
+        "longitude": 110.42949522,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Antarakata Coffee",
+        "address": "Jl. HOS Cokroaminoto, Semarang, 50245, Indonesia",
+        "latitude": -6.98463031,
+        "longitude": 110.4084056,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Tembalang",
+        "address": "Tembalang, Semarang, Central Java, Indonesia",
+        "latitude": -7.045241,
+        "longitude": 110.46086,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Antara Teh dan Seblak Prasmanan",
+        "address": "Jl. Pandansari IX, Semarang, 50166, Indonesia",
+        "latitude": -6.97564714,
+        "longitude": 110.44485713,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Tegalsari",
+        "address": "Tegalsari, 50614, Candisari, Semarang, Central Java, Indonesia",
+        "latitude": -7.003606,
+        "longitude": 110.42191,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Terboyo Kulon",
+        "address": "Terboyo Kulon, 50112, Genuk, Semarang, Central Java, Indonesia",
+        "latitude": -6.952641,
+        "longitude": 110.45181,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Terboyo Wetan",
+        "address": "Terboyo Wetan, 50112, Genuk, Semarang, Central Java, Indonesia",
+        "latitude": -6.955579,
+        "longitude": 110.46839,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Teluk",
+        "address": "Teluk, 59566, Karangawen, Demak, Central Java, Indonesia",
+        "latitude": -7.058854,
+        "longitude": 110.54424,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Antara Kantor Berita Indonesia",
+        "address": "Jl. Veteran No.1B, Semarang, 50231, Indonesia",
+        "latitude": -6.99632989,
+        "longitude": 110.41093907,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "BENGKEL LAS | BAJA RINGAN | RANGKA ATAP |ANTARA KARYA",
+        "address": "Jl. Raya No.69, Demak, 59567, Indonesia",
+        "latitude": -7.02565249,
+        "longitude": 110.51508156,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Masuk antara toko kang mus - bengkel didik jepara",
+        "address": "Jl. Simongan No.102, Semarang, 50147, Indonesia",
+        "latitude": -7.00436996,
+        "longitude": 110.39184461,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Banyumanik",
+        "address": "Banyumanik, Semarang, Central Java, Indonesia",
+        "latitude": -7.061857,
+        "longitude": 110.418686,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Banyumeneng",
+        "address": "Banyumeneng, 59567, Mranggen, Demak, Central Java, Indonesia",
+        "latitude": -7.089571,
+        "longitude": 110.50045,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "JChicken Fatmawati",
+        "address": "Jl. Tegal Kangkung I Raya No.34, Semarang, 50273, Indonesia",
+        "latitude": -7.01928722,
+        "longitude": 110.47091834,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "JChicken Banyumanik",
+        "address": "Jl. Jati Raya No.8, Semarang, 50263, Indonesia",
+        "latitude": -7.0683305,
+        "longitude": 110.41801939,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Fakultas Vokasi Universitas Stikubank",
+        "address": "Jl. Kendeng V, Semarang, 50235, Indonesia",
+        "latitude": -7.01625122,
+        "longitude": 110.39752576,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Indomaret FHMT Brumbung",
+        "address": "Jl. Jagalan No.16, Demak, 59567, Indonesia",
+        "latitude": -7.01869149,
+        "longitude": 110.51526939,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Fha Fha Shop Gunungpati",
+        "address": "Ds . Jetis trawas, Semarang, 50223, Indonesia",
+        "latitude": -7.08249831,
+        "longitude": 110.35031726,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "FH House",
+        "address": "Jl. Wologito Bar. XI No.38, Semarang, 50183, Indonesia",
+        "latitude": -6.99578646,
+        "longitude": 110.37374306,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Mandiri court centre",
+        "address": "Jl. Klabat V No.9, Semarang, 50253, Indonesia",
+        "latitude": -7.01672467,
+        "longitude": 110.42571114,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Kantor Wilayah Kementerian Hukum dan HAM",
+        "address": "Jalan Dokter Cipto No.64, Semarang, 50123, Indonesia",
+        "latitude": -6.97494312,
+        "longitude": 110.43499101,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Dekanat Fakultas Hukum UNNES",
+        "address": "Kampus UNNES, Semarang, 50229, Indonesia",
+        "latitude": -7.05039015,
+        "longitude": 110.39797023,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Klinik Hukum Naya Amin Zaini Law Firm",
+        "address": "Jl. Letjend Suprapto No.69, Semarang, 50514, Indonesia",
+        "latitude": -7.13474017,
+        "longitude": 110.41239581,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Mie Level Mas No Tirto Agung",
+        "address": "Jl. Tirto Agung No.59, Semarang, 50268, Indonesia",
+        "latitude": -7.05787896,
+        "longitude": 110.42884342,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Kolam Renang Tirto Argo Siwarak",
+        "address": "Jl. Tirto Argo, Semarang, 50551, Indonesia",
+        "latitude": -7.13210912,
+        "longitude": 110.39456323,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Warteg Citra Rasa Tirto Agung",
+        "address": "Jl. Tirto Agung No.6, Semarang, 50268, Indonesia",
+        "latitude": -7.0544345,
+        "longitude": 110.43042846,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "JNE Tirto Agung Tembalang",
+        "address": "Jl. Tirto Agung No.21B, Semarang, 50268, Indonesia",
+        "latitude": -7.05550575,
+        "longitude": 110.42982786,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Bubur Ayam Nang Opik Taman tirto Agung",
+        "address": "Jl. Tirto Agung, Semarang, 50268, Indonesia",
+        "latitude": -7.06335496,
+        "longitude": 110.42667682,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Dr. Syariefah Soraya",
+        "address": "Jl. Bulusan VI No.34, Semarang, 50277, Indonesia",
+        "latitude": -7.06115634,
+        "longitude": 110.44579871,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Sate Kambing Mudha Tegal Laka Laka Ghonam",
+        "address": "Jl. Ngesrep Tim. V No.120b, Semarang, 50269, Indonesia",
+        "latitude": -7.05308383,
+        "longitude": 110.42948564,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Warteg Laka-Laka",
+        "address": "Jl. Banjarsari No.56a, Semarang, 50275, Indonesia",
+        "latitude": -7.05992895,
+        "longitude": 110.44083013,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Kopi Kemenangan",
+        "address": "Jl. Banyu Putih Raya, Semarang, 50275, Indonesia",
+        "latitude": -7.05371488,
+        "longitude": 110.43204178,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Kopi Kemenangan - Indraprasta",
+        "address": "Jl. Abimanyu Raya No.23, Semarang, 50131, Indonesia",
+        "latitude": -6.97707599,
+        "longitude": 110.40972904,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Home Mate Store",
+        "address": "Jalan Dokter Cipto No.107, Semarang, 50124, Indonesia",
+        "latitude": -6.98293322,
+        "longitude": 110.43469126,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Sancta Maria Mater Dei Catholic Church",
+        "address": "Jl. Lamper Sari No.73, Semarang, 50249, Indonesia",
+        "latitude": -7.00684107,
+        "longitude": 110.43994335,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Jual Material Bangunan Bapak Tugiman",
+        "address": "Jl. Sisingamangaraja No.301A, Semarang, 50253, Indonesia",
+        "latitude": -7.01638663,
+        "longitude": 110.42788048,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Laboratorium Matematika FMIPA UNNES",
+        "address": "10 FMIPA UNNES, Semarang, 50229, Indonesia",
+        "latitude": -7.05024419,
+        "longitude": 110.393915,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Bintang Matematika",
+        "address": "Sendangsari C7, Semarang, 50227, Indonesia",
+        "latitude": -7.08189696,
+        "longitude": 110.38419448,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Bimbingan Belajar Matematika",
+        "address": "Jl. Senjoyo I No.46, Semarang, 50126, Indonesia",
+        "latitude": -6.97165542,
+        "longitude": 110.43522233,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Les Matematika",
+        "address": "Jl. Kutilang VI No.2, Semarang, 50516, Indonesia",
+        "latitude": -7.12502688,
+        "longitude": 110.4147023,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Bimbingan Belajar Matematika Gwen Math",
+        "address": "Perum Villa Delia Timur III No. 14, Semarang, 50519, Indonesia",
+        "latitude": -7.13649991,
+        "longitude": 110.44735996,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Oharang Korean BBQ",
+        "address": "Area parkir Lotte Grosir, Semarang, 50249, Indonesia",
+        "latitude": -6.99894087,
+        "longitude": 110.44466423,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Oharang Korean BBQ Semarang Kawi (아랑)",
+        "address": "Jl. Kawi No.3, Semarang, 50252, Indonesia",
+        "latitude": -7.00777115,
+        "longitude": 110.41801867,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Transmart Setiabudi XXI",
+        "address": "Mal Transmart, Semarang, 50263, Indonesia",
+        "latitude": -7.06670152,
+        "longitude": 110.41154791,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Citra XXI",
+        "address": "Mal Ciputra, Semarang, 50241, Indonesia",
+        "latitude": -6.98895349,
+        "longitude": 110.42341354,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Central City XXI",
+        "address": "Central City Mall, Semarang, 50199, Indonesia",
+        "latitude": -7.0194346,
+        "longitude": 110.49484895,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Paragon XXI",
+        "address": "PARAGON CITY, Semarang, 50132, Indonesia",
+        "latitude": -6.97891929,
+        "longitude": 110.41535431,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Mie Gacoan Banyumanik",
+        "address": "Jl. Sukun Raya No.30, Semarang, 50263, Indonesia",
+        "latitude": -7.06514219,
+        "longitude": 110.41540833,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Mie Gacoan",
+        "address": "Jl. Brigjen Sudiarto No. 326 B, Semarang, 50246, Indonesia",
+        "latitude": -7.00835132,
+        "longitude": 110.46438043,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Mie Gacoan Veteran",
+        "address": "Jl. Veteran, Semarang, 50231, Indonesia",
+        "latitude": -6.9973646,
+        "longitude": 110.41737768,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Mie Gacoan Ngaliyan",
+        "address": "starbuck, Semarang, 50181, Indonesia",
+        "latitude": -7.00180154,
+        "longitude": 110.34163207,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Ngaliyan",
+        "address": "Ngaliyan, Semarang, Central Java, Indonesia",
+        "latitude": -7.000703,
+        "longitude": 110.336464,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Semarang Utara",
+        "address": "Semarang Utara, Semarang, Central Java, Indonesia",
+        "latitude": -6.962758,
+        "longitude": 110.41865,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Treetales Coffee & Eatery by Taman Teduh",
+        "address": "Jl. Tirto Usodo Tim. No.29, Semarang, 50268, Indonesia",
+        "latitude": -7.057891,
+        "longitude": 110.43005,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Alfamart",
+        "address": "Jalan Klipang Raya, Semarang, 50272, Indonesia",
+        "latitude": -7.04450034,
+        "longitude": 110.47896864,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Alfamart Perintis Kemerdekaan",
+        "address": "Jl. Perintis Kemerdekaan Kel No.303, Semarang, 50265, Indonesia",
+        "latitude": -7.10243268,
+        "longitude": 110.40889073,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Alfamart Gemah Raya",
+        "address": "Jl. Gemah Raya No.5, Semarang, 50246, Indonesia",
+        "latitude": -7.01087869,
+        "longitude": 110.46687636,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Alfamart Jangli",
+        "address": "Jl. Jangli Raya Kel No.46, Semarang, 50254, Indonesia",
+        "latitude": -7.02562142,
+        "longitude": 110.42832552,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Masjid Hijau Gang Sigawe",
+        "address": "Jl. Sigawe No.12B, Semarang, 50275, Indonesia",
+        "latitude": -7.05639462,
+        "longitude": 110.43996364,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Oemah Sri Tirtasari",
+        "address": "Jl. Tirtasari No.1 AA, Semarang, 50275, Indonesia",
+        "latitude": -7.05780974,
+        "longitude": 110.43939374,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "cemilan sehat fanissa",
+        "address": "Jl. Banjarsari Raya Tembalang No.5a, Semarang, 50275, Indonesia",
+        "latitude": -7.06027837,
+        "longitude": 110.43935373,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "MAKANAN KHAS SEMARANG MIE KOPYOK PAK WARYO",
+        "address": "Jl. Gambyong Raya, Semarang, 50265, Indonesia",
+        "latitude": -7.10464017,
+        "longitude": 110.40188922,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Waryng YY",
+        "address": "Jl. Genuk Baru I, Semarang, 50614, Indonesia",
+        "latitude": -7.00613227,
+        "longitude": 110.42408793,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Omah ibu waryanti",
+        "address": "Semarang, 50192, Indonesia",
+        "latitude": -7.00253004,
+        "longitude": 110.48476605,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Waryanto house",
+        "address": "Jl. Borobudur Sel., Semarang, 50183, Indonesia",
+        "latitude": -7.00188299,
+        "longitude": 110.37428098,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Warteg",
+        "address": "Jl. Fatmawati No.73, Semarang, 50192, Indonesia",
+        "latitude": -7.01561005,
+        "longitude": 110.47194819,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Warteg Arman",
+        "address": "Jl. Pleburan Barat No.38, Semarang, 50241, Indonesia",
+        "latitude": -6.99855447,
+        "longitude": 110.42406643,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Warteg Citra Rasa",
+        "address": "Jl. Moh. Yamin, Semarang, 50511, Indonesia",
+        "latitude": -7.12580954,
+        "longitude": 110.40883555,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Warteg Bu Dewi Pekunden",
+        "address": "Jl. Pekunden No.Raya, Semarang, 50241, Indonesia",
+        "latitude": -6.98495711,
+        "longitude": 110.41410828,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Warteg ibu tia",
+        "address": "Jl. Tlogo Timun Raya No.7A, Semarang, 50196, Indonesia",
+        "latitude": -6.98970254,
+        "longitude": 110.45885076,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Irhas Motor",
+        "address": "Jl. Gondang Raya No.9, Semarang, 50277, Indonesia",
+        "latitude": -7.06152884,
+        "longitude": 110.44166297,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Laboratorium Bionano Teknologi",
+        "address": "Semarang, 50275, Indonesia",
+        "latitude": -7.05476008,
+        "longitude": 110.43981373,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Sekretariat Posko KSR PMI Unit Universitas Diponegoro",
+        "address": "Jl. Prof. Soedarto, Semarang, 50275, Indonesia",
+        "latitude": -7.05404347,
+        "longitude": 110.43934605,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Sekre UKM Ready",
+        "address": "Universitas Diponegoro (UNDIP, Semarang, 50275, Indonesia",
+        "latitude": -7.05393084,
+        "longitude": 110.43878927,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Kos putra baskoro bu rofi",
+        "address": "Jl. Gg. 2, Semarang, 50275, Indonesia",
+        "latitude": -7.05341829,
+        "longitude": 110.43631464,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Gedung A Rusunawa Undip",
+        "address": "Jl. Prof. Soedarto No.12i, Semarang, 50277, Indonesia",
+        "latitude": -7.05520445,
+        "longitude": 110.44357579,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Kost Putra Griya Andini",
+        "address": "Jl. Gerungsari No.25 B, Semarang, 50277, Indonesia",
+        "latitude": -7.05620474,
+        "longitude": 110.44484776,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Gedung E Rusunawa Undip",
+        "address": "Semarang, 50277, Indonesia",
+        "latitude": -7.05566454,
+        "longitude": 110.44542103,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Jatimulyo Lintang Shoes",
+        "address": "Persis di depan gerbang SD Islam Pangeran Diponegoro, Semarang, 50268, Indonesia",
+        "latitude": -7.05435552,
+        "longitude": 110.43200418,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Polytron Stadium Undip",
+        "address": "Rusunawa Undip, Semarang, 50277, Indonesia",
+        "latitude": -7.05412566,
+        "longitude": 110.44389902,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Omah Pelem Syariah",
+        "address": "Jl. Genuk Perbalan X No.3, Semarang, 50614, Indonesia",
+        "latitude": -7.0048,
+        "longitude": 110.425697,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Omah Raja Plafon PVC",
+        "address": "Krakatau Raya No.11, Semarang, 50232, Indonesia",
+        "latitude": -6.98844155,
+        "longitude": 110.43710695,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Omah Souvenir UngAran",
+        "address": "Puri Delta Asri 5 Tahap 2, Semarang, 50519, Indonesia",
+        "latitude": -7.14248501,
+        "longitude": 110.4330573,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Omah Madam",
+        "address": "Perumahan Villa Aster Jl. Kyai Mojo Blok D-1, Semarang, 50263, Indonesia",
+        "latitude": -7.05151309,
+        "longitude": 110.41191995,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Kost Omah Bimo",
+        "address": "Jl. Bulusan Sel. Dalam III No.34, Semarang, 50277, Indonesia",
+        "latitude": -7.06265636,
+        "longitude": 110.44758314,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Travel Semarang Jakarta Bekasi Tangerang jogja",
+        "address": "Jl. Taman Teuku Umar, Semarang, 50262, Indonesia",
+        "latitude": -7.0316021,
+        "longitude": 110.4175782,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Griya Kota Bekasi 1",
+        "address": "Blk. B3 No.3, Semarang, 50255, Indonesia",
+        "latitude": -7.0224528,
+        "longitude": 110.43448223,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Joglosemar Filling Stations Akpol Executive Shuttle Bus",
+        "address": "Jl. Sisingamangaraja No.24, Semarang, 50253, Indonesia",
+        "latitude": -7.01606333,
+        "longitude": 110.41873359,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Lapangan Bhayangkara Akpol",
+        "address": "Jl. Gajahmungkur Dalam, Semarang, 50235, Indonesia",
+        "latitude": -7.02166087,
+        "longitude": 110.40477135,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Toko Souvenir Akpol Pak Gondez",
+        "address": "Jl. Semeru Raya No.1h, Semarang, 50235, Indonesia",
+        "latitude": -7.02055796,
+        "longitude": 110.41868055,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Akpol Blok K No 65",
+        "address": "komplek AKPOL blok k no 65 kecamatan gajah mungkur, Semarang, 50235, Indonesia",
+        "latitude": -7.01741454,
+        "longitude": 110.41367016,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Police Hospitals Akpol",
+        "address": "Komplek, Semarang, 50235, Indonesia",
+        "latitude": -7.01961129,
+        "longitude": 110.41909868,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Ikan Darat",
+        "address": "Jl. Tlogosari Utara IV No.mor 4, Semarang, 50275, Indonesia",
+        "latitude": -7.06145515,
+        "longitude": 110.43792991,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Lesehan Ikan Laut Bakar Papua",
+        "address": "Jl. Mulawarman Raya No.9, Semarang, 50267, Indonesia",
+        "latitude": -7.06845847,
+        "longitude": 110.43494691,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Ikan Segar Tambak Laut",
+        "address": "Jl. Bundel, Semarang, 50228, Indonesia",
+        "latitude": -6.9620827,
+        "longitude": 110.4351485,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Restoran Kampung Laut",
+        "address": "Puri Maerokoco Tawang Mas, Semarang, 50144, Indonesia",
+        "latitude": -6.962019,
+        "longitude": 110.38606,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Semarang Batting Cage",
+        "address": "Jl. Sipodang, Semarang, 50275, Indonesia",
+        "latitude": -7.05818559,
+        "longitude": 110.44227522,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Cafe Meong OHARA",
+        "address": "Semarang, 50273, Indonesia",
+        "latitude": -7.00895583,
+        "longitude": 110.45403336,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "O'Hara karaoke",
+        "address": "Jl. Argorejo No.7, Semarang, 50145, Indonesia",
+        "latitude": -6.98823842,
+        "longitude": 110.38064792,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Kost Drajat Barokah",
+        "address": "Jl. Sidodrajat II No.27, Semarang, 50197, Indonesia",
+        "latitude": -6.97706655,
+        "longitude": 110.46334283,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Fullhouse Dragon Kost",
+        "address": "Jl. Pete Raya, Semarang, 50229, Indonesia",
+        "latitude": -7.05568146,
+        "longitude": 110.39869437,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Kos Bu Drajad",
+        "address": "Jl. Kapas Tengah III No.728, Semarang, 50117, Indonesia",
+        "latitude": -6.96669462,
+        "longitude": 110.4668758,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Kopi Kenangan Queen City Mall",
+        "address": "Jl. Pemuda No.35, Semarang, 50139, Indonesia",
+        "latitude": -6.97336223,
+        "longitude": 110.42036111,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "SUSHIKUN Queen City Mall Semarang",
+        "address": "Jl. Pemuda No.44a Lantai 2 Foodcourt, Semarang, 50139, Indonesia",
+        "latitude": -6.97227355,
+        "longitude": 110.42027438,
+        "radius_m": 100,
+        "description": null
+    },
+    {
+        "name": "Cinépolis Java Mall",
+        "address": "3 Java mall, Semarang, 50249, Indonesia",
+        "latitude": -7.00623761,
+        "longitude": 110.43202346,
+        "radius_m": 100,
+        "description": null
+    }
+]
