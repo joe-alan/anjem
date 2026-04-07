@@ -30,7 +30,7 @@ class UserResource extends JsonResource
 
             // Include driver profile if user is a driver
             'driver_profile' => $this->when(
-                in_array($this->role, ['driver', 'both', 'admin']),
+                in_array($this->role, ['driver', 'both']),
                 function () {
                     return $this->driverProfile ? [
                         'id' => $this->driverProfile->id,

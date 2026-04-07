@@ -47,7 +47,7 @@ class RideController extends Controller
         } elseif ($user->role === 'driver') {
             $query->where('driver_id', $user->id);
         } else {
-            // Fallback for 'both'/'admin' without role param
+            // Fallback for 'both' without role param
             $query->where(function ($q) use ($user) {
                 $q->where('rider_id', $user->id)
                     ->orWhere('driver_id', $user->id);
