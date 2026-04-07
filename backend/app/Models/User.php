@@ -32,7 +32,7 @@ class User extends Authenticatable implements FilamentUser
         'email',
         'password',
         'firebase_uid',
-        'role', // admin, rider, driver, both
+        'role', // rider, driver, both
         'phone_number',
         'phone_verified_at',
         'fcm_token',
@@ -67,7 +67,8 @@ class User extends Authenticatable implements FilamentUser
         'rider_rating_avg' => 'decimal:2',
         'total_rides_taken' => 'integer',
         'password' => 'hashed',
-        'role' => 'string', // admin, rider, driver, both
+        'role' => 'string', // rider, driver, both
+        'is_admin' => 'boolean',
     ];
 
     /**
@@ -139,7 +140,7 @@ class User extends Authenticatable implements FilamentUser
      */
     public function canBeDriver(): bool
     {
-        return in_array($this->role, ['driver', 'both', 'admin']);
+        return in_array($this->role, ['driver', 'both']);
     }
 
     /**
@@ -155,7 +156,7 @@ class User extends Authenticatable implements FilamentUser
      */
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return $this->is_admin;
     }
 
     /**
@@ -167,19 +168,11 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
-     * Check if user can access admin panel
-     */
-    public function canAccessAdmin(): bool
-    {
-        return $this->role === 'admin';
-    }
-
-    /**
      * Filament panel access gate
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->canAccessAdmin() && $this->is_active;
+        return $this->is_admin && $this->password !== null && $this->is_active;
     }
 
     /**
@@ -187,7 +180,7 @@ class User extends Authenticatable implements FilamentUser
      */
     public function canBeRider(): bool
     {
-        return in_array($this->role, ['rider', 'both', 'admin']);
+        return in_array($this->role, ['rider', 'both']);
     }
 
     /**

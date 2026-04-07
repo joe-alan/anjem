@@ -37,7 +37,7 @@ void main() async {
     pusherKey: const String.fromEnvironment('PUSHER_KEY', defaultValue: 'rp4e38k1ovkaodrtfxqa'),
     pusherHost: const String.fromEnvironment('PUSHER_HOST', defaultValue: '10.0.2.2'),
     pusherPort: const int.fromEnvironment('PUSHER_PORT', defaultValue: 8080),
-    pusherScheme: 'http',
+    pusherScheme: const String.fromEnvironment('PUSHER_SCHEME', defaultValue: 'http'),
     sentryDsn: sentryDsn,
   );
 

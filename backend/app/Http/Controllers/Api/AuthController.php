@@ -251,16 +251,6 @@ class AuthController extends Controller
                 'driver:update-location',
                 'driver:rate-rider',
             ],
-            'admin' => [ // Admin has all abilities
-                'rider:request-ride',
-                'rider:cancel-ride',
-                'rider:rate-driver',
-                'driver:go-online',
-                'driver:accept-ride',
-                'driver:complete-ride',
-                'driver:update-location',
-                'driver:rate-rider',
-            ],
             default => []
         };
 
