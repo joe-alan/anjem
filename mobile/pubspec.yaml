@@ -102,7 +102,7 @@ dev_dependencies:
 
   # Linting & Code Quality
   flutter_lints: ^5.0.0
-  very_good_analysis: ^6.0.0
+  very_good_analysis: ^10.2.0
 
   # Code Generation
   build_runner: ^2.4.13
