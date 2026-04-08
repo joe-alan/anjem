@@ -129,14 +129,16 @@ class KycVerificationService
             'expires_at' => $expiresAt,
         ]);
 
-        // Send email with code (queued via Redis)
-        Mail::queue('emails.verification-code', [
-            'code' => $code,
-            'expiresInMinutes' => 10,
-        ], function ($message) use ($email) {
-            $message->to($email)
-                ->subject('Anjem - Email Verification Code');
-        });
+        // Send email with code (dispatched to queue)
+        dispatch(function () use ($code, $email) {
+            Mail::send('emails.verification-code', [
+                'code' => $code,
+                'expiresInMinutes' => 10,
+            ], function ($message) use ($email) {
+                $message->to($email)
+                    ->subject('Anjem - Email Verification Code');
+            });
+        })->onQueue('default');
 
         return $verificationCode;
     }
