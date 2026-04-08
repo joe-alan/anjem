@@ -171,11 +171,12 @@ class KycStateNotifier extends StateNotifier<KycState> {
     }
   }
 
-  Future<bool> sendVerificationCode(String studentEmail) async {
+  /// Send verification code. Returns cooldown seconds on success, or -1 on failure.
+  Future<int> sendVerificationCode(String studentEmail) async {
     state = state.copyWith(isLoading: true, error: null, successMessage: null);
 
     try {
-      await _kycService.sendVerificationCode(studentEmail);
+      final cooldown = await _kycService.sendVerificationCode(studentEmail);
 
       state = state.copyWith(
         isLoading: false,
@@ -183,20 +184,25 @@ class KycStateNotifier extends StateNotifier<KycState> {
         error: null,
       );
 
-      return true;
+      return cooldown;
     } on ApiException catch (e) {
       state = state.copyWith(
         isLoading: false,
         error: e.userFriendlyMessage,
       );
-      return false;
+      return -1;
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
         error: 'Failed to send verification code',
       );
-      return false;
+      return -1;
     }
+  }
+
+  /// Check remaining cooldown before resend is allowed.
+  Future<int> getResendCooldown(String studentEmail) async {
+    return _kycService.getResendCooldown(studentEmail);
   }
 
   Future<bool> verifyEmail({
