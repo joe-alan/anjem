@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "623554897277-q7v9jim2f4olg1t2iieodegaa31rshdl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "me.anjem.driver",
+            "certificate_hash": "38c4eb76de9d0fc757bf20a72a178d6af4ca2842"
+          }
+        },
+        {
           "client_id": "623554897277-qvrv8v77jkq8hg8c8a6le13au3trec2q.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -50,6 +58,14 @@
         }
       },
       "oauth_client": [
+        {
+          "client_id": "623554897277-emp1bmo8sc1ctqa91am1upavi3kntet0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "me.anjem.rider",
+            "certificate_hash": "38c4eb76de9d0fc757bf20a72a178d6af4ca2842"
+          }
+        },
         {
           "client_id": "623554897277-mn3rntqmjrc5a97it25s7nj2rb59pbp8.apps.googleusercontent.com",
           "client_type": 1,

@@ -17,7 +17,7 @@
 | [5. Backend Hardening](#5-backend-hardening)                                       | Security | ✅ Done         |
 | [6. Error Tracking (Sentry)](#6-error-tracking-sentry)                             | Ops      | ✅ Done         |
 | [7. Production Deploy (Forge)](#7-production-deploy-forge)                         | Infra    | ✅ Done         |
-| [8. Android Release Build](#8-android-release-build)                               | Mobile   | 🔄 Rebuild AABs |
+| [8. Android Release Build](#8-android-release-build)                               | Mobile   | 🔄 Smoke test    |
 | [9. Play Store Submission](#9-play-store-submission)                               | Launch   | ⬜ Not started  |
 | [10. Secrets & Git Hygiene](#10-secrets--git-hygiene)                              | Security | ⏭️ Deferred     |
 | [11. Admin Access (Cloudflare Zero Trust)](#11-admin-access-cloudflare-zero-trust) | Security | ⏭️ Deferred     |
@@ -215,8 +215,8 @@
 | 8.1 | Generate release keystore (`keytool -genkey ...`)                          | ✅     |
 | 8.2 | Configure `android/key.properties` + `build.gradle.kts` signing config     | ✅     |
 | 8.3 | Store keystore securely (NOT in git — use password manager)                | ⏭️     |
-| 8.4 | Build rider release AAB                                                    | 🔄     |
-| 8.5 | Build driver release AAB                                                   | 🔄     |
+| 8.4 | Build rider release AAB                                                    | ✅     |
+| 8.5 | Build driver release AAB                                                   | ✅     |
 | 8.6 | Install and smoke test release builds on physical devices                  | 🔄     |
 | 8.7 | Verify Mapbox token restrictions (bundle ID whitelist on Mapbox Dashboard) | ⏭️     |
 
