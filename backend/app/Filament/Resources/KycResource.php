@@ -296,7 +296,14 @@ class KycResource extends Resource
             ]);
         }
 
-        broadcast(new DriverKycStatusChanged($record->fresh(['driverProfile']), true));
+        try {
+            broadcast(new DriverKycStatusChanged($record->fresh(['driverProfile']), true));
+        } catch (\Exception $e) {
+            \Log::warning('Failed to broadcast KYC approval', [
+                'driver_id' => $record->id,
+                'error'     => $e->getMessage(),
+            ]);
+        }
     }
 
     private static function rejectKyc(User $record, string $reason): void
@@ -343,7 +350,14 @@ class KycResource extends Resource
             ]);
         }
 
-        broadcast(new DriverKycStatusChanged($record->fresh(['driverProfile']), false, $reason));
+        try {
+            broadcast(new DriverKycStatusChanged($record->fresh(['driverProfile']), false, $reason));
+        } catch (\Exception $e) {
+            \Log::warning('Failed to broadcast KYC rejection', [
+                'driver_id' => $record->id,
+                'error'     => $e->getMessage(),
+            ]);
+        }
     }
 
     private static function grantCredits(User $record, int $amount): void
@@ -366,12 +380,19 @@ class KycResource extends Resource
             ]);
         });
 
-        broadcast(new DriverCreditsUpdated(
-            $record->fresh(['driverProfile']),
-            $record->driverProfile->credits_balance,
-            $amount,
-            'grant'
-        ));
+        try {
+            broadcast(new DriverCreditsUpdated(
+                $record->fresh(['driverProfile']),
+                $record->driverProfile->credits_balance,
+                $amount,
+                'grant'
+            ));
+        } catch (\Exception $e) {
+            \Log::warning('Failed to broadcast credits update', [
+                'driver_id' => $record->id,
+                'error'     => $e->getMessage(),
+            ]);
+        }
     }
 
     public static function getPages(): array
