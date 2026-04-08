@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\RateLimitExceededException;
 use App\Models\AdminAuditLog;
 use App\Models\DriverProfile;
 use App\Models\User;
@@ -81,7 +82,7 @@ class KycVerificationService
     {
         $cooldown = $this->getResendCooldown($email);
         if ($cooldown > 0) {
-            throw new \RuntimeException("Please wait {$cooldown} seconds before requesting a new code.");
+            throw new RateLimitExceededException("Please wait {$cooldown} seconds before requesting a new code.");
         }
 
         // Invalidate any existing codes for this email

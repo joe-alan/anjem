@@ -288,8 +288,11 @@ class KycService {
         );
       }
 
-      final data = response.data['data'] as Map<String, dynamic>?;
-      return data?['cooldown_seconds'] as int? ?? 60;
+      final data = response.data['data'];
+      if (data is Map<String, dynamic>) {
+        return data['cooldown_seconds'] as int? ?? 60;
+      }
+      return 60;
     } on ApiException {
       rethrow;
     } catch (e) {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\RateLimitExceededException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SubmitKycRequest;
 use App\Services\KycVerificationService;
@@ -186,8 +187,7 @@ class DriverKycController extends Controller
                     'cooldown_seconds' => KycVerificationService::RESEND_COOLDOWN_SECONDS,
                 ],
             ]);
-        } catch (\RuntimeException $e) {
-            // Rate-limit violation from service
+        } catch (RateLimitExceededException $e) {
             $cooldown = $this->kycService->getResendCooldown($request->student_email);
 
             return response()->json([
@@ -223,14 +223,22 @@ class DriverKycController extends Controller
             ], 422);
         }
 
-        $cooldown = $this->kycService->getResendCooldown($request->student_email);
+        try {
+            $cooldown = $this->kycService->getResendCooldown($request->student_email);
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'cooldown_seconds' => $cooldown,
-            ],
-        ]);
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'cooldown_seconds' => $cooldown,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to check resend status',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
