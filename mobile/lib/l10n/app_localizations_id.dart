@@ -554,7 +554,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get vehicleInfoPageSubtitle => 'Masukkan detail kendaraan Anda';
 
   @override
-  String get ktmPhotoPageTitle => 'Upload Foto KTM';
+  String get ktmPhotoPageTitle => 'Upload Foto';
 
   @override
   String get ktmPhotoPageSubtitle => 'Ambil foto KTM Anda yang jelas';
@@ -644,7 +644,21 @@ class AppLocalizationsId extends AppLocalizations {
   String get emailUnavailable => '✗ Email ini sudah terdaftar';
 
   @override
+  String get emailInvalidDomain =>
+      '✗ Email harus dari institusi akademik (*.ac.id)';
+
+  @override
   String get emailCheckError => 'Tidak dapat memeriksa ketersediaan';
+
+  @override
+  String get usingGooglePhoto => 'Menggunakan foto profil Google Anda';
+
+  @override
+  String get pleaseAgreeToTerms => 'Harap setujui ketentuan sebelum mengirim';
+
+  @override
+  String get kycAgreementLabel =>
+      'Saya setuju untuk beroperasi sebagai Driver di area Tembalang, Semarang dan sekitarnya.';
 
   @override
   String get kycRejectedBannerTitle => 'KYC Ditolak';
@@ -687,6 +701,28 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get resendCode => 'Kirim Ulang Kode';
+
+  @override
+  String get changeEmail => 'Ganti Email';
+
+  @override
+  String get changeEmailTitle => 'Ganti Alamat Email';
+
+  @override
+  String get newStudentEmailHint => 'email.baru@universitas.ac.id';
+
+  @override
+  String get invalidEmailDomain =>
+      'Email harus dari institusi akademik (*.ac.id)';
+
+  @override
+  String get hourlyLimitReached =>
+      'Terlalu banyak percobaan. Silakan coba lagi nanti.';
+
+  @override
+  String resendsRemaining(int count) {
+    return '$count pengiriman ulang tersisa dalam satu jam';
+  }
 
   @override
   String get verificationCodeExpiry =>
@@ -1011,6 +1047,10 @@ class AppLocalizationsId extends AppLocalizations {
       'Tindakan ini permanen. Semua data Anda akan dihapus. Ketik HAPUS untuk konfirmasi.';
 
   @override
+  String get deleteAccountBothRoleWarning =>
+      'Anda terdaftar sebagai penumpang dan pengemudi. Menghapus akun akan menghapus semua data untuk kedua peran.';
+
+  @override
   String get deleteAccountButton => 'Hapus Akun';
 
   @override
@@ -1316,6 +1356,10 @@ class AppLocalizationsId extends AppLocalizations {
       'Mengedit akan mengembalikan Anda ke alur KYC dan perlu diverifikasi ulang. Semua data verifikasi saat ini (NIM, info kendaraan, dokumen) akan dihapus. Riwayat anjem dan rating Anda akan tetap tersimpan.\n\nKetik WARJO untuk konfirmasi.';
 
   @override
+  String get editKycBothRoleWarning =>
+      'Anda juga terdaftar sebagai penumpang. Mengedit KYC akan menghapus foto profil dan nomor telepon untuk kedua peran.';
+
+  @override
   String get editKycSuccess => 'Data KYC dihapus — silakan ajukan ulang';
 
   @override
@@ -1341,4 +1385,14 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get kickedGeneric => 'Anda dibuat offline oleh sistem.';
+
+  @override
+  String get forceUpdateTitle => 'Pembaruan Diperlukan';
+
+  @override
+  String get forceUpdateMessage =>
+      'Versi aplikasi kamu sudah tidak didukung. Silakan update ke versi terbaru.';
+
+  @override
+  String get forceUpdateButton => 'Update Sekarang';
 }

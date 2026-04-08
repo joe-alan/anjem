@@ -50,7 +50,7 @@ backend/public/storage
 backend/public/mix-manifest.json
 backend/public/js/app.js
 backend/public/css/app.css
-backend/composer.lock
+# backend/composer.lock — tracked; ensures identical deps on deploy
 
 # Environment and configuration files
 .env

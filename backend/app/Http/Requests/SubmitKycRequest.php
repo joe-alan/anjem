@@ -67,7 +67,7 @@ class SubmitKycRequest extends FormRequest
             ],
             'vehicle_color' => 'required|string|max:50',
             'ktm_photo' => 'required|image|mimes:jpeg,jpg,png|max:5120', // 5MB max
-            'profile_photo' => 'required|image|mimes:jpeg,jpg,png|max:2048', // 2MB max
+            'profile_photo' => 'nullable|image|mimes:jpeg,jpg,png|max:2048', // 2MB max — optional if user has Google photo
         ];
     }
 
@@ -95,7 +95,7 @@ class SubmitKycRequest extends FormRequest
             'ktm_photo.max' => 'KTM photo size must not exceed 5MB',
             'phone_number.required' => 'WhatsApp number is required',
             'phone_number.max' => 'WhatsApp number must not exceed 20 characters',
-            'profile_photo.required' => 'Profile photo is required',
+            'profile_photo.required_without' => 'Profile photo is required if you don\'t have one yet',
             'profile_photo.image' => 'Profile photo must be an image',
             'profile_photo.mimes' => 'Profile photo must be in JPEG, JPG, or PNG format',
             'profile_photo.max' => 'Profile photo size must not exceed 2MB',

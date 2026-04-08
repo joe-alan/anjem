@@ -9,6 +9,7 @@ use App\Events\RideRequestCancelled;
 use App\Events\RideSearchResumed;
 use App\Jobs\ExpireRideRequest;
 use App\Jobs\HandleRequestTimeout;
+use App\Models\DispatchAttempt;
 use App\Models\DriverProfile;
 use App\Models\RideRequest;
 use App\Models\Ride;
@@ -223,8 +224,15 @@ class MatchingQueueService
     {
         $rideRequest->update(['current_driver_id' => $driver->user_id]);
 
-        // Record this dispatch attempt
+        // Record this dispatch attempt (Redis exclusion list + persistent log)
         $this->recordDispatchAttempt($rideRequest, $driver->user_id);
+
+        DispatchAttempt::create([
+            'ride_request_id' => $rideRequest->id,
+            'driver_id' => $driver->user_id,
+            'dispatched_at' => now(),
+            'response' => 'pending',
+        ]);
 
         broadcast(new NewRideRequest($rideRequest, [$driver->user_id]));
 
@@ -256,7 +264,7 @@ class MatchingQueueService
      * Applies a penalty, then tries the next eligible driver.
      * If no driver is found, the request expires and the rider is notified.
      */
-    public function handleDeclineOrTimeout(int $driverId, int $rideRequestId): void
+    public function handleDeclineOrTimeout(int $driverId, int $rideRequestId, bool $isTimeout = true): void
     {
         $rideRequest = RideRequest::find($rideRequestId);
 
@@ -275,13 +283,24 @@ class MatchingQueueService
             return;
         }
 
-        DB::transaction(function () use ($driverId, $rideRequest) {
+        DB::transaction(function () use ($driverId, $rideRequest, $isTimeout) {
             $this->applyDeclinePenalty($driverId);
 
             $rideRequest->update(['current_driver_id' => null]);
 
             // Exclude the declining/timed-out driver from the next dispatch attempt
             $this->recordDispatchAttempt($rideRequest, $driverId);
+
+            // Update persistent dispatch log
+            DispatchAttempt::where('ride_request_id', $rideRequest->id)
+                ->where('driver_id', $driverId)
+                ->where('response', 'pending')
+                ->latest('dispatched_at')
+                ->first()
+                ?->update([
+                    'responded_at' => now(),
+                    'response' => $isTimeout ? 'timed_out' : 'declined',
+                ]);
 
             // Try next driver
             $nextDriver = $this->findTopDriver($rideRequest);

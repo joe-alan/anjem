@@ -19,11 +19,7 @@ class MapboxService
 
     public function __construct()
     {
-        $this->accessToken = config('services.mapbox.public_token');
-
-        if (! $this->accessToken) {
-            throw new \Exception('Mapbox access token not configured');
-        }
+        $this->accessToken = config('services.mapbox.public_token') ?? '';
     }
 
     /**

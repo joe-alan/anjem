@@ -47,7 +47,7 @@ class RideController extends Controller
         } elseif ($user->role === 'driver') {
             $query->where('driver_id', $user->id);
         } else {
-            // Fallback for 'both'/'admin' without role param
+            // Fallback for 'both' without role param
             $query->where(function ($q) use ($user) {
                 $q->where('rider_id', $user->id)
                     ->orWhere('driver_id', $user->id);
@@ -187,7 +187,7 @@ class RideController extends Controller
             ], 400);
         }
 
-        $this->matchingQueueService->handleDeclineOrTimeout($driver->id, $rideRequest->id);
+        $this->matchingQueueService->handleDeclineOrTimeout($driver->id, $rideRequest->id, isTimeout: false);
 
         return response()->json([
             'success' => true,
@@ -345,7 +345,16 @@ class RideController extends Controller
                     broadcast(new RideStatusUpdated($ride, $previousStatus, $updatedBy));
                     $this->notificationService->sendRideCancelledNotification($ride, $user->id, $cancelReason);
                     if ($ride->rider_id === $user->id) {
-                        $penaltyMeta = $this->rideService->applyRiderCancelPenalty($user);
+                        // Skip penalty if driver hasn't progressed past 'accepted'
+                        // and rider has been waiting 7+ minutes
+                        $driverStalled = $previousStatus === 'accepted'
+                            && $ride->driver_accepted_at
+                            && $ride->driver_accepted_at->diffInMinutes(now()) >= 7;
+
+                        $penaltyMeta = $driverStalled
+                            ? ['cancel_count' => 0, 'cooldown_until' => null, 'is_suspended' => false]
+                            : $this->rideService->applyRiderCancelPenalty($user);
+
                         // Refund driver credit for pre-pickup rider cancellation
                         if (in_array($previousStatus, ['accepted', 'driver_arrived'])) {
                             try {

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\AppConfigController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CreditController;
 use App\Http\Controllers\Api\DriverController;
@@ -45,6 +46,9 @@ Route::prefix('v1')->group(function () {
         ]);
     });
 
+    // App configuration (public, no auth)
+    Route::get('app/config', [AppConfigController::class, 'index'])->middleware('throttle:60,1');
+
     // Public place search endpoint (no auth required)
     Route::get('places/search', [PlaceController::class, 'search'])->middleware('throttle:60,1');
 
@@ -85,6 +89,7 @@ Route::prefix('v1')->group(function () {
                 Route::post('check-email', [\App\Http\Controllers\Api\DriverKycController::class, 'checkEmailAvailability']);
                 Route::post('submit', [\App\Http\Controllers\Api\DriverKycController::class, 'submitKyc']);
                 Route::post('send-code', [\App\Http\Controllers\Api\DriverKycController::class, 'sendVerificationCode']);
+                Route::get('resend-status', [\App\Http\Controllers\Api\DriverKycController::class, 'resendStatus']);
                 Route::post('verify-email', [\App\Http\Controllers\Api\DriverKycController::class, 'verifyEmail']);
                 Route::get('status', [\App\Http\Controllers\Api\DriverKycController::class, 'getKycStatus']);
                 Route::delete('revoke', [\App\Http\Controllers\Api\DriverKycController::class, 'revokeKyc']);

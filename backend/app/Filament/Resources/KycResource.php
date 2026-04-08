@@ -8,8 +8,11 @@ use App\Models\DriverProfile;
 use App\Models\User;
 use App\Services\NotificationService;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Forms\Get;
+use App\Events\DriverCreditsUpdated;
+use App\Services\CreditService;
 use Filament\Resources\Resource;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
@@ -18,7 +21,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+use App\Services\FirebaseStorageService;
 use App\Filament\Resources\KycResource\Pages;
 
 class KycResource extends Resource
@@ -164,6 +167,16 @@ class KycResource extends Resource
                             ->live()
                             ->required(),
 
+                        TextInput::make('credits')
+                            ->label('Grant Credits')
+                            ->numeric()
+                            ->integer()
+                            ->minValue(0)
+                            ->maxValue(100)
+                            ->default(100)
+                            ->helperText('Credits to grant on approval (0 to skip)')
+                            ->hidden(fn (Get $get) => $get('decision') !== 'approve'),
+
                         Textarea::make('reason')
                             ->label('Rejection Reason')
                             ->rows(3)
@@ -175,6 +188,11 @@ class KycResource extends Resource
                     ->action(function (User $record, array $data) {
                         if ($data['decision'] === 'approve') {
                             self::approveKyc($record, null);
+
+                            $credits = (int) ($data['credits'] ?? 0);
+                            if ($credits > 0) {
+                                self::grantCredits($record, $credits);
+                            }
                         } else {
                             self::rejectKyc($record, $data['reason']);
                         }
@@ -183,16 +201,69 @@ class KycResource extends Resource
             ]);
     }
 
+    private static function resolveImageUrl(?string $url): ?string
+    {
+        if (! $url) {
+            return null;
+        }
+        if (str_starts_with($url, 'http')) {
+            return $url;
+        }
+
+        return url($url);
+    }
+
+    private static function deleteImage(?string $url): void
+    {
+        if (! $url) {
+            return;
+        }
+
+        $storageService = app(FirebaseStorageService::class);
+        $objectPath = $storageService->extractObjectPath($url);
+
+        if ($objectPath) {
+            $storageService->delete($objectPath);
+        }
+    }
+
+    private static function waRow(?string $phone): string
+    {
+        $label = '<span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">WhatsApp</span>';
+
+        if (! $phone) {
+            return '<div>' . $label . '<p class="mt-1 text-sm text-gray-900 dark:text-white">—</p></div>';
+        }
+
+        // Normalize to international format for wa.me link
+        $normalized = preg_replace('/[^0-9]/', '', $phone);
+        if (str_starts_with($normalized, '0')) {
+            $normalized = '62' . substr($normalized, 1);
+        }
+
+        $waLink = 'https://wa.me/' . $normalized;
+
+        return '<div>' . $label
+            . '<p class="mt-1 text-sm text-gray-900 dark:text-white flex items-center gap-2">'
+            . e($phone)
+            . ' <a href="' . e($waLink) . '" target="_blank" rel="noopener" '
+            . 'class="inline-flex items-center gap-1 text-xs font-medium text-green-600 hover:text-green-700 hover:underline">'
+            . 'Check WA ↗</a>'
+            . '</p></div>';
+    }
+
     private static function buildReviewModalHtml(User $record): string
     {
         $dp = $record->driverProfile;
 
-        $ktmHtml = $dp->ktm_url
-            ? '<img src="' . e(url($dp->ktm_url)) . '" class="max-w-full rounded shadow" alt="KTM Document">'
+        $ktmSrc = self::resolveImageUrl($dp->ktm_url);
+        $ktmHtml = $ktmSrc
+            ? '<img src="' . e($ktmSrc) . '" class="max-w-full rounded shadow" alt="KTM Document">'
             : '<div class="flex items-center justify-center h-48 bg-gray-100 dark:bg-gray-800 rounded text-gray-400">No KTM photo</div>';
 
-        $profileHtml = $record->profile_picture
-            ? '<img src="' . e(url($record->profile_picture)) . '" class="w-24 h-24 rounded-full object-cover shadow" alt="Profile Photo">'
+        $profileSrc = self::resolveImageUrl($record->profile_picture);
+        $profileHtml = $profileSrc
+            ? '<img src="' . e($profileSrc) . '" class="w-24 h-24 rounded-full object-cover shadow" alt="Profile Photo">'
             : '<div class="flex items-center justify-center w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 text-xs">No photo</div>';
 
         $row = fn (string $label, ?string $value) =>
@@ -211,7 +282,7 @@ class KycResource extends Resource
                 ' . $row('Student Name', $dp->student_name)
                  . $row('Student ID', $dp->student_id)
                  . $row('Student Email', $dp->student_email)
-                 . $row('WhatsApp', $record->phone_number)
+                 . self::waRow($record->phone_number)
                  . $row('Vehicle Plate', $dp->vehicle_plate)
                  . $row('Vehicle Color', $dp->vehicle_color) . '
             </div>
@@ -239,9 +310,7 @@ class KycResource extends Resource
             ]);
         });
 
-        if ($ktmUrl) {
-            Storage::disk('public')->delete(ltrim(str_replace('/storage', '', $ktmUrl), '/'));
-        }
+        self::deleteImage($ktmUrl);
 
         try {
             app(NotificationService::class)->sendKycApprovedToDriver($record);
@@ -252,7 +321,14 @@ class KycResource extends Resource
             ]);
         }
 
-        broadcast(new DriverKycStatusChanged($record->fresh(['driverProfile']), true));
+        try {
+            broadcast(new DriverKycStatusChanged($record->fresh(['driverProfile']), true));
+        } catch (\Exception $e) {
+            \Log::warning('Failed to broadcast KYC approval', [
+                'driver_id' => $record->id,
+                'error'     => $e->getMessage(),
+            ]);
+        }
     }
 
     private static function rejectKyc(User $record, string $reason): void
@@ -287,13 +363,8 @@ class KycResource extends Resource
             ]);
         });
 
-        if ($ktmUrl) {
-            Storage::disk('public')->delete(ltrim(str_replace('/storage', '', $ktmUrl), '/'));
-        }
-
-        if ($profilePicture && str_starts_with($profilePicture, '/storage/')) {
-            Storage::disk('public')->delete(ltrim(str_replace('/storage', '', $profilePicture), '/'));
-        }
+        self::deleteImage($ktmUrl);
+        self::deleteImage($profilePicture);
 
         try {
             app(NotificationService::class)->sendKycRejectedToDriver($record, $reason);
@@ -304,7 +375,49 @@ class KycResource extends Resource
             ]);
         }
 
-        broadcast(new DriverKycStatusChanged($record->fresh(['driverProfile']), false, $reason));
+        try {
+            broadcast(new DriverKycStatusChanged($record->fresh(['driverProfile']), false, $reason));
+        } catch (\Exception $e) {
+            \Log::warning('Failed to broadcast KYC rejection', [
+                'driver_id' => $record->id,
+                'error'     => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private static function grantCredits(User $record, int $amount): void
+    {
+        DB::transaction(function () use ($record, $amount) {
+            app(CreditService::class)->addCredits($record->id, $amount, 'KYC approval bonus');
+            $record->driverProfile->refresh();
+            AdminAuditLog::create([
+                'admin_id'    => auth()->id(),
+                'action_type' => 'credit_grant',
+                'target_type' => DriverProfile::class,
+                'target_id'   => $record->driverProfile->id,
+                'changes'     => [
+                    'amount'      => $amount,
+                    'new_balance' => $record->driverProfile->credits_balance,
+                ],
+                'reason'      => 'KYC approval bonus',
+                'ip_address'  => request()->ip(),
+                'user_agent'  => request()->userAgent(),
+            ]);
+        });
+
+        try {
+            broadcast(new DriverCreditsUpdated(
+                $record->fresh(['driverProfile']),
+                $record->driverProfile->credits_balance,
+                $amount,
+                'grant'
+            ));
+        } catch (\Exception $e) {
+            \Log::warning('Failed to broadcast credits update', [
+                'driver_id' => $record->id,
+                'error'     => $e->getMessage(),
+            ]);
+        }
     }
 
     public static function getPages(): array

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\RateLimitExceededException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SubmitKycRequest;
 use App\Services\KycVerificationService;
@@ -42,13 +43,15 @@ class DriverKycController extends Controller
                 \Log::info('KTM photo stored', ['url' => $ktmUrl]);
             }
 
-            // Store profile photo
+            // Store profile photo — if not uploaded, keep existing (e.g. Google profile pic)
             $profilePhotoUrl = null;
             if ($request->hasFile('profile_photo')) {
                 $profilePhotoUrl = $this->kycService->storeProfilePhoto(
                     $request->file('profile_photo'), $user->id
                 );
                 \Log::info('Profile photo stored', ['url' => $profilePhotoUrl]);
+            } elseif ($user->profile_picture) {
+                \Log::info('Using existing profile picture', ['url' => $user->profile_picture]);
             }
 
             // Submit KYC data
@@ -173,7 +176,8 @@ class DriverKycController extends Controller
             }
 
             // Send verification code
-            $verificationCode = $this->kycService->sendVerificationCode($email);
+            $userId = $request->user()->id;
+            $verificationCode = $this->kycService->sendVerificationCode($email, $userId);
 
             return response()->json([
                 'success' => true,
@@ -181,12 +185,61 @@ class DriverKycController extends Controller
                 'data' => [
                     'expires_at' => $verificationCode->expires_at->toISOString(),
                     'expires_in_minutes' => 10,
+                    'cooldown_seconds' => KycVerificationService::RESEND_COOLDOWN_SECONDS,
+                    'hourly_remaining' => $this->kycService->getHourlyRemaining($userId),
+                ],
+            ]);
+        } catch (RateLimitExceededException $e) {
+            $cooldown = $this->kycService->getResendCooldown($request->student_email);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'data' => [
+                    'cooldown_seconds' => $cooldown,
+                    'hourly_remaining' => $this->kycService->getHourlyRemaining($request->user()->id),
+                ],
+            ], 429);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send verification code',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Check resend cooldown status for an email
+     */
+    public function resendStatus(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'student_email' => 'required|email',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $cooldown = $this->kycService->getResendCooldown($request->student_email);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'cooldown_seconds' => $cooldown,
+                    'hourly_remaining' => $this->kycService->getHourlyRemaining($request->user()->id),
                 ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to send verification code',
+                'message' => 'Failed to check resend status',
                 'error' => $e->getMessage(),
             ], 500);
         }

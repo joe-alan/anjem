@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../api/api_service.dart';
 import '../../config/app_config.dart';
 import '../../models/ride.dart';
@@ -20,7 +21,7 @@ class RideService {
 
       return Ride.fromJson(response.data['data'] as Map<String, dynamic>);
     } catch (e) {
-      print('RideService: Error getting ride - $e');
+      debugPrint('RideService: Error getting ride - $e');
       rethrow;
     }
   }
@@ -49,7 +50,7 @@ class RideService {
           .map((json) => Ride.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      print('RideService: Error getting rides - $e');
+      debugPrint('RideService: Error getting rides - $e');
       rethrow;
     }
   }
@@ -74,7 +75,7 @@ class RideService {
         );
       }
     } catch (e) {
-      print('RideService: Error rating ride - $e');
+      debugPrint('RideService: Error rating ride - $e');
       rethrow;
     }
   }
@@ -98,7 +99,7 @@ class RideService {
         meta: (response.data['meta'] as Map<String, dynamic>?) ?? {},
       );
     } catch (e) {
-      print('RideService: Error cancelling ride - $e');
+      debugPrint('RideService: Error cancelling ride - $e');
       rethrow;
     }
   }
@@ -122,7 +123,7 @@ class RideService {
 
       return Ride.fromJson(response.data['data'] as Map<String, dynamic>);
     } catch (e) {
-      print('RideService: Error updating ride status - $e');
+      debugPrint('RideService: Error updating ride status - $e');
       rethrow;
     }
   }

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
 use Kreait\Firebase\Contract\Auth;
 use Kreait\Firebase\Contract\Messaging;
+use Kreait\Firebase\Contract\Storage;
 use Kreait\Firebase\Factory;
 use Laravel\Sanctum\Sanctum;
 
@@ -16,13 +17,23 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Register Firebase services
+        // Register Firebase services (deferred — only instantiated when resolved)
         $this->app->singleton(Factory::class, function () {
+            $projectId = config('services.firebase.project_id');
+
+            // Return a bare Factory when credentials aren't configured yet
+            // (e.g. during composer install / package:discover on a fresh server).
+            // Any call to createAuth/createMessaging/createStorage will fail at
+            // runtime with a clear Firebase error instead of crashing the deploy.
+            if (! $projectId) {
+                return new Factory;
+            }
+
             return (new Factory)->withServiceAccount([
                 'type' => 'service_account',
-                'project_id' => config('services.firebase.project_id'),
+                'project_id' => $projectId,
                 'private_key_id' => config('services.firebase.private_key_id'),
-                'private_key' => str_replace('\\n', "\n", config('services.firebase.private_key')),
+                'private_key' => str_replace('\\n', "\n", config('services.firebase.private_key', '')),
                 'client_email' => config('services.firebase.client_email'),
                 'client_id' => config('services.firebase.client_id'),
                 'auth_uri' => config('services.firebase.auth_uri'),
@@ -36,6 +47,16 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(Messaging::class, function ($app) {
             return $app->make(Factory::class)->createMessaging();
+        });
+
+        $this->app->singleton(Storage::class, function ($app) {
+            $factory = $app->make(Factory::class);
+            $bucket = config('services.firebase.storage_bucket');
+            if ($bucket) {
+                $factory = $factory->withDefaultStorageBucket($bucket);
+            }
+
+            return $factory->createStorage();
         });
     }
 

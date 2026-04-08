@@ -25,7 +25,7 @@ void main() async {
   MapboxOptions.setAccessToken(MapboxConfig.accessToken);
 
   // Initialize app config for Driver
-  const sentryDsn = 'https://fe97fd76734a76bf9909eb40263a084a@o4511166441455616.ingest.us.sentry.io/4511167242305536';
+  const sentryDsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
 
   AppConfig.initialize(
     flavor: AppFlavor.driver,
@@ -37,24 +37,28 @@ void main() async {
     pusherKey: const String.fromEnvironment('PUSHER_KEY', defaultValue: 'rp4e38k1ovkaodrtfxqa'),
     pusherHost: const String.fromEnvironment('PUSHER_HOST', defaultValue: '10.0.2.2'),
     pusherPort: const int.fromEnvironment('PUSHER_PORT', defaultValue: 8080),
-    pusherScheme: 'http',
+    pusherScheme: const String.fromEnvironment('PUSHER_SCHEME', defaultValue: 'http'),
     sentryDsn: sentryDsn,
   );
 
-  await SentryFlutter.init(
-    (options) {
-      options.dsn = sentryDsn;
-      options.environment = const String.fromEnvironment('SENTRY_ENV', defaultValue: 'development');
-      options.sendDefaultPii = true;
-      options.enableLogs = true;
-      options.tracesSampleRate = 0.2;
-      options.profilesSampleRate = 1.0;
-      options.attachScreenshot = true;
-      options.replay.sessionSampleRate = 0.1;
-      options.replay.onErrorSampleRate = 1.0;
-    },
-    appRunner: () => runApp(
-      const ProviderScope(child: AnjerApp()),
-    ),
-  );
+  if (sentryDsn.isNotEmpty) {
+    await SentryFlutter.init(
+      (options) {
+        options.dsn = sentryDsn;
+        options.environment = const String.fromEnvironment('SENTRY_ENV', defaultValue: 'development');
+        options.sendDefaultPii = false;
+        options.enableLogs = true;
+        options.tracesSampleRate = 0.2;
+        options.profilesSampleRate = 1.0;
+        options.attachScreenshot = false;
+        options.replay.sessionSampleRate = 0.0;
+        options.replay.onErrorSampleRate = 1.0;
+      },
+      appRunner: () => runApp(
+        const ProviderScope(child: AnjerApp()),
+      ),
+    );
+  } else {
+    runApp(const ProviderScope(child: AnjerApp()));
+  }
 }
