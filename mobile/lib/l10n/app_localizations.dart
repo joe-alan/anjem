@@ -1358,6 +1358,42 @@ abstract class AppLocalizations {
   /// **'Resend Code'**
   String get resendCode;
 
+  /// No description provided for @changeEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Email'**
+  String get changeEmail;
+
+  /// No description provided for @changeEmailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Email Address'**
+  String get changeEmailTitle;
+
+  /// No description provided for @newStudentEmailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'new.email@university.ac.id'**
+  String get newStudentEmailHint;
+
+  /// No description provided for @invalidEmailDomain.
+  ///
+  /// In en, this message translates to:
+  /// **'Email must be from an academic institution (*.ac.id)'**
+  String get invalidEmailDomain;
+
+  /// No description provided for @hourlyLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Please try again later.'**
+  String get hourlyLimitReached;
+
+  /// No description provided for @resendsRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} resends remaining this hour'**
+  String resendsRemaining(int count);
+
   /// No description provided for @verificationCodeExpiry.
   ///
   /// In en, this message translates to:

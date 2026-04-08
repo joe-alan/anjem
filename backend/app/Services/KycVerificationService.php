@@ -16,6 +16,9 @@ class KycVerificationService
     /** Seconds a user must wait between resend requests */
     public const RESEND_COOLDOWN_SECONDS = 60;
 
+    /** Max verification codes a non-admin user can request per hour */
+    public const MAX_SENDS_PER_HOUR = 5;
+
     public function __construct(
         private FirebaseStorageService $storageService,
         private ImageCompressionService $compressionService,
@@ -76,17 +79,41 @@ class KycVerificationService
     }
 
     /**
+     * Get how many sends a user has left this hour.
+     * Returns null (unlimited) for admins.
+     */
+    public function getHourlyRemaining(int $userId): ?int
+    {
+        $user = User::find($userId);
+        if ($user?->is_admin) {
+            return null; // unlimited
+        }
+
+        $sentThisHour = VerificationCode::where('user_id', $userId)
+            ->where('created_at', '>=', now()->subHour())
+            ->count();
+
+        return max(0, self::MAX_SENDS_PER_HOUR - $sentThisHour);
+    }
+
+    /**
      * Create and send verification code to email
      */
-    public function sendVerificationCode(string $email): VerificationCode
+    public function sendVerificationCode(string $email, int $userId): VerificationCode
     {
         $cooldown = $this->getResendCooldown($email);
         if ($cooldown > 0) {
             throw new RateLimitExceededException("Please wait {$cooldown} seconds before requesting a new code.");
         }
 
-        // Invalidate any existing codes for this email
-        VerificationCode::where('email', $email)
+        // Hourly cap (skip for admins)
+        $remaining = $this->getHourlyRemaining($userId);
+        if ($remaining !== null && $remaining <= 0) {
+            throw new RateLimitExceededException('You have reached the maximum number of verification emails this hour. Please try again later.');
+        }
+
+        // Invalidate any existing codes for this user
+        VerificationCode::where('user_id', $userId)
             ->whereNull('verified_at')
             ->delete();
 
@@ -96,6 +123,7 @@ class KycVerificationService
 
         // Store the code
         $verificationCode = VerificationCode::create([
+            'user_id' => $userId,
             'email' => $email,
             'code' => $code,
             'expires_at' => $expiresAt,

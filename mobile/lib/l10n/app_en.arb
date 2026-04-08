@@ -309,6 +309,17 @@
     }
   },
   "resendCode": "Resend Code",
+  "changeEmail": "Change Email",
+  "changeEmailTitle": "Change Email Address",
+  "newStudentEmailHint": "new.email@university.ac.id",
+  "invalidEmailDomain": "Email must be from an academic institution (*.ac.id)",
+  "hourlyLimitReached": "Too many attempts. Please try again later.",
+  "resendsRemaining": "{count} resends remaining this hour",
+  "@resendsRemaining": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "verificationCodeExpiry": "The verification code expires in 10 minutes. Please check your spam folder if you don\u2019t see the email.",
 
   "newRideRequestTitle": "New Ride Request",

@@ -176,7 +176,8 @@ class DriverKycController extends Controller
             }
 
             // Send verification code
-            $verificationCode = $this->kycService->sendVerificationCode($email);
+            $userId = $request->user()->id;
+            $verificationCode = $this->kycService->sendVerificationCode($email, $userId);
 
             return response()->json([
                 'success' => true,
@@ -185,6 +186,7 @@ class DriverKycController extends Controller
                     'expires_at' => $verificationCode->expires_at->toISOString(),
                     'expires_in_minutes' => 10,
                     'cooldown_seconds' => KycVerificationService::RESEND_COOLDOWN_SECONDS,
+                    'hourly_remaining' => $this->kycService->getHourlyRemaining($userId),
                 ],
             ]);
         } catch (RateLimitExceededException $e) {
@@ -195,6 +197,7 @@ class DriverKycController extends Controller
                 'message' => $e->getMessage(),
                 'data' => [
                     'cooldown_seconds' => $cooldown,
+                    'hourly_remaining' => $this->kycService->getHourlyRemaining($request->user()->id),
                 ],
             ], 429);
         } catch (\Exception $e) {
@@ -230,6 +233,7 @@ class DriverKycController extends Controller
                 'success' => true,
                 'data' => [
                     'cooldown_seconds' => $cooldown,
+                    'hourly_remaining' => $this->kycService->getHourlyRemaining($request->user()->id),
                 ],
             ]);
         } catch (\Exception $e) {

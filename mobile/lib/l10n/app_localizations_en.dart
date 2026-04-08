@@ -703,6 +703,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resendCode => 'Resend Code';
 
   @override
+  String get changeEmail => 'Change Email';
+
+  @override
+  String get changeEmailTitle => 'Change Email Address';
+
+  @override
+  String get newStudentEmailHint => 'new.email@university.ac.id';
+
+  @override
+  String get invalidEmailDomain =>
+      'Email must be from an academic institution (*.ac.id)';
+
+  @override
+  String get hourlyLimitReached => 'Too many attempts. Please try again later.';
+
+  @override
+  String resendsRemaining(int count) {
+    return '$count resends remaining this hour';
+  }
+
+  @override
   String get verificationCodeExpiry =>
       'The verification code expires in 10 minutes. Please check your spam folder if you don’t see the email.';
 
