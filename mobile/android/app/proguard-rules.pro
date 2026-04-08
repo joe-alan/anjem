@@ -13,5 +13,14 @@
 ## Firebase
 -keep class com.google.firebase.** { *; }
 
+## Google Sign-In / Play Services Auth
+-keep class com.google.android.gms.auth.** { *; }
+-keep class com.google.android.gms.common.** { *; }
+
 ## Mapbox
 -keep class com.mapbox.** { *; }
+
+## Play Core (deferred components)
+-dontwarn com.google.android.play.core.splitcompat.SplitCompatApplication
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**
