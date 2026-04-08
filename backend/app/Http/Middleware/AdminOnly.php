@@ -29,7 +29,7 @@ class AdminOnly
             ], 401);
         }
 
-        // Check if user has admin role
+        // Check if user is admin
         if (! $request->user()->isAdmin()) {
             return response()->json([
                 'success' => false,

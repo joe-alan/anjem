@@ -4,12 +4,18 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
+use App\Services\FirebaseStorageService;
+use App\Services\ImageCompressionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
+    public function __construct(
+        private FirebaseStorageService $storageService,
+        private ImageCompressionService $compressionService,
+    ) {}
+
     /**
      * Update the authenticated user's profile.
      */
@@ -50,16 +56,22 @@ class UserController extends Controller
 
         $user = $request->user();
 
-        // Delete old avatar if it exists and is a local file
+        // Delete old avatar from Firebase Storage
         if ($user->profile_picture) {
-            $oldPath = str_replace('/storage/', '', $user->profile_picture);
-            if (Storage::disk('public')->exists($oldPath)) {
-                Storage::disk('public')->delete($oldPath);
+            $objectPath = $this->storageService->extractObjectPath($user->profile_picture);
+            if ($objectPath) {
+                $this->storageService->delete($objectPath);
             }
         }
 
-        $path = $request->file('avatar')->store('avatars', 'public');
-        $user->update(['profile_picture' => '/storage/' . $path]);
+        // Compress and upload to Firebase
+        $compressed = $this->compressionService->compress(
+            $request->file('avatar')->getRealPath(), 512, 512, 80
+        );
+        $firebasePath = 'avatars/avatar_' . $user->id . '_' . time() . '.jpg';
+        $url = $this->storageService->upload($firebasePath, $compressed, 'image/jpeg');
+
+        $user->update(['profile_picture' => $url]);
 
         return response()->json([
             'success' => true,
@@ -97,9 +109,45 @@ class UserController extends Controller
             $user->driverProfile->update(['went_online_at' => null]);
         }
 
-        // Revoke all tokens and clear FCM token
+        // Delete profile picture from Firebase Storage
+        if ($user->profile_picture) {
+            $objectPath = $this->storageService->extractObjectPath($user->profile_picture);
+            if ($objectPath) {
+                $this->storageService->delete($objectPath);
+            }
+        }
+
+        // Delete KTM photo and wipe driver profile PII
+        if ($user->driverProfile) {
+            $dp = $user->driverProfile;
+            if ($dp->ktm_url) {
+                $objectPath = $this->storageService->extractObjectPath($dp->ktm_url);
+                if ($objectPath) {
+                    $this->storageService->delete($objectPath);
+                }
+            }
+            $dp->update([
+                'student_email'    => null,
+                'student_id'       => null,
+                'student_name'     => null,
+                'vehicle_plate'    => null,
+                'vehicle_color'    => null,
+                'ktm_url'          => null,
+                'email_verified_at' => null,
+                'is_verified'      => false,
+            ]);
+        }
+
+        // Revoke all tokens, anonymize identifiers, and clear PII
         $user->tokens()->delete();
-        $user->update(['fcm_token' => null]);
+        $user->update([
+            'name'            => 'Deleted User',
+            'email'           => "deleted_{$user->id}@removed",
+            'firebase_uid'    => "deleted_{$user->id}",
+            'fcm_token'       => null,
+            'phone_number'    => null,
+            'profile_picture' => null,
+        ]);
 
         // Soft-delete
         $user->delete();

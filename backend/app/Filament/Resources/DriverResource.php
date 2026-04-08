@@ -9,12 +9,14 @@ use App\Models\DriverProfile;
 use App\Models\User;
 use App\Services\CreditService;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
@@ -62,6 +64,12 @@ class DriverResource extends Resource
     {
         return $table
             ->columns([
+                ImageColumn::make('profile_picture')
+                    ->label('')
+                    ->circular()
+                    ->defaultImageUrl('https://ui-avatars.com/api/?background=e2e8f0&color=94a3b8&name=U')
+                    ->getStateUsing(fn (User $record) => self::resolveImageUrl($record->profile_picture))
+                    ->size(32),
                 TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
@@ -287,11 +295,29 @@ class DriverResource extends Resource
             ]);
     }
 
+    private static function resolveImageUrl(?string $url): ?string
+    {
+        if (! $url) {
+            return null;
+        }
+        if (str_starts_with($url, 'http')) {
+            return $url;
+        }
+
+        return url($url);
+    }
+
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist->schema([
             Section::make('Personal Info')
                 ->schema([
+                    ImageEntry::make('profile_picture')
+                        ->label('Photo')
+                        ->circular()
+                        ->defaultImageUrl('https://ui-avatars.com/api/?background=e2e8f0&color=94a3b8&name=U')
+                        ->getStateUsing(fn (User $record) => self::resolveImageUrl($record->profile_picture))
+                        ->size(80),
                     TextEntry::make('name'),
                     TextEntry::make('email'),
                     TextEntry::make('phone_number')->label('Phone'),
@@ -319,8 +345,11 @@ class DriverResource extends Resource
                         ->label('Student ID'),
                     TextEntry::make('driverProfile.student_name')
                         ->label('Student Name'),
-                    TextEntry::make('driverProfile.ktm_url')
-                        ->label('KTM Path'),
+                    ImageEntry::make('driverProfile.ktm_url')
+                        ->label('KTM Document')
+                        ->getStateUsing(fn (User $record) => self::resolveImageUrl($record->driverProfile?->ktm_url))
+                        ->height(200)
+                        ->placeholder('No KTM (deleted after approval)'),
                 ])
                 ->columns(3),
 

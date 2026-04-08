@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile/l10n/app_localizations.dart';
+import '../../core/providers/auth_provider.dart';
 import '../../core/providers/kyc_provider.dart';
 import '../../core/config/app_config.dart';
 import 'email_verification_screen.dart';
@@ -76,6 +77,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
   final _imagePicker = ImagePicker();
 
   bool _isSubmitting = false;
+  bool _agreedToTerms = false;
 
   // Vehicle color keys (English, stored in backend)
   static const List<String> _vehicleColorKeys = [
@@ -330,16 +332,22 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
 
     try {
       final kycService = ref.read(kycServiceProvider);
-      final isAvailable = await kycService.checkEmailAvailability(email);
+      final result = await kycService.checkEmailAvailability(email);
 
       if (mounted) {
         final l10nPost = AppLocalizations.of(context);
+        String message;
+        if (result.available) {
+          message = l10nPost.emailAvailable;
+        } else if (result.reason == 'invalid_domain') {
+          message = l10nPost.emailInvalidDomain;
+        } else {
+          message = l10nPost.emailUnavailable;
+        }
         setState(() {
           _checkingEmail = false;
-          _emailAvailable = isAvailable;
-          _emailAvailabilityMessage = isAvailable
-              ? l10nPost.emailAvailable
-              : l10nPost.emailUnavailable;
+          _emailAvailable = result.available;
+          _emailAvailabilityMessage = message;
         });
       }
     } catch (e) {
@@ -380,10 +388,21 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
       return;
     }
 
-    if (_profilePhoto == null) {
+    final user = ref.read(authStateProvider).user;
+    if (_profilePhoto == null && (user?.profilePicture == null || user!.profilePicture!.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(l10n.profilePhotoRequired),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (!_agreedToTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.pleaseAgreeToTerms),
           backgroundColor: Colors.red,
         ),
       );
@@ -418,7 +437,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
             vehiclePlate: licensePlate,
             vehicleColor: _vehicleColor,
             ktmPhoto: _ktmPhoto!,
-            profilePhoto: _profilePhoto!,
+            profilePhoto: _profilePhoto,
           );
 
       if (success && mounted) {
@@ -989,6 +1008,9 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
 
   Widget _buildKtmPhotoPage(AppLocalizations l10n) {
     final config = AppConfig.instance;
+    final user = ref.watch(authStateProvider).user;
+    final googlePicUrl = user?.profilePicture;
+    final hasGooglePic = googlePicUrl != null && googlePicUrl.isNotEmpty;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
@@ -1011,77 +1033,6 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
             ),
           ),
           const SizedBox(height: 24),
-
-          // Profile photo picker
-          Text(
-            l10n.profilePhotoLabel,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            l10n.profilePhotoHelper,
-            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-          ),
-          const SizedBox(height: 12),
-          Center(
-            child: GestureDetector(
-              onTap: () {
-                showModalBottomSheet(
-                  context: context,
-                  builder: (ctx) => SafeArea(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ListTile(
-                          leading: const Icon(Icons.camera_alt),
-                          title: Text(l10n.takePhotoButton),
-                          onTap: () {
-                            Navigator.pop(ctx);
-                            _pickProfilePhoto(ImageSource.camera);
-                          },
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.photo_library),
-                          title: Text(l10n.fromGalleryButton),
-                          onTap: () {
-                            Navigator.pop(ctx);
-                            _pickProfilePhoto(ImageSource.gallery);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-              child: Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.grey[200],
-                    backgroundImage:
-                        _profilePhoto != null ? FileImage(_profilePhoto!) : null,
-                    child: _profilePhoto == null
-                        ? Icon(Icons.person, size: 50, color: Colors.grey[400])
-                        : null,
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: config.primaryColor,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 28),
 
           // KTM photo section header
           Text(
@@ -1177,6 +1128,102 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
                 ),
               ],
             ),
+          ),
+
+          const SizedBox(height: 28),
+
+          // Profile photo picker
+          Text(
+            l10n.profilePhotoLabel,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.profilePhotoHelper,
+            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: GestureDetector(
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  builder: (ctx) => SafeArea(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.camera_alt),
+                          title: Text(l10n.takePhotoButton),
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            _pickProfilePhoto(ImageSource.camera);
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.photo_library),
+                          title: Text(l10n.fromGalleryButton),
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            _pickProfilePhoto(ImageSource.gallery);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.grey[200],
+                    backgroundImage: _profilePhoto != null
+                        ? FileImage(_profilePhoto!)
+                        : (hasGooglePic ? NetworkImage(googlePicUrl) : null),
+                    child: _profilePhoto == null && !hasGooglePic
+                        ? Icon(Icons.person, size: 50, color: Colors.grey[400])
+                        : null,
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: config.primaryColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_profilePhoto == null && hasGooglePic) ...[
+            const SizedBox(height: 8),
+            Center(
+              child: Text(
+                l10n.usingGooglePhoto,
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 28),
+
+          // Agreement checkbox
+          CheckboxListTile(
+            value: _agreedToTerms,
+            onChanged: (value) => setState(() => _agreedToTerms = value ?? false),
+            title: Text(
+              l10n.kycAgreementLabel,
+              style: const TextStyle(fontSize: 13),
+            ),
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: EdgeInsets.zero,
+            dense: true,
           ),
         ],
       ),

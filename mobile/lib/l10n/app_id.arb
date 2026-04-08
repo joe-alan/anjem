@@ -178,7 +178,7 @@
   "studentInfoPageSubtitle": "Masukkan data mahasiswa Anda untuk verifikasi",
   "vehicleInfoPageTitle": "Informasi Kendaraan",
   "vehicleInfoPageSubtitle": "Masukkan detail kendaraan Anda",
-  "ktmPhotoPageTitle": "Upload Foto KTM",
+  "ktmPhotoPageTitle": "Upload Foto",
   "ktmPhotoPageSubtitle": "Ambil foto KTM Anda yang jelas",
   "studentEmailLabel": "Email Mahasiswa *",
   "studentIdLabel": "NIM *",
@@ -206,7 +206,11 @@
   "checkingAvailability": "Memeriksa ketersediaan...",
   "emailAvailable": "\u2713 Email tersedia",
   "emailUnavailable": "\u2717 Email ini sudah terdaftar",
+  "emailInvalidDomain": "\u2717 Email harus dari institusi akademik (*.ac.id)",
   "emailCheckError": "Tidak dapat memeriksa ketersediaan",
+  "usingGooglePhoto": "Menggunakan foto profil Google Anda",
+  "pleaseAgreeToTerms": "Harap setujui ketentuan sebelum mengirim",
+  "kycAgreementLabel": "Saya setuju untuk beroperasi sebagai Driver di area Tembalang, Semarang dan sekitarnya.",
   "kycRejectedBannerTitle": "KYC Ditolak",
   "draftDataLoaded": "Data draf dimuat (disimpan {timeAgo})",
   "noPhotoSelected": "Belum ada foto",
@@ -220,6 +224,17 @@
   "didntReceiveCode": "Tidak menerima kode? ",
   "resendCountdown": "Kirim ulang dalam {seconds} detik",
   "resendCode": "Kirim Ulang Kode",
+  "changeEmail": "Ganti Email",
+  "changeEmailTitle": "Ganti Alamat Email",
+  "newStudentEmailHint": "email.baru@universitas.ac.id",
+  "invalidEmailDomain": "Email harus dari institusi akademik (*.ac.id)",
+  "hourlyLimitReached": "Terlalu banyak percobaan. Silakan coba lagi nanti.",
+  "resendsRemaining": "{count} pengiriman ulang tersisa dalam satu jam",
+  "@resendsRemaining": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "verificationCodeExpiry": "Kode verifikasi berlaku selama 10 menit. Periksa folder spam jika Anda tidak melihat emailnya.",
 
   "newRideRequestTitle": "Permintaan Anjem Baru",
@@ -331,6 +346,7 @@
   "deleteAccountTitle": "Hapus Akun",
   "deleteAccountConfirmTitle": "Hapus Akun Anda?",
   "deleteAccountConfirmMessage": "Tindakan ini permanen. Semua data Anda akan dihapus. Ketik HAPUS untuk konfirmasi.",
+  "deleteAccountBothRoleWarning": "Anda terdaftar sebagai penumpang dan pengemudi. Menghapus akun akan menghapus semua data untuk kedua peran.",
   "deleteAccountButton": "Hapus Akun",
   "deleteAccountSuccess": "Akun berhasil dihapus",
   "failedToDeleteAccount": "Gagal menghapus akun. Silakan coba lagi.",
@@ -473,6 +489,7 @@
   "editKycButton": "Edit Data KYC",
   "editKycConfirmTitle": "Edit Data KYC?",
   "editKycConfirmMessage": "Mengedit akan mengembalikan Anda ke alur KYC dan perlu diverifikasi ulang. Semua data verifikasi saat ini (NIM, info kendaraan, dokumen) akan dihapus. Riwayat anjem dan rating Anda akan tetap tersimpan.\n\nKetik WARJO untuk konfirmasi.",
+  "editKycBothRoleWarning": "Anda juga terdaftar sebagai penumpang. Mengedit KYC akan menghapus foto profil dan nomor telepon untuk kedua peran.",
   "editKycSuccess": "Data KYC dihapus — silakan ajukan ulang",
   "failedToEditKyc": "Gagal mengedit data KYC",
   "typeWarjoToConfirm": "Ketik WARJO untuk konfirmasi",
@@ -481,5 +498,9 @@
 
   "kickedStaleGps": "Anda dibuat offline karena sinyal GPS hilang. Silakan periksa pengaturan lokasi Anda.",
   "kickedZeroCredits": "Anda dibuat offline karena saldo kredit habis. Hubungi admin untuk isi ulang.",
-  "kickedGeneric": "Anda dibuat offline oleh sistem."
+  "kickedGeneric": "Anda dibuat offline oleh sistem.",
+
+  "forceUpdateTitle": "Pembaruan Diperlukan",
+  "forceUpdateMessage": "Versi aplikasi kamu sudah tidak didukung. Silakan update ke versi terbaru.",
+  "forceUpdateButton": "Update Sekarang"
 }

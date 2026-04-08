@@ -281,7 +281,11 @@
   "checkingAvailability": "Checking availability...",
   "emailAvailable": "\u2713 Email is available",
   "emailUnavailable": "\u2717 This email is already registered",
+  "emailInvalidDomain": "\u2717 Email must be from an academic institution (*.ac.id)",
   "emailCheckError": "Could not check availability",
+  "usingGooglePhoto": "Using your Google profile photo",
+  "pleaseAgreeToTerms": "Please agree to the terms before submitting",
+  "kycAgreementLabel": "I agree to operate as a Driver in the Tembalang, Semarang area and its surroundings.",
   "kycRejectedBannerTitle": "KYC Rejected",
   "draftDataLoaded": "Draft data loaded (saved {timeAgo})",
   "@draftDataLoaded": {
@@ -305,6 +309,17 @@
     }
   },
   "resendCode": "Resend Code",
+  "changeEmail": "Change Email",
+  "changeEmailTitle": "Change Email Address",
+  "newStudentEmailHint": "new.email@university.ac.id",
+  "invalidEmailDomain": "Email must be from an academic institution (*.ac.id)",
+  "hourlyLimitReached": "Too many attempts. Please try again later.",
+  "resendsRemaining": "{count} resends remaining this hour",
+  "@resendsRemaining": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "verificationCodeExpiry": "The verification code expires in 10 minutes. Please check your spam folder if you don\u2019t see the email.",
 
   "newRideRequestTitle": "New Ride Request",
@@ -441,6 +456,7 @@
   "deleteAccountTitle": "Delete Account",
   "deleteAccountConfirmTitle": "Delete Your Account?",
   "deleteAccountConfirmMessage": "This action is permanent. All your data will be deleted. Type DELETE to confirm.",
+  "deleteAccountBothRoleWarning": "You are registered as both a rider and driver. Deleting your account will remove all data for both roles.",
   "deleteAccountButton": "Delete Account",
   "deleteAccountSuccess": "Account deleted successfully",
   "failedToDeleteAccount": "Failed to delete account. Please try again.",
@@ -593,6 +609,7 @@
   "editKycButton": "Edit KYC Data",
   "editKycConfirmTitle": "Edit KYC Data?",
   "editKycConfirmMessage": "Editing will send you back to the KYC flow and you will need to be re-verified. All current verification data (student ID, vehicle info, uploaded documents) will be deleted. Your ride history and ratings will be kept.\n\nType WARJO to confirm.",
+  "editKycBothRoleWarning": "You are also registered as a rider. Editing your KYC will clear your profile photo and phone number for both roles.",
   "editKycSuccess": "KYC data cleared — please re-submit",
   "failedToEditKyc": "Failed to edit KYC data",
   "typeWarjoToConfirm": "Type WARJO to confirm",
@@ -601,5 +618,9 @@
 
   "kickedStaleGps": "You were taken offline because your GPS signal was lost. Please check your location settings.",
   "kickedZeroCredits": "You were taken offline because your credit balance reached zero. Contact admin to top up.",
-  "kickedGeneric": "You were taken offline by the system."
+  "kickedGeneric": "You were taken offline by the system.",
+
+  "forceUpdateTitle": "Update Required",
+  "forceUpdateMessage": "Your app version is no longer supported. Please update to the latest version.",
+  "forceUpdateButton": "Update Now"
 }

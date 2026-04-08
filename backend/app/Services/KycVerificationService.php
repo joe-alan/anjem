@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\RateLimitExceededException;
 use App\Models\AdminAuditLog;
 use App\Models\DriverProfile;
 use App\Models\User;
@@ -12,6 +13,17 @@ use Illuminate\Support\Str;
 
 class KycVerificationService
 {
+    /** Seconds a user must wait between resend requests */
+    public const RESEND_COOLDOWN_SECONDS = 60;
+
+    /** Max verification codes a non-admin user can request per hour */
+    public const MAX_SENDS_PER_HOUR = 5;
+
+    public function __construct(
+        private FirebaseStorageService $storageService,
+        private ImageCompressionService $compressionService,
+    ) {}
+
     /**
      * Validate that the email belongs to an academic institution (*.ac.id).
      */
@@ -46,12 +58,62 @@ class KycVerificationService
     }
 
     /**
+     * Get remaining cooldown seconds for an email.
+     * Returns 0 if no cooldown is active.
+     */
+    public function getResendCooldown(string $email): int
+    {
+        $latest = VerificationCode::where('email', $email)
+            ->whereNull('verified_at')
+            ->latest()
+            ->first();
+
+        if (! $latest) {
+            return 0;
+        }
+
+        $elapsed = now()->diffInSeconds($latest->created_at, absolute: true);
+        $remaining = self::RESEND_COOLDOWN_SECONDS - $elapsed;
+
+        return max(0, (int) $remaining);
+    }
+
+    /**
+     * Get how many sends a user has left this hour.
+     * Returns null (unlimited) for admins.
+     */
+    public function getHourlyRemaining(int $userId): ?int
+    {
+        $user = User::find($userId);
+        if ($user?->is_admin) {
+            return null; // unlimited
+        }
+
+        $sentThisHour = VerificationCode::where('user_id', $userId)
+            ->where('created_at', '>=', now()->subHour())
+            ->count();
+
+        return max(0, self::MAX_SENDS_PER_HOUR - $sentThisHour);
+    }
+
+    /**
      * Create and send verification code to email
      */
-    public function sendVerificationCode(string $email): VerificationCode
+    public function sendVerificationCode(string $email, int $userId): VerificationCode
     {
-        // Invalidate any existing codes for this email
-        VerificationCode::where('email', $email)
+        $cooldown = $this->getResendCooldown($email);
+        if ($cooldown > 0) {
+            throw new RateLimitExceededException("Please wait {$cooldown} seconds before requesting a new code.");
+        }
+
+        // Hourly cap (skip for admins)
+        $remaining = $this->getHourlyRemaining($userId);
+        if ($remaining !== null && $remaining <= 0) {
+            throw new RateLimitExceededException('You have reached the maximum number of verification emails this hour. Please try again later.');
+        }
+
+        // Invalidate any existing codes for this user
+        VerificationCode::where('user_id', $userId)
             ->whereNull('verified_at')
             ->delete();
 
@@ -61,19 +123,22 @@ class KycVerificationService
 
         // Store the code
         $verificationCode = VerificationCode::create([
+            'user_id' => $userId,
             'email' => $email,
             'code' => $code,
             'expires_at' => $expiresAt,
         ]);
 
-        // Send email with code
-        Mail::send('emails.verification-code', [
-            'code' => $code,
-            'expiresInMinutes' => 10,
-        ], function ($message) use ($email) {
-            $message->to($email)
-                ->subject('Anjem - Email Verification Code');
-        });
+        // Send email with code (dispatched to queue)
+        dispatch(function () use ($code, $email) {
+            Mail::send('emails.verification-code', [
+                'code' => $code,
+                'expiresInMinutes' => 10,
+            ], function ($message) use ($email) {
+                $message->to($email)
+                    ->subject('Anjem - Email Verification Code');
+            });
+        })->onQueue('default');
 
         return $verificationCode;
     }
@@ -108,25 +173,29 @@ class KycVerificationService
     }
 
     /**
-     * Store KTM photo and return the path
+     * Store KTM photo: compress and upload to Firebase Storage.
      */
     public function storeKtmPhoto($file, int $userId): string
     {
-        $filename = 'ktm_'.$userId.'_'.time().'.'.$file->getClientOriginalExtension();
-        $path = $file->storeAs('ktm_photos', $filename, 'public');
+        $compressed = $this->compressionService->compress(
+            $file->getRealPath(), 1920, 1080, 80
+        );
+        $objectPath = 'ktm_photos/ktm_' . $userId . '_' . time() . '.jpg';
 
-        return '/storage/'.$path;
+        return $this->storageService->upload($objectPath, $compressed, 'image/jpeg');
     }
 
     /**
-     * Store profile photo and return the path
+     * Store profile photo: compress and upload to Firebase Storage.
      */
     public function storeProfilePhoto($file, int $userId): string
     {
-        $filename = 'avatar_'.$userId.'_'.time().'.'.$file->getClientOriginalExtension();
-        $path = $file->storeAs('avatars', $filename, 'public');
+        $compressed = $this->compressionService->compress(
+            $file->getRealPath(), 512, 512, 80
+        );
+        $objectPath = 'avatars/avatar_' . $userId . '_' . time() . '.jpg';
 
-        return '/storage/'.$path;
+        return $this->storageService->upload($objectPath, $compressed, 'image/jpeg');
     }
 
     /**
@@ -243,17 +312,21 @@ class KycVerificationService
             return false;
         }
 
-        // Delete KTM photo from storage
+        // Delete KTM photo from Firebase Storage
         if ($profile->ktm_url) {
-            $storagePath = str_replace('/storage/', '', $profile->ktm_url);
-            \Storage::disk('public')->delete($storagePath);
+            $objectPath = $this->storageService->extractObjectPath($profile->ktm_url);
+            if ($objectPath) {
+                $this->storageService->delete($objectPath);
+            }
         }
 
-        // Delete profile photo from storage
+        // Delete profile photo from Firebase Storage
         $user = User::find($userId);
-        if ($user?->profile_picture && str_starts_with($user->profile_picture, '/storage/')) {
-            $storagePath = str_replace('/storage/', '', $user->profile_picture);
-            \Storage::disk('public')->delete($storagePath);
+        if ($user?->profile_picture) {
+            $objectPath = $this->storageService->extractObjectPath($user->profile_picture);
+            if ($objectPath) {
+                $this->storageService->delete($objectPath);
+            }
         }
 
         // Nullify KYC PII fields, reset verification

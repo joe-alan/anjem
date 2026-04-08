@@ -1256,11 +1256,35 @@ abstract class AppLocalizations {
   /// **'✗ This email is already registered'**
   String get emailUnavailable;
 
+  /// No description provided for @emailInvalidDomain.
+  ///
+  /// In en, this message translates to:
+  /// **'✗ Email must be from an academic institution (*.ac.id)'**
+  String get emailInvalidDomain;
+
   /// No description provided for @emailCheckError.
   ///
   /// In en, this message translates to:
   /// **'Could not check availability'**
   String get emailCheckError;
+
+  /// No description provided for @usingGooglePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Using your Google profile photo'**
+  String get usingGooglePhoto;
+
+  /// No description provided for @pleaseAgreeToTerms.
+  ///
+  /// In en, this message translates to:
+  /// **'Please agree to the terms before submitting'**
+  String get pleaseAgreeToTerms;
+
+  /// No description provided for @kycAgreementLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'I agree to operate as a Driver in the Tembalang, Semarang area and its surroundings.'**
+  String get kycAgreementLabel;
 
   /// No description provided for @kycRejectedBannerTitle.
   ///
@@ -1333,6 +1357,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Resend Code'**
   String get resendCode;
+
+  /// No description provided for @changeEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Email'**
+  String get changeEmail;
+
+  /// No description provided for @changeEmailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Email Address'**
+  String get changeEmailTitle;
+
+  /// No description provided for @newStudentEmailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'new.email@university.ac.id'**
+  String get newStudentEmailHint;
+
+  /// No description provided for @invalidEmailDomain.
+  ///
+  /// In en, this message translates to:
+  /// **'Email must be from an academic institution (*.ac.id)'**
+  String get invalidEmailDomain;
+
+  /// No description provided for @hourlyLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Please try again later.'**
+  String get hourlyLimitReached;
+
+  /// No description provided for @resendsRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} resends remaining this hour'**
+  String resendsRemaining(int count);
 
   /// No description provided for @verificationCodeExpiry.
   ///
@@ -1928,6 +1988,12 @@ abstract class AppLocalizations {
   /// **'This action is permanent. All your data will be deleted. Type DELETE to confirm.'**
   String get deleteAccountConfirmMessage;
 
+  /// No description provided for @deleteAccountBothRoleWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'You are registered as both a rider and driver. Deleting your account will remove all data for both roles.'**
+  String get deleteAccountBothRoleWarning;
+
   /// No description provided for @deleteAccountButton.
   ///
   /// In en, this message translates to:
@@ -2480,6 +2546,12 @@ abstract class AppLocalizations {
   /// **'Editing will send you back to the KYC flow and you will need to be re-verified. All current verification data (student ID, vehicle info, uploaded documents) will be deleted. Your ride history and ratings will be kept.\n\nType WARJO to confirm.'**
   String get editKycConfirmMessage;
 
+  /// No description provided for @editKycBothRoleWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'You are also registered as a rider. Editing your KYC will clear your profile photo and phone number for both roles.'**
+  String get editKycBothRoleWarning;
+
   /// No description provided for @editKycSuccess.
   ///
   /// In en, this message translates to:
@@ -2527,6 +2599,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You were taken offline by the system.'**
   String get kickedGeneric;
+
+  /// No description provided for @forceUpdateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Required'**
+  String get forceUpdateTitle;
+
+  /// No description provided for @forceUpdateMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your app version is no longer supported. Please update to the latest version.'**
+  String get forceUpdateMessage;
+
+  /// No description provided for @forceUpdateButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Now'**
+  String get forceUpdateButton;
 }
 
 class _AppLocalizationsDelegate

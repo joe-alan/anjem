@@ -101,8 +101,8 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
     final isVerified = _ref.read(isDriverVerifiedProvider);
     if (!isVerified) {
       if (kDebugMode) {
-        print('DriverStatusProvider: Cannot go online - driver not verified');
-        print(
+        debugPrint('DriverStatusProvider: Cannot go online - driver not verified');
+        debugPrint(
             'DriverStatusProvider: User needs to complete KYC verification first');
       }
       state = state.copyWith(
@@ -113,8 +113,8 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
 
     if (_driverId == null) {
       if (kDebugMode) {
-        print('DriverStatusProvider: Cannot go online - driver ID is null');
-        print(
+        debugPrint('DriverStatusProvider: Cannot go online - driver ID is null');
+        debugPrint(
             'DriverStatusProvider: This usually means the user is not loaded yet or not a driver');
       }
       state = state.copyWith(
@@ -142,9 +142,9 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
 
     try {
       if (kDebugMode) {
-        print(
+        debugPrint(
             'DriverStatusProvider: Going online for driver (user ID) $_driverId');
-        print('DriverStatusProvider: Is verified: $isVerified');
+        debugPrint('DriverStatusProvider: Is verified: $isVerified');
       }
 
       // Include current GPS so backend sets current_location immediately —
@@ -261,8 +261,8 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
       driverId: _driverId!,
       onNewRideRequest: (eventData) {
         if (kDebugMode) {
-          print('NEW RIDE REQUEST RECEIVED!');
-          print('Event data: $eventData');
+          debugPrint('NEW RIDE REQUEST RECEIVED!');
+          debugPrint('Event data: $eventData');
         }
 
         try {
@@ -272,9 +272,9 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
               .setRequest(rideRequest);
         } catch (error, stackTrace) {
           if (kDebugMode) {
-            print(
+            debugPrint(
                 'DriverStatusProvider: Failed to parse ride request event - $error');
-            print(stackTrace);
+            debugPrint(stackTrace.toString());
           }
         }
       },
@@ -509,14 +509,14 @@ final driverStatusProvider =
   // Listen to auth changes
   ref.listen(currentUserProvider, (previous, next) {
     if (kDebugMode) {
-      print('DriverStatusProvider: currentUserProvider changed');
-      print('  - Previous user ID: ${previous?.id}');
-      print('  - New user ID: ${next?.id}');
-      print('  - User email: ${next?.email}');
-      print('  - User role: ${next?.role}');
-      print('  - Has driver profile: ${next?.driverProfile != null}');
+      debugPrint('DriverStatusProvider: currentUserProvider changed');
+      debugPrint('  - Previous user ID: ${previous?.id}');
+      debugPrint('  - New user ID: ${next?.id}');
+      debugPrint('  - User email: ${next?.email}');
+      debugPrint('  - User role: ${next?.role}');
+      debugPrint('  - Has driver profile: ${next?.driverProfile != null}');
       if (next?.driverProfile != null) {
-        print('  - Driver profile ID: ${next?.driverProfile?.id}');
+        debugPrint('  - Driver profile ID: ${next?.driverProfile?.id}');
       }
     }
     notifier.setDriverId(next?.id);
@@ -525,8 +525,8 @@ final driverStatusProvider =
   // Set initial driver ID
   final initialUser = ref.read(currentUserProvider);
   if (kDebugMode) {
-    print('DriverStatusProvider: Initializing with user ID: ${initialUser?.id}');
-    print(
+    debugPrint('DriverStatusProvider: Initializing with user ID: ${initialUser?.id}');
+    debugPrint(
         'DriverStatusProvider: Has driver profile: ${initialUser?.driverProfile != null}');
   }
   notifier.setDriverId(initialUser?.id);

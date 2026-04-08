@@ -50,6 +50,15 @@ class FirebaseAuthService
         $picture = $firebaseUser['picture'] ?? null;
 
         if (! $user) {
+            // Anonymize any soft-deleted user with this email/uid to free unique constraints
+            $uid = $firebaseUser['uid'];
+            User::onlyTrashed()
+                ->where(fn ($q) => $q->where('email', $firebaseUser['email'])->orWhere('firebase_uid', $uid))
+                ->each(fn (User $u) => $u->update([
+                    'email'        => "deleted_{$u->id}@removed",
+                    'firebase_uid' => "deleted_{$u->id}",
+                ]));
+
             // Create new user with the device type they registered from
             $userData = [
                 'name' => $firebaseUser['name'] ?? 'User',
@@ -91,7 +100,8 @@ class FirebaseAuthService
             }
 
             // Update profile picture from Google if user hasn't uploaded their own
-            if ($picture && (! $user->profile_picture || str_starts_with($user->profile_picture, 'https://'))) {
+            // Skip overwrite for user-uploaded avatars stored in Firebase Storage
+            if ($picture && (! $user->profile_picture || (str_starts_with($user->profile_picture, 'https://') && ! str_contains($user->profile_picture, 'storage.googleapis.com')))) {
                 $user->update(['profile_picture' => $picture]);
             }
 
