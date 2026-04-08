@@ -96,24 +96,31 @@ class _EmailVerificationScreenState
   }
 
   Future<void> _initCooldownAndSend() async {
-    // Check if a cooldown is already active (e.g. user force-quit and reopened)
-    final remaining = await ref
-        .read(kycStateProvider.notifier)
-        .getResendCooldown(widget.studentEmail);
+    try {
+      // Check if a cooldown is already active (e.g. user force-quit and reopened)
+      final remaining = await ref
+          .read(kycStateProvider.notifier)
+          .getResendCooldown(widget.studentEmail);
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (remaining > 0) {
-      // Code was already sent recently — just resume the countdown
-      setState(() {
-        _codeSent = true;
-        _resendCountdown = remaining;
-        _initialLoading = false;
-      });
-      _startCountdown();
-    } else {
-      setState(() => _initialLoading = false);
-      _sendVerificationCode();
+      if (remaining > 0) {
+        // Code was already sent recently — just resume the countdown
+        setState(() {
+          _codeSent = true;
+          _resendCountdown = remaining;
+          _initialLoading = false;
+        });
+        _startCountdown();
+      } else {
+        setState(() => _initialLoading = false);
+        _sendVerificationCode();
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _initialLoading = false);
+        _sendVerificationCode();
+      }
     }
   }
 
