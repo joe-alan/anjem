@@ -45,7 +45,6 @@ android {
         create("rider") {
             dimension = "app"
             applicationId = "me.anjem.rider"
-            versionName = "1.0.0-rider"
             resValue("string", "app_name", "Anjem.me")
             manifestPlaceholders["appLabel"] = "Anjem.me"
         }
@@ -53,7 +52,6 @@ android {
         create("driver") {
             dimension = "app"
             applicationId = "me.anjem.driver"
-            versionName = "1.0.0-driver"
             resValue("string", "app_name", "Anjem Driver")
             manifestPlaceholders["appLabel"] = "Anjem Driver"
         }
