@@ -146,28 +146,43 @@
 
 ---
 
-## 7. Staging Deploy (Forge)b
+## 7. Production Deploy (Forge)
 
-> Target: Laravel Forge + DigitalOcean/Hetzner droplet
+> Target: Laravel Forge (Hobby, $12/mo) + DigitalOcean droplet (4GB/2vCPU, $24/mo, Singapore)
+> Single prod server — no staging. Local dev → deploy to prod.
+> Domain: `api.anjem.me` (API), `ws.anjem.me` (WebSocket)
 
-| #    | Task                                                                           | Status |
-| ---- | ------------------------------------------------------------------------------ | ------ |
-| 7.1  | Create Forge account and connect cloud provider (DO or Hetzner)                | ⬜     |
-| 7.2  | Provision server via Forge — Ubuntu 22.04, PHP 8.3, PostgreSQL, Redis, Nginx   | ⬜     |
-| 7.3  | Add PostGIS extension to PostgreSQL (`CREATE EXTENSION postgis;`)              | ⬜     |
-| 7.4  | Connect GitHub repo to Forge site                                              | ⬜     |
-| 7.5  | Configure `.env` in Forge (DB, Redis, Firebase, Mapbox, Sentry, Reverb)        | ⬜     |
-| 7.6  | Configure Forge deploy script: `composer install --no-dev`, migrations, caches | ⬜     |
-| 7.7  | Add Forge daemon for `php artisan reverb:start`                                | ⬜     |
-| 7.8  | Add Forge queue worker for `php artisan queue:work`                            | ⬜     |
-| 7.9  | Add Forge scheduler (cron) for `php artisan schedule:run`                      | ⬜     |
-| 7.10 | Configure Nginx for Reverb WebSocket proxy (`/app` -> localhost:8080)          | ⬜     |
-| 7.11 | SSL via Forge (Let's Encrypt) for API + WebSocket domain                       | ⬜     |
-| 7.12 | Point staging domain (e.g., `api-staging.anjem.me`) at server                  | ⬜     |
-| 7.13 | Run seed: `php artisan db:seed` (admin user, campus beacons)                   | ⬜     |
-| 7.14 | Smoke test API endpoints from Postman                                          | ⬜     |
-| 7.15 | Smoke test mobile apps pointed at staging URL (HTTPS + WSS)                    | ⬜     |
-| 7.16 | Set up Forge automatic DB backups                                              | ⬜     |
+| #    | Task                                                                                       | Status |
+| ---- | ------------------------------------------------------------------------------------------ | ------ |
+| 7.1  | Create Forge account, connect DO via API token                                             | ✅     |
+| 7.2  | Provision server — Ubuntu, PHP 8.4, PostgreSQL 17, Redis, Nginx                            | ✅     |
+| 7.3  | Install PostGIS (`postgresql-17-postgis-3`, extension enabled on `forge` database)         | ✅     |
+| 7.4  | Connect GitHub repo, deploy key, root directory set to `/backend`                          | ✅     |
+| 7.5  | Configure `.env` (DB, Redis, Firebase, Mapbox, Sentry, Reverb, Mailtrap transactional)     | ✅     |
+| 7.6  | Deploy script: zero-downtime releases, `composer install --no-dev`, `optimize`, migrations | ✅     |
+| 7.7  | Reverb daemon via Forge Laravel toggle (port 8080)                                         | ✅     |
+| 7.8  | Horizon daemon via Forge Laravel toggle (replaces raw `queue:work`)                        | ✅     |
+| 7.9  | Scheduler via Forge Laravel toggle                                                         | ✅     |
+| 7.10 | Reverb Nginx proxy handled by Forge toggle (auto-configured for `ws.anjem.me`)             | ✅     |
+| 7.11 | SSL: `ws.anjem.me` via Let's Encrypt HTTP-01, `api.anjem.me` via Let's Encrypt DNS-01      | ✅     |
+| 7.12 | DNS: `api.anjem.me` + `ws.anjem.me` → `165.232.172.42` (Cloudflare grey cloud)             | ✅     |
+| 7.13 | Run `php8.4 artisan db:seed --force` (admin user, campus beacons)                          | ✅     |
+| 7.14 | Smoke test API from Postman — health, public, auth-protected endpoints confirmed           | 🔄     |
+| 7.15 | Smoke test Flutter app against prod (update prod flavor config, test HTTPS + WSS)          | ⬜     |
+| 7.16 | Set up Forge automatic DB backups                                                          | ⬜     |
+
+**Still needed before 7.14 complete:**
+
+- Test auth POST (register/login) to confirm Mailtrap OTP email delivery end-to-end
+
+**Notes:**
+
+- DB name: `forge` (Forge default, PostGIS enabled here)
+- Redis client: `phpredis` (not predis)
+- Mailtrap: transactional SMTP (`live.smtp.mailtrap.io:587`), `anjem.me` domain verified with SPF/DKIM
+- Filament admin: stays at `api.anjem.me/admin`, protected by Filament auth + Nginx rate limiting
+- Cloudflare Zero Trust deferred (payment method issue) — revisit later
+- Let's Encrypt auto-renewal for `api.anjem.me` may need Nginx fix (HTTP-01 challenge 404'd, used DNS-01 as workaround)
 
 ---
 

@@ -2,7 +2,7 @@
 # Anjem - Campus Ride-sharing Platform
 # Development and deployment automation
 
-.PHONY: help setup dev clean test build deploy-staging deploy-production
+.PHONY: help setup dev clean test build
 
 # Default target
 help:
@@ -29,9 +29,8 @@ help:
 	@echo "build-driver    - Build driver app"
 	@echo "build-all       - Build both mobile apps"
 	@echo ""
-	@echo "Deployment Commands:"
-	@echo "deploy-staging  - Deploy to staging environment"
-	@echo "deploy-production - Deploy to production environment"
+	@echo "Deployment:"
+	@echo "  Production deploys automatically via Forge on push to main"
 
 # Initial project setup
 setup: backend-setup mobile-setup
@@ -171,27 +170,6 @@ security-check:
 	@echo "🔒 Running security checks..."
 	@cd backend && ./vendor/bin/phpstan analyse
 	@echo "✅ Security checks complete!"
-
-# ===== DEPLOYMENT COMMANDS =====
-
-# Deploy to staging
-deploy-staging:
-	@echo "🚀 Deploying to staging..."
-	@echo "⚠️  Staging deployment not yet configured"
-	@echo "Run: doctl apps create --spec .do/staging.yaml"
-
-# Deploy to production
-deploy-production:
-	@echo "🚀 Deploying to production..."
-	@echo "⚠️  Production deployment requires manual confirmation"
-	@echo "Run: doctl apps create --spec .do/production.yaml"
-
-# Infrastructure setup
-infra-setup:
-	@echo "🌊 Setting up DigitalOcean infrastructure..."
-	@echo "Ensure DO_TOKEN is set and run:"
-	@echo "doctl databases create anjem-db --engine pg --version 15 --size db-s-1vcpu-1gb"
-	@echo "doctl databases create anjem-redis --engine redis --version 7"
 
 # ===== MONITORING AND LOGS =====
 

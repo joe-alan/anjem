@@ -2563,6 +2563,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You were taken offline by the system.'**
   String get kickedGeneric;
+
+  /// No description provided for @forceUpdateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Required'**
+  String get forceUpdateTitle;
+
+  /// No description provided for @forceUpdateMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your app version is no longer supported. Please update to the latest version.'**
+  String get forceUpdateMessage;
+
+  /// No description provided for @forceUpdateButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Now'**
+  String get forceUpdateButton;
 }
 
 class _AppLocalizationsDelegate

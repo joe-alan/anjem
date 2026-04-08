@@ -1363,4 +1363,14 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get kickedGeneric => 'Anda dibuat offline oleh sistem.';
+
+  @override
+  String get forceUpdateTitle => 'Pembaruan Diperlukan';
+
+  @override
+  String get forceUpdateMessage =>
+      'Versi aplikasi kamu sudah tidak didukung. Silakan update ke versi terbaru.';
+
+  @override
+  String get forceUpdateButton => 'Update Sekarang';
 }

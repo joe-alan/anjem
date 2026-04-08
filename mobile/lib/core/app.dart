@@ -12,6 +12,7 @@ import 'models/kyc_submission.dart';
 import 'widgets/splash_screen.dart';
 import 'widgets/login_screen.dart';
 import 'widgets/session_check_wrapper.dart';
+import 'widgets/version_check_wrapper.dart';
 import '../rider/screens/rider_home_screen.dart';
 import '../driver/screens/driver_home_screen.dart';
 import '../driver/screens/kyc_form_screen.dart';
@@ -50,7 +51,7 @@ class AnjerApp extends ConsumerWidget {
         ),
       ),
       navigatorKey: navigatorKey,
-      home: const FcmInitializer(),
+      home: const VersionCheckWrapper(child: FcmInitializer()),
     );
   }
 }

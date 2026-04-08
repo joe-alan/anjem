@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\AppConfigController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CreditController;
 use App\Http\Controllers\Api\DriverController;
@@ -44,6 +45,9 @@ Route::prefix('v1')->group(function () {
             'version' => '1.0.0',
         ]);
     });
+
+    // App configuration (public, no auth)
+    Route::get('app/config', [AppConfigController::class, 'index'])->middleware('throttle:60,1');
 
     // Public place search endpoint (no auth required)
     Route::get('places/search', [PlaceController::class, 'search'])->middleware('throttle:60,1');
