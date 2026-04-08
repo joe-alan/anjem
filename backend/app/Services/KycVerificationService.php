@@ -12,6 +12,9 @@ use Illuminate\Support\Str;
 
 class KycVerificationService
 {
+    /** Seconds a user must wait between resend requests */
+    public const RESEND_COOLDOWN_SECONDS = 60;
+
     public function __construct(
         private FirebaseStorageService $storageService,
         private ImageCompressionService $compressionService,
@@ -51,10 +54,36 @@ class KycVerificationService
     }
 
     /**
+     * Get remaining cooldown seconds for an email.
+     * Returns 0 if no cooldown is active.
+     */
+    public function getResendCooldown(string $email): int
+    {
+        $latest = VerificationCode::where('email', $email)
+            ->whereNull('verified_at')
+            ->latest()
+            ->first();
+
+        if (! $latest) {
+            return 0;
+        }
+
+        $elapsed = now()->diffInSeconds($latest->created_at, absolute: true);
+        $remaining = self::RESEND_COOLDOWN_SECONDS - $elapsed;
+
+        return max(0, (int) $remaining);
+    }
+
+    /**
      * Create and send verification code to email
      */
     public function sendVerificationCode(string $email): VerificationCode
     {
+        $cooldown = $this->getResendCooldown($email);
+        if ($cooldown > 0) {
+            throw new \RuntimeException("Please wait {$cooldown} seconds before requesting a new code.");
+        }
+
         // Invalidate any existing codes for this email
         VerificationCode::where('email', $email)
             ->whereNull('verified_at')
@@ -71,8 +100,8 @@ class KycVerificationService
             'expires_at' => $expiresAt,
         ]);
 
-        // Send email with code
-        Mail::send('emails.verification-code', [
+        // Send email with code (queued via Redis)
+        Mail::queue('emails.verification-code', [
             'code' => $code,
             'expiresInMinutes' => 10,
         ], function ($message) use ($email) {

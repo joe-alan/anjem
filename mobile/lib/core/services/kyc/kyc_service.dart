@@ -271,8 +271,9 @@ class KycService {
     }
   }
 
-  /// Send verification code to student email
-  Future<void> sendVerificationCode(String studentEmail) async {
+  /// Send verification code to student email.
+  /// Returns the cooldown in seconds from the server response.
+  Future<int> sendVerificationCode(String studentEmail) async {
     try {
       final response = await _apiService.post(
         '/driver/kyc/send-code',
@@ -286,6 +287,9 @@ class KycService {
           statusCode: response.statusCode,
         );
       }
+
+      final data = response.data['data'] as Map<String, dynamic>?;
+      return data?['cooldown_seconds'] as int? ?? 60;
     } on ApiException {
       rethrow;
     } catch (e) {
@@ -293,6 +297,24 @@ class KycService {
         message: 'Failed to send verification code: ${e.toString()}',
         statusCode: null,
       );
+    }
+  }
+
+  /// Check remaining cooldown seconds before resend is allowed.
+  Future<int> getResendCooldown(String studentEmail) async {
+    try {
+      final response = await _apiService.get(
+        '/driver/kyc/resend-status',
+        queryParameters: {'student_email': studentEmail},
+      );
+
+      if (response.data['success'] == true) {
+        final data = response.data['data'] as Map<String, dynamic>?;
+        return data?['cooldown_seconds'] as int? ?? 0;
+      }
+      return 0;
+    } catch (_) {
+      return 0;
     }
   }
 

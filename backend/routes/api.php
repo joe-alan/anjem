@@ -89,6 +89,7 @@ Route::prefix('v1')->group(function () {
                 Route::post('check-email', [\App\Http\Controllers\Api\DriverKycController::class, 'checkEmailAvailability']);
                 Route::post('submit', [\App\Http\Controllers\Api\DriverKycController::class, 'submitKyc']);
                 Route::post('send-code', [\App\Http\Controllers\Api\DriverKycController::class, 'sendVerificationCode']);
+                Route::get('resend-status', [\App\Http\Controllers\Api\DriverKycController::class, 'resendStatus']);
                 Route::post('verify-email', [\App\Http\Controllers\Api\DriverKycController::class, 'verifyEmail']);
                 Route::get('status', [\App\Http\Controllers\Api\DriverKycController::class, 'getKycStatus']);
                 Route::delete('revoke', [\App\Http\Controllers\Api\DriverKycController::class, 'revokeKyc']);

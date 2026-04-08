@@ -85,14 +85,36 @@ class _EmailVerificationScreenState
 
   bool _codeSent = false;
   int _resendCountdown = 0;
+  bool _initialLoading = true;
 
   @override
   void initState() {
     super.initState();
-    // Automatically send code when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _sendVerificationCode();
+      _initCooldownAndSend();
     });
+  }
+
+  Future<void> _initCooldownAndSend() async {
+    // Check if a cooldown is already active (e.g. user force-quit and reopened)
+    final remaining = await ref
+        .read(kycStateProvider.notifier)
+        .getResendCooldown(widget.studentEmail);
+
+    if (!mounted) return;
+
+    if (remaining > 0) {
+      // Code was already sent recently — just resume the countdown
+      setState(() {
+        _codeSent = true;
+        _resendCountdown = remaining;
+        _initialLoading = false;
+      });
+      _startCountdown();
+    } else {
+      setState(() => _initialLoading = false);
+      _sendVerificationCode();
+    }
   }
 
   @override
@@ -107,17 +129,15 @@ class _EmailVerificationScreenState
   }
 
   Future<void> _sendVerificationCode() async {
-    final success = await ref
+    final cooldown = await ref
         .read(kycStateProvider.notifier)
         .sendVerificationCode(widget.studentEmail);
 
-    if (success) {
+    if (cooldown > 0 && mounted) {
       setState(() {
         _codeSent = true;
-        _resendCountdown = 60;
+        _resendCountdown = cooldown;
       });
-
-      // Start countdown
       _startCountdown();
     }
   }
@@ -334,13 +354,17 @@ class _EmailVerificationScreenState
                     )
                   else
                     GestureDetector(
-                      onTap: kycState.isLoading ? null : _sendVerificationCode,
+                      onTap: (kycState.isLoading || _initialLoading)
+                          ? null
+                          : _sendVerificationCode,
                       child: Text(
                         l10n.resendCode,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: config.primaryColor,
+                          color: (kycState.isLoading || _initialLoading)
+                              ? Colors.grey[400]
+                              : config.primaryColor,
                           decoration: TextDecoration.underline,
                         ),
                       ),

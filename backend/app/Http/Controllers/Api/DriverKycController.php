@@ -183,8 +183,20 @@ class DriverKycController extends Controller
                 'data' => [
                     'expires_at' => $verificationCode->expires_at->toISOString(),
                     'expires_in_minutes' => 10,
+                    'cooldown_seconds' => KycVerificationService::RESEND_COOLDOWN_SECONDS,
                 ],
             ]);
+        } catch (\RuntimeException $e) {
+            // Rate-limit violation from service
+            $cooldown = $this->kycService->getResendCooldown($request->student_email);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'data' => [
+                    'cooldown_seconds' => $cooldown,
+                ],
+            ], 429);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -192,6 +204,33 @@ class DriverKycController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Check resend cooldown status for an email
+     */
+    public function resendStatus(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'student_email' => 'required|email',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $cooldown = $this->kycService->getResendCooldown($request->student_email);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'cooldown_seconds' => $cooldown,
+            ],
+        ]);
     }
 
     /**
