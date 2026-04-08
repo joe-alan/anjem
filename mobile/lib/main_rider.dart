@@ -29,7 +29,7 @@ void main() async {
 
   AppConfig.initialize(
     flavor: AppFlavor.rider,
-    appName: 'Anjem Rider',
+    appName: 'Anjem.me',
     apiBaseUrl: const String.fromEnvironment('API_URL', defaultValue: 'http://10.0.2.2:8000/api/v1'),
     wsUrl: const String.fromEnvironment('WS_URL', defaultValue: 'ws://10.0.2.2:8000'),
     primaryColor: const Color(0xFF004743),
