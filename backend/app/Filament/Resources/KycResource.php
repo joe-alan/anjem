@@ -291,12 +291,9 @@ class KycResource extends Resource
 
     private static function approveKyc(User $record, ?string $reason): void
     {
-        $ktmUrl = $record->driverProfile->ktm_url;
-
         DB::transaction(function () use ($record, $reason) {
             $record->driverProfile->update([
                 'is_verified' => true,
-                'ktm_url'     => null,
             ]);
             AdminAuditLog::create([
                 'admin_id'    => auth()->id(),
@@ -309,8 +306,6 @@ class KycResource extends Resource
                 'user_agent'  => request()->userAgent(),
             ]);
         });
-
-        self::deleteImage($ktmUrl);
 
         try {
             app(NotificationService::class)->sendKycApprovedToDriver($record);
