@@ -8,20 +8,20 @@
 
 ## Progress Overview
 
-| Sprint                                                                             | Area     | Status         |
-| ---------------------------------------------------------------------------------- | -------- | -------------- |
-| [1. FCM Push Notifications](#1-fcm-push-notifications)                             | Feature  | ✅ Done        |
-| [2. Admin Panel Phase 3](#2-admin-panel-phase-3)                                   | Feature  | ✅ Done        |
-| [3. UI/UX Polish](#3-uiux-polish)                                                  | Polish   | ✅ Done        |
-| [4. Pre-Launch Bug Fixes](#4-pre-launch-bug-fixes)                                 | Bugs     | ✅ Done        |
-| [5. Backend Hardening](#5-backend-hardening)                                       | Security | ✅ Done        |
-| [6. Error Tracking (Sentry)](#6-error-tracking-sentry)                             | Ops      | ✅ Done        |
-| [7. Production Deploy (Forge)](#7-production-deploy-forge)                         | Infra    | ✅ Done        |
-| [8. Android Release Build](#8-android-release-build)                               | Mobile   | ✅ Done        |
-| [9. Play Store Submission](#9-play-store-submission)                               | Launch   | ⬜ Not started |
-| [10. Secrets & Git Hygiene](#10-secrets--git-hygiene)                              | Security | ⬜ Not started |
-| [11. Admin Access (Cloudflare Zero Trust)](#11-admin-access-cloudflare-zero-trust) | Security | ⏭️ Deferred    |
-| [12. Production Readiness](#12-production-readiness)                               | Ops      | ⬜ Not started |
+| Sprint                                                                             | Area     | Status          |
+| ---------------------------------------------------------------------------------- | -------- | --------------- |
+| [1. FCM Push Notifications](#1-fcm-push-notifications)                             | Feature  | ✅ Done         |
+| [2. Admin Panel Phase 3](#2-admin-panel-phase-3)                                   | Feature  | ✅ Done         |
+| [3. UI/UX Polish](#3-uiux-polish)                                                  | Polish   | ✅ Done         |
+| [4. Pre-Launch Bug Fixes](#4-pre-launch-bug-fixes)                                 | Bugs     | ✅ Done         |
+| [5. Backend Hardening](#5-backend-hardening)                                       | Security | ✅ Done         |
+| [6. Error Tracking (Sentry)](#6-error-tracking-sentry)                             | Ops      | ✅ Done         |
+| [7. Production Deploy (Forge)](#7-production-deploy-forge)                         | Infra    | ✅ Done         |
+| [8. Android Release Build](#8-android-release-build)                               | Mobile   | 🔄 Rebuild AABs |
+| [9. Play Store Submission](#9-play-store-submission)                               | Launch   | ⬜ Not started  |
+| [10. Secrets & Git Hygiene](#10-secrets--git-hygiene)                              | Security | ⏭️ Deferred     |
+| [11. Admin Access (Cloudflare Zero Trust)](#11-admin-access-cloudflare-zero-trust) | Security | ⏭️ Deferred     |
+| [12. Production Readiness](#12-production-readiness)                               | Ops      | ⏭️ Deferred     |
 
 > **Status key:** ⬜ Not started · 🔄 In progress · ✅ Done · ⏭️ Deferred
 
@@ -214,11 +214,11 @@
 | --- | -------------------------------------------------------------------------- | ------ |
 | 8.1 | Generate release keystore (`keytool -genkey ...`)                          | ✅     |
 | 8.2 | Configure `android/key.properties` + `build.gradle.kts` signing config     | ✅     |
-| 8.3 | Store keystore securely (NOT in git — use password manager)                | 🔄     |
-| 8.4 | Build rider release AAB                                                    | ✅     |
-| 8.5 | Build driver release AAB                                                   | ✅     |
-| 8.6 | Install and smoke test release builds on physical devices                  | ✅     |
-| 8.7 | Verify Mapbox token restrictions (bundle ID whitelist on Mapbox Dashboard) | ⬜     |
+| 8.3 | Store keystore securely (NOT in git — use password manager)                | ⏭️     |
+| 8.4 | Build rider release AAB                                                    | 🔄     |
+| 8.5 | Build driver release AAB                                                   | 🔄     |
+| 8.6 | Install and smoke test release builds on physical devices                  | 🔄     |
+| 8.7 | Verify Mapbox token restrictions (bundle ID whitelist on Mapbox Dashboard) | ⏭️     |
 
 ---
 
@@ -238,35 +238,35 @@
 
 ## 10. Secrets & Git Hygiene
 
-> **CRITICAL** — the repo currently has secrets committed to git history.
-> These must be cleaned up before any public/shared access.
+> **⏭️ DEFERRED** — repo is private, no shared access. Acceptable risk for beta.
+> Revisit before making repo public or adding external contributors.
 
 ### 10a. Remove tracked secrets from git
 
 | #    | Task                                                                                      | Status |
 | ---- | ----------------------------------------------------------------------------------------- | ------ |
-| 10.1 | `git rm --cached backend/.env backend/.env.testing` (stop tracking)                       | ⬜     |
-| 10.2 | Remove `upload-keystore.jks` from git, add `*.jks` to `.gitignore`                        | ⬜     |
-| 10.3 | Remove `mobile/android/key.properties` from git (already in `.gitignore` but was tracked) | ⬜     |
-| 10.4 | Scrub secrets from git history with `git filter-repo` (or accept risk for private repo)   | ⬜     |
+| 10.1 | `git rm --cached backend/.env backend/.env.testing` (stop tracking)                       | ⏭️     |
+| 10.2 | Remove `upload-keystore.jks` from git, add `*.jks` to `.gitignore`                        | ⏭️     |
+| 10.3 | Remove `mobile/android/key.properties` from git (already in `.gitignore` but was tracked) | ⏭️     |
+| 10.4 | Scrub secrets from git history with `git filter-repo` (or accept risk for private repo)   | ⏭️     |
 
 ### 10b. Rotate exposed credentials
 
 | #    | Task                                                             | Status |
 | ---- | ---------------------------------------------------------------- | ------ |
-| 10.5 | Rotate database password (`irisdotd` is exposed)                 | ⬜     |
-| 10.6 | Regenerate `APP_KEY`                                             | ⬜     |
-| 10.7 | Regenerate Reverb app key + secret                               | ⬜     |
-| 10.8 | Rotate Mapbox secret token (`sk.eyJ1...` in `gradle.properties`) | ⬜     |
-| 10.9 | Rotate Mailtrap credentials (or replace with prod mail service)  | ⬜     |
+| 10.5 | Rotate database password (`irisdotd` is exposed)                 | ⏭️     |
+| 10.6 | Regenerate `APP_KEY`                                             | ⏭️     |
+| 10.7 | Regenerate Reverb app key + secret                               | ⏭️     |
+| 10.8 | Rotate Mapbox secret token (`sk.eyJ1...` in `gradle.properties`) | ⏭️     |
+| 10.9 | Rotate Mailtrap credentials (or replace with prod mail service)  | ⏭️     |
 
 ### 10c. Externalize remaining hardcoded values
 
 | #     | Task                                                                                | Status |
 | ----- | ----------------------------------------------------------------------------------- | ------ |
-| 10.10 | Move Sentry DSN from hardcoded const to `--dart-define` in `main_rider/driver.dart` | ⬜     |
-| 10.11 | Move Mapbox download token out of `gradle.properties` into CI secrets               | ⬜     |
-| 10.12 | Ensure API/WS URL defaults are `https`/`wss` (currently `http`/`ws`)                | ⬜     |
+| 10.10 | Move Sentry DSN from hardcoded const to `--dart-define` in `main_rider/driver.dart` | ⏭️     |
+| 10.11 | Move Mapbox download token out of `gradle.properties` into CI secrets               | ⏭️     |
+| 10.12 | Ensure API/WS URL defaults are `https`/`wss` (currently `http`/`ws`)                | ⏭️     |
 
 ---
 
@@ -301,33 +301,33 @@
 
 ## 12. Production Readiness
 
-> Catch-all for items that don't fit above but affect whether the app is launch-safe.
+> **⏭️ DEFERRED** — none of these block launch. Revisit post-beta.
 
 ### 12a. Mobile hardening
 
 | #    | Task                                                                              | Status |
 | ---- | --------------------------------------------------------------------------------- | ------ |
-| 12.1 | Replace all `print()` with `debugPrint()` (355+ occurrences leak logs in release) | ⬜     |
-| 12.2 | Add `network_security_config.xml` to disable cleartext traffic                    | ⬜     |
-| 12.3 | Set `sendDefaultPii = false` in Sentry config (privacy/GDPR)                      | ⬜     |
-| 12.4 | Lower Sentry replay `sessionSampleRate` for production (currently 10%)            | ⬜     |
+| 12.1 | Replace all `print()` with `debugPrint()` (355+ occurrences leak logs in release) | ✅     |
+| 12.2 | Add `network_security_config.xml` to disable cleartext traffic                    | ✅     |
+| 12.3 | Set `sendDefaultPii = false` in Sentry config (privacy/GDPR)                      | ✅     |
+| 12.4 | Lower Sentry replay `sessionSampleRate` for production (currently 10%)            | ⏭️     |
 
 ### 12b. Backend ops
 
 | #    | Task                                                                           | Status |
 | ---- | ------------------------------------------------------------------------------ | ------ |
-| 12.5 | Enhance health endpoint to check DB + Redis connectivity                       | ⬜     |
-| 12.6 | Fix N+1 query in `AdminController` line ~480 (missing `with('driverProfile')`) | ⬜     |
-| 12.7 | Configure `LOG_CHANNEL=daily` for production (currently `single`)              | ⬜     |
-| 12.8 | Add `$tries` and `$timeout` to queue jobs (`ExpireRideRequest`, etc.)          | ⬜     |
+| 12.5 | Enhance health endpoint to check DB + Redis connectivity                       | ⏭️     |
+| 12.6 | Fix N+1 query in `AdminController` line ~480 (missing `with('driverProfile')`) | ⏭️     |
+| 12.7 | Configure `LOG_CHANNEL=daily` for production (currently `single`)              | ⏭️     |
+| 12.8 | Add `$tries` and `$timeout` to queue jobs (`ExpireRideRequest`, etc.)          | ⏭️     |
 
 ### 12c. Governance
 
 | #     | Task                                                                   | Status |
 | ----- | ---------------------------------------------------------------------- | ------ |
-| 12.9  | Enable GitHub branch protection on `main` (require PR + status checks) | ⬜     |
-| 12.10 | Update `dependabot.yml` reviewer placeholder with real GitHub username | ⬜     |
-| 12.11 | Disable Dependabot until post-launch (or set to security-only)         | ⬜     |
+| 12.9  | Enable GitHub branch protection on `main` (require PR + status checks) | ⏭️     |
+| 12.10 | Update `dependabot.yml` reviewer placeholder with real GitHub username | ⏭️     |
+| 12.11 | Disable Dependabot until post-launch (or set to security-only)         | ⏭️     |
 
 ---
 
