@@ -7,6 +7,7 @@ use App\Filament\Pages\DispatchTimelinePage;
 use App\Filament\Pages\DriverQueuePage;
 use App\Filament\Pages\LiveMapPage;
 use App\Filament\Pages\LiveMonitoringPage;
+use App\Filament\Pages\AppSettingsPage;
 use App\Filament\Pages\SystemHealthPage;
 use App\Filament\Resources\AuditLogResource;
 use App\Filament\Resources\DriverProfileResource;
@@ -73,6 +74,7 @@ class AdminPanelProvider extends PanelProvider
                 LiveMapPage::class,
                 DispatchTimelinePage::class,
                 SystemHealthPage::class,
+                AppSettingsPage::class,
             ])
             ->widgets([
                 StatsOverviewWidget::class,

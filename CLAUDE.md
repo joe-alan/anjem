@@ -86,10 +86,10 @@ Builder/helper methods that need l10n should receive it as a parameter (`AppLoca
 
 ## Branching & Git Flow
 
-- `main`: production-ready; protected.
-- `dev`: integration branch; feature branches merge here before promotion to `main`.
+- `main`: production branch; Forge auto-deploys to `api.anjem.me` on push.
 - Feature branches use `feat/…`, `fix/…`, `docs/…`, `refactor/…`, `test/…`, or `chore/…`.
-- Rebase feature branches onto `dev`, resolve conflicts locally, and keep history clean.
+- Merge feature branches into `main` via PR when ready to deploy.
+- Local dev serves as the staging/testing environment — there is no separate staging server.
 
 ## Commit & Pull Request Guidelines
 
@@ -100,6 +100,13 @@ Builder/helper methods that need l10n should receive it as a parameter (`AppLoca
   - Backend PRs must list new endpoints with sample request/response payloads, note migrations (with rollback instructions), and mention queue/WebSocket impacts.
   - Link issues (`fixes #123`), attach screenshots for UI changes, and confirm docs updated.
   - Ensure `.env.testing` is updated if new config keys are required.
+
+## Deployment
+
+- **Backend** is hosted on Laravel Forge at `api.anjem.me` with push-to-deploy on the `main` branch.
+- Forge runs the deploy script automatically on push — no manual deployment needed.
+- Forge manages Horizon, Reverb, and the scheduler as daemons.
+- **CI**: GitHub Actions runs `laravel-ci.yml` (backend tests/lint) and `flutter-ci.yml` (mobile tests/lint) on PRs to `main`. PRs are validated by `pr-checks.yml` (conventional commit format, description length).
 
 ## Environment & Operations Notes
 

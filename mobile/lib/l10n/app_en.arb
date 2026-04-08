@@ -607,5 +607,9 @@
 
   "kickedStaleGps": "You were taken offline because your GPS signal was lost. Please check your location settings.",
   "kickedZeroCredits": "You were taken offline because your credit balance reached zero. Contact admin to top up.",
-  "kickedGeneric": "You were taken offline by the system."
+  "kickedGeneric": "You were taken offline by the system.",
+
+  "forceUpdateTitle": "Update Required",
+  "forceUpdateMessage": "Your app version is no longer supported. Please update to the latest version.",
+  "forceUpdateButton": "Update Now"
 }

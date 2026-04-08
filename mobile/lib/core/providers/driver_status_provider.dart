@@ -274,7 +274,7 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
           if (kDebugMode) {
             debugPrint(
                 'DriverStatusProvider: Failed to parse ride request event - $error');
-            debugPrint(stackTrace);
+            debugPrint(stackTrace.toString());
           }
         }
       },

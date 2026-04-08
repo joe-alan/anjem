@@ -1360,4 +1360,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get kickedGeneric => 'You were taken offline by the system.';
+
+  @override
+  String get forceUpdateTitle => 'Update Required';
+
+  @override
+  String get forceUpdateMessage =>
+      'Your app version is no longer supported. Please update to the latest version.';
+
+  @override
+  String get forceUpdateButton => 'Update Now';
 }
