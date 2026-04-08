@@ -227,6 +227,31 @@ class KycResource extends Resource
         }
     }
 
+    private static function waRow(?string $phone): string
+    {
+        $label = '<span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">WhatsApp</span>';
+
+        if (! $phone) {
+            return '<div>' . $label . '<p class="mt-1 text-sm text-gray-900 dark:text-white">—</p></div>';
+        }
+
+        // Normalize to international format for wa.me link
+        $normalized = preg_replace('/[^0-9]/', '', $phone);
+        if (str_starts_with($normalized, '0')) {
+            $normalized = '62' . substr($normalized, 1);
+        }
+
+        $waLink = 'https://wa.me/' . $normalized;
+
+        return '<div>' . $label
+            . '<p class="mt-1 text-sm text-gray-900 dark:text-white flex items-center gap-2">'
+            . e($phone)
+            . ' <a href="' . e($waLink) . '" target="_blank" rel="noopener" '
+            . 'class="inline-flex items-center gap-1 text-xs font-medium text-green-600 hover:text-green-700 hover:underline">'
+            . 'Check WA ↗</a>'
+            . '</p></div>';
+    }
+
     private static function buildReviewModalHtml(User $record): string
     {
         $dp = $record->driverProfile;
@@ -257,7 +282,7 @@ class KycResource extends Resource
                 ' . $row('Student Name', $dp->student_name)
                  . $row('Student ID', $dp->student_id)
                  . $row('Student Email', $dp->student_email)
-                 . $row('WhatsApp', $record->phone_number)
+                 . self::waRow($record->phone_number)
                  . $row('Vehicle Plate', $dp->vehicle_plate)
                  . $row('Vehicle Color', $dp->vehicle_color) . '
             </div>
