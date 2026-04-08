@@ -224,6 +224,17 @@
   "didntReceiveCode": "Tidak menerima kode? ",
   "resendCountdown": "Kirim ulang dalam {seconds} detik",
   "resendCode": "Kirim Ulang Kode",
+  "changeEmail": "Ganti Email",
+  "changeEmailTitle": "Ganti Alamat Email",
+  "newStudentEmailHint": "email.baru@universitas.ac.id",
+  "invalidEmailDomain": "Email harus dari institusi akademik (*.ac.id)",
+  "hourlyLimitReached": "Terlalu banyak percobaan. Silakan coba lagi nanti.",
+  "resendsRemaining": "{count} pengiriman ulang tersisa dalam satu jam",
+  "@resendsRemaining": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "verificationCodeExpiry": "Kode verifikasi berlaku selama 10 menit. Periksa folder spam jika Anda tidak melihat emailnya.",
 
   "newRideRequestTitle": "Permintaan Anjem Baru",

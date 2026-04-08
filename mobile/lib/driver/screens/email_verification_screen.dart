@@ -83,9 +83,11 @@ class _EmailVerificationScreenState
     (_) => FocusNode(),
   );
 
+  late String _currentEmail = widget.studentEmail;
   bool _codeSent = false;
   int _resendCountdown = 0;
   bool _initialLoading = true;
+  int? _hourlyRemaining;
 
   @override
   void initState() {
@@ -97,23 +99,28 @@ class _EmailVerificationScreenState
 
   Future<void> _initCooldownAndSend() async {
     try {
-      // Check if a cooldown is already active (e.g. user force-quit and reopened)
-      final remaining = await ref
+      final result = await ref
           .read(kycStateProvider.notifier)
-          .getResendCooldown(widget.studentEmail);
+          .getResendStatus(_currentEmail);
 
       if (!mounted) return;
 
+      final remaining = result['cooldown_seconds'] ?? 0;
+      final hourly = result['hourly_remaining'];
+
       if (remaining > 0) {
-        // Code was already sent recently — just resume the countdown
         setState(() {
           _codeSent = true;
           _resendCountdown = remaining;
+          _hourlyRemaining = hourly;
           _initialLoading = false;
         });
         _startCountdown();
       } else {
-        setState(() => _initialLoading = false);
+        setState(() {
+          _hourlyRemaining = hourly;
+          _initialLoading = false;
+        });
         _sendVerificationCode();
       }
     } catch (_) {
@@ -136,17 +143,76 @@ class _EmailVerificationScreenState
   }
 
   Future<void> _sendVerificationCode() async {
-    final cooldown = await ref
+    final result = await ref
         .read(kycStateProvider.notifier)
-        .sendVerificationCode(widget.studentEmail);
+        .sendVerificationCode(_currentEmail);
+
+    final cooldown = result['cooldown_seconds'] ?? 0;
+    final hourly = result['hourly_remaining'];
 
     if (cooldown > 0 && mounted) {
       setState(() {
         _codeSent = true;
         _resendCountdown = cooldown;
+        _hourlyRemaining = hourly;
       });
       _startCountdown();
     }
+  }
+
+  void _showChangeEmailDialog() {
+    final l10n = AppLocalizations.of(context);
+    final controller = TextEditingController(text: _currentEmail);
+    String? errorText;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(l10n.changeEmailTitle),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.emailAddress,
+            decoration: InputDecoration(
+              hintText: l10n.newStudentEmailHint,
+              errorText: errorText,
+            ),
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () {
+                final email = controller.text.trim();
+                final valid = RegExp(r'@.+\.ac\.id$', caseSensitive: false)
+                    .hasMatch(email);
+                if (!valid) {
+                  setDialogState(() => errorText = l10n.invalidEmailDomain);
+                  return;
+                }
+                Navigator.pop(ctx, email);
+              },
+              child: Text(l10n.continueButton),
+            ),
+          ],
+        ),
+      ),
+    ).then((newEmail) {
+      if (newEmail != null && newEmail != _currentEmail && mounted) {
+        setState(() {
+          _currentEmail = newEmail;
+          _codeSent = false;
+          _resendCountdown = 0;
+          for (var c in _codeControllers) {
+            c.clear();
+          }
+        });
+        _sendVerificationCode();
+      }
+    });
   }
 
   void _startCountdown() {
@@ -179,7 +245,7 @@ class _EmailVerificationScreenState
     }
 
     final success = await ref.read(kycStateProvider.notifier).verifyEmail(
-          studentEmail: widget.studentEmail,
+          studentEmail: _currentEmail,
           code: code,
         );
 
@@ -286,14 +352,32 @@ class _EmailVerificationScreenState
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            Text(
-              widget.studentEmail,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: config.primaryColor,
-              ),
-              textAlign: TextAlign.center,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(
+                  child: Text(
+                    _currentEmail,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: config.primaryColor,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: kycState.isLoading ? null : _showChangeEmailDialog,
+                  child: Icon(
+                    Icons.edit,
+                    size: 18,
+                    color: kycState.isLoading
+                        ? Colors.grey[400]
+                        : config.primaryColor,
+                  ),
+                ),
+              ],
             ),
 
             const SizedBox(height: 48),
@@ -377,6 +461,22 @@ class _EmailVerificationScreenState
                       ),
                     ),
                 ],
+              ),
+
+            if (_hourlyRemaining != null && _hourlyRemaining! <= 2)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  _hourlyRemaining! <= 0
+                      ? l10n.hourlyLimitReached
+                      : l10n.resendsRemaining(_hourlyRemaining!),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _hourlyRemaining! <= 0
+                        ? Colors.red
+                        : Colors.orange[700],
+                  ),
+                ),
               ),
 
             const SizedBox(height: 32),

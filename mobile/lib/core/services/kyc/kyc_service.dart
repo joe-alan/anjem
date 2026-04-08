@@ -272,8 +272,8 @@ class KycService {
   }
 
   /// Send verification code to student email.
-  /// Returns the cooldown in seconds from the server response.
-  Future<int> sendVerificationCode(String studentEmail) async {
+  /// Returns {cooldown_seconds, hourly_remaining} from the server response.
+  Future<Map<String, int?>> sendVerificationCode(String studentEmail) async {
     try {
       final response = await _apiService.post(
         '/driver/kyc/send-code',
@@ -290,9 +290,12 @@ class KycService {
 
       final data = response.data['data'];
       if (data is Map<String, dynamic>) {
-        return data['cooldown_seconds'] as int? ?? 60;
+        return {
+          'cooldown_seconds': data['cooldown_seconds'] as int? ?? 60,
+          'hourly_remaining': data['hourly_remaining'] as int?,
+        };
       }
-      return 60;
+      return {'cooldown_seconds': 60, 'hourly_remaining': null};
     } on ApiException {
       rethrow;
     } catch (e) {
@@ -303,8 +306,8 @@ class KycService {
     }
   }
 
-  /// Check remaining cooldown seconds before resend is allowed.
-  Future<int> getResendCooldown(String studentEmail) async {
+  /// Check resend status: cooldown and hourly remaining.
+  Future<Map<String, int?>> getResendStatus(String studentEmail) async {
     try {
       final response = await _apiService.get(
         '/driver/kyc/resend-status',
@@ -312,12 +315,17 @@ class KycService {
       );
 
       if (response.data['success'] == true) {
-        final data = response.data['data'] as Map<String, dynamic>?;
-        return data?['cooldown_seconds'] as int? ?? 0;
+        final data = response.data['data'];
+        if (data is Map<String, dynamic>) {
+          return {
+            'cooldown_seconds': data['cooldown_seconds'] as int? ?? 0,
+            'hourly_remaining': data['hourly_remaining'] as int?,
+          };
+        }
       }
-      return 0;
+      return {'cooldown_seconds': 0, 'hourly_remaining': null};
     } catch (_) {
-      return 0;
+      return {'cooldown_seconds': 0, 'hourly_remaining': null};
     }
   }
 

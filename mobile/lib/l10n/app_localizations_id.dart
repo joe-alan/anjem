@@ -703,6 +703,28 @@ class AppLocalizationsId extends AppLocalizations {
   String get resendCode => 'Kirim Ulang Kode';
 
   @override
+  String get changeEmail => 'Ganti Email';
+
+  @override
+  String get changeEmailTitle => 'Ganti Alamat Email';
+
+  @override
+  String get newStudentEmailHint => 'email.baru@universitas.ac.id';
+
+  @override
+  String get invalidEmailDomain =>
+      'Email harus dari institusi akademik (*.ac.id)';
+
+  @override
+  String get hourlyLimitReached =>
+      'Terlalu banyak percobaan. Silakan coba lagi nanti.';
+
+  @override
+  String resendsRemaining(int count) {
+    return '$count pengiriman ulang tersisa dalam satu jam';
+  }
+
+  @override
   String get verificationCodeExpiry =>
       'Kode verifikasi berlaku selama 10 menit. Periksa folder spam jika Anda tidak melihat emailnya.';
 
