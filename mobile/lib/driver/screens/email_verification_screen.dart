@@ -60,10 +60,12 @@ class PasteTextInputFormatter extends TextInputFormatter {
 
 class EmailVerificationScreen extends ConsumerStatefulWidget {
   final String studentEmail;
+  final bool autoSend;
 
   const EmailVerificationScreen({
     super.key,
     required this.studentEmail,
+    this.autoSend = true,
   });
 
   @override
@@ -121,12 +123,16 @@ class _EmailVerificationScreenState
           _hourlyRemaining = hourly;
           _initialLoading = false;
         });
-        _sendVerificationCode();
+        if (widget.autoSend) {
+          _sendVerificationCode();
+        }
       }
     } catch (_) {
       if (mounted) {
         setState(() => _initialLoading = false);
-        _sendVerificationCode();
+        if (widget.autoSend) {
+          _sendVerificationCode();
+        }
       }
     }
   }

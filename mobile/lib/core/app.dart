@@ -116,7 +116,7 @@ class AuthenticationWrapper extends ConsumerWidget {
           final email = kycSubmission!.studentEmail;
           if (email != null) {
             debugPrint('AuthWrapper: Resuming email verification for $email');
-            return EmailVerificationScreen(studentEmail: email);
+            return EmailVerificationScreen(studentEmail: email, autoSend: false);
           }
           // Fallback: email missing in profile, restart the form.
           return const KycFormScreen();
