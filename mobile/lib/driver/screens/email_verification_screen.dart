@@ -120,6 +120,7 @@ class _EmailVerificationScreenState
         _startCountdown();
       } else {
         setState(() {
+          _codeSent = !widget.autoSend;
           _hourlyRemaining = hourly;
           _initialLoading = false;
         });
@@ -129,7 +130,10 @@ class _EmailVerificationScreenState
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _initialLoading = false);
+        setState(() {
+          _codeSent = !widget.autoSend;
+          _initialLoading = false;
+        });
         if (widget.autoSend) {
           _sendVerificationCode();
         }
