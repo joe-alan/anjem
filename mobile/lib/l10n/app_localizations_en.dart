@@ -1380,7 +1380,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'You were taken offline because your credit balance reached zero. Contact admin to top up.';
 
   @override
+  String get kickedAdminKick => 'You were removed from the queue by an admin.';
+
+  @override
   String get kickedGeneric => 'You were taken offline by the system.';
+
+  @override
+  String get driverLocationNotificationTitle => 'Anjem Driver';
+
+  @override
+  String get driverLocationNotificationText =>
+      'Your location is being shared while you are online';
 
   @override
   String get forceUpdateTitle => 'Update Required';

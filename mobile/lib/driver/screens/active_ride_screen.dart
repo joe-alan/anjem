@@ -17,6 +17,7 @@ import '../../core/providers/driver_status_provider.dart';
 import '../../core/providers/credits_provider.dart';
 import '../../core/providers/session_provider.dart';
 import '../../core/models/session_state.dart';
+import '../../core/services/location/driver_location_service.dart';
 import 'driver_home_screen.dart';
 import '../../core/widgets/mapbox_map_widget.dart';
 import '../../core/widgets/whatsapp_launcher.dart';
@@ -38,7 +39,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
   MapboxMapController? _mapController;
   Set<MapMarker> _markers = {};
   Set<MapPolyline> _polylines = {};
-  Timer? _locationUpdateTimer;
+  StreamSubscription<Position>? _locationSubscription;
   bool _isUpdatingStatus = false;
   bool _isCancelling = false;
   final MapboxDirectionsService _directionsService = MapboxDirectionsService();
@@ -47,7 +48,31 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
   @override
   void initState() {
     super.initState();
-    _startLocationUpdates();
+
+    // Subscribe to centralized location service for position updates
+    final locationService = ref.read(driverLocationServiceProvider);
+    _locationSubscription = locationService.positionStream.listen((position) {
+      if (!mounted) return;
+      setState(() {
+        _currentDriverLocation = LatLng(position.latitude, position.longitude);
+      });
+      // Redraw route from new driver position (only for accepted — dynamic route)
+      final currentStatus = ref.read(activeRideProvider).ride?.status;
+      if (currentStatus == RideStatus.accepted) {
+        _fetchAndDisplayRoute().catchError((e) {
+          if (kDebugMode) print('⚠️ [Driver] Route update on location change error: $e');
+        });
+      }
+    });
+
+    // Get initial location for immediate map display
+    Geolocator.getLastKnownPosition().then((position) {
+      if (position != null && mounted) {
+        setState(() {
+          _currentDriverLocation = LatLng(position.latitude, position.longitude);
+        });
+      }
+    });
 
     // Load ride data from API
     Future.microtask(() async {
@@ -67,139 +92,9 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
 
   @override
   void dispose() {
-    _locationUpdateTimer?.cancel();
+    _locationSubscription?.cancel();
     _mapController?.dispose();
     super.dispose();
-  }
-
-  Future<void> _startLocationUpdates() async {
-    final hasPermission = await _checkLocationPermission();
-    if (!hasPermission) {
-      _showLocationPermissionDialog();
-      return;
-    }
-
-    // Get initial location
-    try {
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 10,
-        ),
-      );
-      _currentDriverLocation = LatLng(position.latitude, position.longitude);
-      // Fetch route for initial position
-      _fetchAndDisplayRoute().catchError((e) {
-        if (kDebugMode) print('⚠️ [Driver] Initial route fetch error handled: $e');
-      });
-    } catch (e) {
-      if (kDebugMode) print('Failed to get initial location: $e');
-    }
-
-    // Start adaptive location update loop
-    _scheduleNextLocationUpdate();
-  }
-
-  // Adaptive location update interval based on speed:
-  //   > 15 km/h  →  5 s  (fast-moving, high precision)
-  //   2–15 km/h  → 10 s  (normal driving)
-  //   < 2 km/h   → 30 s  (stationary/slow, save battery)
-  void _scheduleNextLocationUpdate() {
-    if (!mounted) return;
-    Future.delayed(const Duration(seconds: 5), () async {
-      if (!mounted) return;
-      try {
-        final position = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.high,
-            distanceFilter: 10,
-          ),
-        );
-
-        // Update current driver location
-        if (mounted) {
-          setState(() {
-            _currentDriverLocation = LatLng(position.latitude, position.longitude);
-          });
-          // Redraw route from new driver position (only for accepted — dynamic route)
-          final currentStatus = ref.read(activeRideProvider).ride?.status;
-          if (currentStatus == RideStatus.accepted) {
-            _fetchAndDisplayRoute().catchError((e) {
-              if (kDebugMode) print('⚠️ [Driver] Route update on location change error: $e');
-            });
-          }
-        }
-
-        // Determine adaptive interval from speed (m/s → km/h)
-        final speedKmh = (position.speed < 0 ? 0 : position.speed) * 3.6;
-        final interval = speedKmh > 15
-            ? const Duration(seconds: 5)
-            : speedKmh >= 2
-                ? const Duration(seconds: 10)
-                : const Duration(seconds: 30);
-
-        final apiService = ref.read(apiServiceProvider);
-        await apiService.post('/driver/location', data: {
-          'latitude': position.latitude,
-          'longitude': position.longitude,
-          'heading': position.heading,
-          'speed': position.speed,
-        });
-
-        if (kDebugMode) print('Driver location updated (${interval.inSeconds}s interval, ${speedKmh.toStringAsFixed(1)} km/h)');
-
-        // Schedule next update after the adaptive interval
-        if (mounted) {
-          _locationUpdateTimer = Timer(interval, _scheduleNextLocationUpdate);
-        }
-      } catch (e) {
-        if (kDebugMode) print('Failed to update location: $e');
-        // Retry after default interval on error
-        if (mounted) {
-          _locationUpdateTimer = Timer(const Duration(seconds: 10), _scheduleNextLocationUpdate);
-        }
-      }
-    });
-  }
-
-  Future<bool> _checkLocationPermission() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      return false;
-    }
-
-    return permission == LocationPermission.whileInUse ||
-        permission == LocationPermission.always;
-  }
-
-  void _showLocationPermissionDialog() {
-    final l10n = AppLocalizations.of(context);
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.locationPermissionTitle),
-        content: Text(l10n.locationPermissionMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Geolocator.openLocationSettings();
-            },
-            child: Text(l10n.openSettings),
-          ),
-        ],
-      ),
-    );
   }
 
   /// Fetch and display route based on current ride status
