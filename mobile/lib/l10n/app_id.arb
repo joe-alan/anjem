@@ -498,7 +498,11 @@
 
   "kickedStaleGps": "Anda dibuat offline karena sinyal GPS hilang. Silakan periksa pengaturan lokasi Anda.",
   "kickedZeroCredits": "Anda dibuat offline karena saldo kredit habis. Hubungi admin untuk isi ulang.",
+  "kickedAdminKick": "Anda dikeluarkan dari antrean oleh admin.",
   "kickedGeneric": "Anda dibuat offline oleh sistem.",
+
+  "driverLocationNotificationTitle": "Anjem Driver",
+  "driverLocationNotificationText": "Lokasi Anda dibagikan selama Anda online",
 
   "forceUpdateTitle": "Pembaruan Diperlukan",
   "forceUpdateMessage": "Versi aplikasi kamu sudah tidak didukung. Silakan update ke versi terbaru.",

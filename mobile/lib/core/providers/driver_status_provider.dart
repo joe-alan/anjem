@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/ride_request.dart';
 import '../services/api/api_service.dart';
+import '../services/location/driver_location_service.dart';
 import '../services/websocket/websocket_service.dart';
 import 'api_provider.dart';
 import 'auth_provider.dart'; // also used for authStateProvider (session.replaced)
@@ -63,6 +64,7 @@ class DriverStatusState {
 class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
   final ApiService _apiService;
   final WebSocketService _wsService;
+  final DriverLocationService _locationService;
   final Ref _ref;
   int? _driverId;
   String? _kickReason;
@@ -70,6 +72,7 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
   DriverStatusNotifier(
     this._apiService,
     this._wsService,
+    this._locationService,
     this._ref,
   ) : super(const DriverStatusState());
 
@@ -187,6 +190,9 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
       // Refresh balance so the chip and request screen show the current value.
       _ref.invalidate(creditsProvider);
 
+      // Start background location tracking
+      await _locationService.start(mode: DriverLocationMode.idle);
+
       // Subscribe to driver channel for incoming ride requests
       await _subscribeToRideRequests();
 
@@ -225,6 +231,9 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
       if (kDebugMode) print('DriverStatusProvider: Calling POST /driver/offline');
       final response = await _apiService.post('/driver/offline');
       if (kDebugMode) print('DriverStatusProvider: goOffline API response: ${response.data}');
+
+      // Stop background location tracking
+      await _locationService.stop();
 
       // Keep the driver channel subscription alive so session.replaced
       // is received immediately if another device logs in while offline.
@@ -299,6 +308,7 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
           final reason = eventData['reason'] as String?;
           if (kDebugMode) print('DriverStatusProvider: Auto-kicked offline by backend (reason: $reason)');
           _kickReason = reason;
+          _locationService.stop();
           _ref.read(driverIncomingRequestProvider.notifier).clear();
           state = state.copyWith(
             status: DriverStatusEnum.offline,
@@ -321,6 +331,7 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         final isSuspended = eventData['is_suspended'] as bool? ?? false;
         if (isSuspended) {
           if (kDebugMode) print('DriverStatusProvider: Account suspended — going offline');
+          _locationService.stop();
           _ref.read(driverIncomingRequestProvider.notifier).clear();
           state = const DriverStatusState();
         } else {
@@ -393,11 +404,16 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
 
   void setActiveRide(int? rideId) {
     if (rideId != null) {
+      _locationService.switchMode(DriverLocationMode.activeRide);
       state = state.copyWith(
         status: DriverStatusEnum.inActiveRide,
         activeRideId: rideId,
       );
     } else {
+      // Back to idle mode after ride completes (if still online)
+      if (_locationService.isTracking) {
+        _locationService.switchMode(DriverLocationMode.idle);
+      }
       state = state.copyWith(
         status: DriverStatusEnum.online,
         activeRideId: null,
@@ -430,6 +446,8 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
     if (_driverId == null) return;
 
     if (kDebugMode) print('DriverStatusProvider: kickOfflineOnLaunch — clearing stale online state');
+
+    await _locationService.stop();
 
     state = state.copyWith(
       status: DriverStatusEnum.offline,
@@ -478,6 +496,7 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         status: DriverStatusEnum.inActiveRide,
         activeRideId: activeRideId,
       );
+      await _locationService.start(mode: DriverLocationMode.activeRide);
       await _subscribeToRideRequests();
     } else if (isOnline) {
       if (kDebugMode) print('DriverStatusProvider: Syncing status - online');
@@ -485,6 +504,7 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
         status: DriverStatusEnum.online,
         activeRideId: null,
       );
+      await _locationService.start(mode: DriverLocationMode.idle);
       await _subscribeToRideRequests();
     } else {
       if (kDebugMode) print('DriverStatusProvider: Syncing status - offline');
@@ -504,7 +524,8 @@ final driverStatusProvider =
     StateNotifierProvider<DriverStatusNotifier, DriverStatusState>((ref) {
   final apiService = ref.watch(apiServiceProvider);
   final wsService = ref.watch(websocketServiceProvider);
-  final notifier = DriverStatusNotifier(apiService, wsService, ref);
+  final locationService = ref.watch(driverLocationServiceProvider);
+  final notifier = DriverStatusNotifier(apiService, wsService, locationService, ref);
 
   // Listen to auth changes
   ref.listen(currentUserProvider, (previous, next) {

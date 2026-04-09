@@ -2594,11 +2594,29 @@ abstract class AppLocalizations {
   /// **'You were taken offline because your credit balance reached zero. Contact admin to top up.'**
   String get kickedZeroCredits;
 
+  /// No description provided for @kickedAdminKick.
+  ///
+  /// In en, this message translates to:
+  /// **'You were removed from the queue by an admin.'**
+  String get kickedAdminKick;
+
   /// No description provided for @kickedGeneric.
   ///
   /// In en, this message translates to:
   /// **'You were taken offline by the system.'**
   String get kickedGeneric;
+
+  /// No description provided for @driverLocationNotificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Anjem Driver'**
+  String get driverLocationNotificationTitle;
+
+  /// No description provided for @driverLocationNotificationText.
+  ///
+  /// In en, this message translates to:
+  /// **'Your location is being shared while you are online'**
+  String get driverLocationNotificationText;
 
   /// No description provided for @forceUpdateTitle.
   ///

@@ -618,7 +618,11 @@
 
   "kickedStaleGps": "You were taken offline because your GPS signal was lost. Please check your location settings.",
   "kickedZeroCredits": "You were taken offline because your credit balance reached zero. Contact admin to top up.",
+  "kickedAdminKick": "You were removed from the queue by an admin.",
   "kickedGeneric": "You were taken offline by the system.",
+
+  "driverLocationNotificationTitle": "Anjem Driver",
+  "driverLocationNotificationText": "Your location is being shared while you are online",
 
   "forceUpdateTitle": "Update Required",
   "forceUpdateMessage": "Your app version is no longer supported. Please update to the latest version.",

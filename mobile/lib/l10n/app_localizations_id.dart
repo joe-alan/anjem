@@ -1384,7 +1384,17 @@ class AppLocalizationsId extends AppLocalizations {
       'Anda dibuat offline karena saldo kredit habis. Hubungi admin untuk isi ulang.';
 
   @override
+  String get kickedAdminKick => 'Anda dikeluarkan dari antrean oleh admin.';
+
+  @override
   String get kickedGeneric => 'Anda dibuat offline oleh sistem.';
+
+  @override
+  String get driverLocationNotificationTitle => 'Anjem Driver';
+
+  @override
+  String get driverLocationNotificationText =>
+      'Lokasi Anda dibagikan selama Anda online';
 
   @override
   String get forceUpdateTitle => 'Pembaruan Diperlukan';
