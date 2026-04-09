@@ -172,27 +172,33 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
   Future<void> _handleAppResume() async {
     final sessionNotifier = ref.read(sessionStateProvider.notifier);
 
-    // Only refresh if enough time has passed (>5 minutes)
-    if (sessionNotifier.shouldRefresh()) {
-      final sessionState = await sessionNotifier.refreshSession();
+    // Always refresh session on resume — even brief screen-off can break
+    // WebSocket and leave stale state. The API call is lightweight.
+    final sessionState = await sessionNotifier.refreshSession();
 
-      if (!mounted) return;
+    if (!mounted) return;
 
-      // Always re-sync driver status so online/offline reflects backend truth
-      if (sessionState != null) {
-        final appConfig = AppConfig.instance;
-        if (appConfig.isDriverApp && sessionState.driverContext.isDriver) {
-          ref.read(driverStatusProvider.notifier).syncFromBackend(
-            isOnline: sessionState.driverContext.isOnline,
-            activeRideId: sessionState.driverContext.activeRideId,
-          );
-        }
+    if (sessionState != null) {
+      final appConfig = AppConfig.instance;
+
+      // Sync driver status so online/offline reflects backend truth
+      if (appConfig.isDriverApp && sessionState.driverContext.isDriver) {
+        ref.read(driverStatusProvider.notifier).syncFromBackend(
+          isOnline: sessionState.driverContext.isOnline,
+          activeRideId: sessionState.driverContext.activeRideId,
+        );
       }
 
-      if (sessionState != null && !sessionState.isIdle) {
-        // Show dialog asking if user wants to resume
-        _showResumeDialog(sessionState);
+      // Sync active ride provider with backend truth
+      if (sessionState.activeRide != null) {
+        ref.read(activeRideProvider.notifier).setRide(sessionState.activeRide!);
+      } else {
+        ref.read(activeRideProvider.notifier).reset();
       }
+    }
+
+    if (sessionState != null && !sessionState.isIdle) {
+      _showResumeDialog(sessionState);
     }
   }
 
