@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:mobile/l10n/app_localizations.dart';
+import 'package:permission_handler/permission_handler.dart' as ph;
 import '../../core/config/app_config.dart';
 import '../../core/models/ride_request.dart';
 import '../../core/providers/driver_incoming_request_provider.dart';
@@ -60,9 +61,9 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     Future.microtask(() {
       ref.refresh(driverStatisticsProvider);
     });
-    // Prompt for location permission on first boot if not yet granted
+    // Request all permissions upfront on first screen mount
     WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _checkAndRequestLocationPermission(),
+      (_) => _requestAllPermissions(),
     );
 
     _incomingRequestSub = ref.listenManual<RideRequest?>(
@@ -120,18 +121,40 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     );
   }
 
-  Future<bool> _checkAndRequestLocationPermission() async {
+  /// Request all permissions the driver app needs upfront:
+  /// location, notification, and background location.
+  Future<void> _requestAllPermissions() async {
+    // 1. Location (required for core functionality)
+    final locationStatus = await ph.Permission.location.status;
+    if (locationStatus.isDenied) {
+      await ph.Permission.location.request();
+    }
+
+    // 2. Notification (Android 13+, needed for FCM + foreground service)
+    final notifStatus = await ph.Permission.notification.status;
+    if (notifStatus.isDenied) {
+      await ph.Permission.notification.request();
+    }
+
+    // 3. Background location (needed for foreground service when app backgrounded)
+    // Must be requested AFTER foreground location is granted.
+    final locationAfter = await ph.Permission.location.status;
+    if (locationAfter.isGranted) {
+      final bgStatus = await ph.Permission.locationAlways.status;
+      if (bgStatus.isDenied) {
+        await ph.Permission.locationAlways.request();
+      }
+    }
+  }
+
+  /// Check if location permission is granted (used before goOnline).
+  Future<bool> _checkLocationPermission() async {
     final permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.whileInUse ||
         permission == LocationPermission.always) {
       return true;
     }
-    if (permission == LocationPermission.denied) {
-      final result = await Geolocator.requestPermission();
-      return result == LocationPermission.whileInUse ||
-          result == LocationPermission.always;
-    }
-    // deniedForever — system dialog won't appear; direct them to settings
+    // If denied at this point, direct to settings
     if (mounted) {
       final l10n = AppLocalizations.of(context);
       await showDialog<void>(
@@ -937,7 +960,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
       onPressed: canGoOnline
           ? () async {
               HapticFeedback.mediumImpact();
-              final hasPermission = await _checkAndRequestLocationPermission();
+              final hasPermission = await _checkLocationPermission();
               if (!hasPermission || !mounted) return;
               await ref.read(driverStatusProvider.notifier).goOnline();
               final error = ref.read(driverStatusProvider).error;
