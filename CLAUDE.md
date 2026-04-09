@@ -2,33 +2,67 @@
 
 ## Project Overview
 
-Anjem is a campus ride-sharing platform composed of a Laravel 11 backend (`backend/`) and a Flutter 3.24 rider/driver app (`mobile/`). Documentation, phase reports, and setup guides live in `docs/`, while `CONTINUE_HERE.md` tracks current priorities.
+Anjem is a campus ride-sharing platform (Grab/Uber model) for the Semarang/Undip area. It connects riders with verified student motorbike drivers within a university geofence.
+
+- **Backend:** Laravel 11 (`backend/`) — API, Filament 3 admin panel, Horizon queue manager, Reverb WebSocket server
+- **Mobile:** Flutter 3.24 (`mobile/`) — two flavors: `rider` and `driver`
+- **Docs:** `docs/` — product spec, tech spec, admin docs, test logs
+- **Tracking:** `STAGING_LAUNCH_CHECKLIST.md` tracks launch progress
 
 ## Project Structure & Modules
 
-- `backend/app/` (controllers, services, events, models) with API routes in `routes/api.php`, migrations/seeders in `database/`, and integration/unit tests under `tests/`.
-- `mobile/lib/` with shared modules in `core/` (models, services, providers, widgets) and flavor-specific code in `rider/` and `driver/`.
-- Supporting assets: `Makefile` and docs referenced above.
+- `backend/app/` — controllers, services, events, models; API routes in `routes/api.php`; migrations/seeders in `database/`; tests under `tests/`.
+- `mobile/lib/` — shared modules in `core/` (models, services, providers, widgets, config) and flavor-specific code in `rider/` and `driver/`.
+- `Makefile` — dev automation shortcuts (note: some targets have stale flavor names).
 
 ## First-Time Setup
 
-1. **Backend**
-   - `cd backend && cp .env.example .env`, fill DB/Firebase/Mapbox keys, then `composer install`, `php artisan key:generate`, `php artisan migrate --seed`, `php artisan storage:link`. Ensure Postgres and Redis are running as native services.
-   - Start services: `php artisan serve`, `php artisan reverb:start`, `php artisan queue:work`, `php artisan schedule:work` (Redis-backed queues).
-2. **Mobile**
-   - `cd mobile && flutter pub get`.
-   - Update environment constants (e.g., `lib/core/config/environment.dart`) with API base URL, WebSocket URL, and API keys.
-   - Generate code when models/providers change: `flutter packages pub run build_runner build --delete-conflicting-outputs`.
+### Backend
+
+1. `cd backend && cp .env.example .env`
+2. Fill required keys in `.env`:
+   - **Database:** Postgres connection (`DB_*`)
+   - **Firebase:** Service account credentials (`FIREBASE_*`) + `FIREBASE_STORAGE_BUCKET`
+   - **Mapbox:** `MAPBOX_PUBLIC_TOKEN`, `MAPBOX_SECRET_TOKEN`
+   - **Reverb:** `REVERB_APP_ID`, `REVERB_APP_KEY`, `REVERB_APP_SECRET`, `REVERB_HOST`, `REVERB_PORT`, `REVERB_SCHEME`
+   - **Mail:** Mailtrap transactional SMTP (`MAIL_HOST`, `MAIL_PORT=2525`, `MAIL_USERNAME`, `MAIL_PASSWORD`)
+   - **Sentry:** `SENTRY_LARAVEL_DSN`, `SENTRY_TRACES_SAMPLE_RATE`, `SENTRY_ENVIRONMENT`
+3. `composer install && php artisan key:generate && php artisan migrate --seed && php artisan storage:link`
+4. Ensure Postgres and Redis are running as **native services** (not Docker).
+
+### Mobile
+
+1. `cd mobile && flutter pub get`
+2. Environment is configured via `--dart-define` flags at build time (no `.env` file). All values feed into `AppConfig` singleton via `main_rider.dart` / `main_driver.dart`:
+   - `API_URL` (default: `http://10.0.2.2:8000/api/v1`)
+   - `WS_URL` (default: `ws://10.0.2.2:8000`)
+   - `MAPBOX_ACCESS_TOKEN`
+   - `PUSHER_KEY`, `PUSHER_HOST`, `PUSHER_PORT`, `PUSHER_SCHEME`
+   - `SENTRY_DSN`, `SENTRY_ENV` (optional — Sentry disabled if DSN empty)
+3. Generate code when annotated models/providers change: `dart run build_runner build --delete-conflicting-outputs`
 
 ## Daily Development Flow
 
-- Backend: `php artisan serve` + `php artisan reverb:start` + `php artisan queue:work` + `php artisan schedule:work` (ensure Redis is running). All four processes must be running — `schedule:work` drives the stale-driver kick and request cleanup jobs.
-- Mobile: `flutter run --flavor rider -t lib/main_rider.dart` or `flutter run --flavor driver -t lib/main_driver.dart`.
-- Ensure Postgres and Redis are running as native services, and rerun `build_runner` whenever annotated files change.
+- **Backend** — all four processes must be running:
+  ```bash
+  php artisan serve            # API on :8000
+  php artisan reverb:start     # WebSocket on :8080
+  php artisan queue:work        # Jobs (FCM sends, ride expiry, etc.)
+  php artisan schedule:work     # Stale-driver kick + route cache cleanup
+  ```
+- **Mobile:**
+  ```bash
+  flutter run --flavor rider -t lib/main_rider.dart \
+    --dart-define=MAPBOX_ACCESS_TOKEN=pk.eyJ1...
+
+  flutter run --flavor driver -t lib/main_driver.dart \
+    --dart-define=MAPBOX_ACCESS_TOKEN=pk.eyJ1...
+  ```
+- Ensure Postgres and Redis are running natively. Rerun `build_runner` whenever annotated files change.
 
 ## Destructive Commands (Use Carefully)
 
-- `php artisan migrate:fresh --seed` wipes dev data—run only when you intend to reseed.
+- `php artisan migrate:fresh --seed` wipes dev data — run only when you intend to reseed.
 - `php artisan test` must target the isolated test DB (see next section) to avoid truncating dev data.
 - Dropping databases affects both backend and Flutter clients; confirm backups or seed scripts first.
 
@@ -40,13 +74,13 @@ Anjem is a campus ride-sharing platform composed of a Laravel 11 backend (`backe
 
 ## Build, Lint, and QA Commands
 
-- Backend: `./vendor/bin/phpstan analyse`, `php artisan test`, `php artisan queue:work`, `php artisan reverb:start`.
-- Mobile: `dart analyze`, `dart format --set-exit-if-changed .`, `flutter test`, `flutter packages pub run build_runner build --delete-conflicting-outputs`.
+- **Backend:** `./vendor/bin/phpstan analyse` (static analysis), `php artisan test`, `./vendor/bin/pint` (code formatting).
+- **Mobile:** `dart analyze`, `dart format --set-exit-if-changed .`, `flutter test`, `dart run build_runner build --delete-conflicting-outputs`.
 
 ## Coding Style & Naming
 
-- PHP: PSR-12, type-hinted methods, PascalCase classes, camelCase methods/properties. Keep controllers thin—move logic into `app/Services`.
-- Dart: Effective Dart; explicit types where clarity matters; widgets ≤20–25 lines; reusable components in `lib/core/widgets`; state handled via Riverpod providers.
+- **PHP:** PSR-12, type-hinted methods, PascalCase classes, camelCase methods/properties. Keep controllers thin — move logic into `app/Services`.
+- **Dart:** Effective Dart; explicit types where clarity matters; widgets ≤20–25 lines; reusable components in `lib/core/widgets`; state handled via Riverpod providers.
 - Run formatters/analyzers before committing.
 
 ## Internationalisation (i18n)
@@ -78,11 +112,8 @@ Builder/helper methods that need l10n should receive it as a parameter (`AppLoca
 ### Default locale & switching
 
 - Default locale is **Bahasa Indonesia** (`id`), set in `mobile/lib/core/providers/locale_provider.dart`.
-- `MaterialApp` in `mobile/lib/core/app.dart` watches `localeProvider` — updating its state switches the whole app live:
-  ```dart
-  ref.read(localeProvider.notifier).state = const Locale('en');
-  ```
-- There is currently no in-app language switcher UI; adding one requires only a settings screen that writes to `localeProvider`.
+- `MaterialApp` in `mobile/lib/core/app.dart` watches `localeProvider` — updating its state switches the whole app live.
+- No in-app language switcher UI yet.
 
 ## Branching & Git Flow
 
@@ -95,7 +126,7 @@ Builder/helper methods that need l10n should receive it as a parameter (`AppLoca
 
 - Commit format: `type(scope): short description` (e.g., `feat(auth): add OTP verification`). Include tests/docs when relevant.
 - PR checklist:
-  - Summary + “Changes Made” checklist.
+  - Summary + "Changes Made" checklist.
   - Test evidence (`php artisan test`, `flutter test`, analyzer outputs).
   - Backend PRs must list new endpoints with sample request/response payloads, note migrations (with rollback instructions), and mention queue/WebSocket impacts.
   - Link issues (`fixes #123`), attach screenshots for UI changes, and confirm docs updated.
@@ -103,16 +134,40 @@ Builder/helper methods that need l10n should receive it as a parameter (`AppLoca
 
 ## Deployment
 
-- **Backend** is hosted on Laravel Forge at `api.anjem.me` with push-to-deploy on the `main` branch.
-- Forge runs the deploy script automatically on push — no manual deployment needed.
-- Forge manages Horizon, Reverb, and the scheduler as daemons.
-- **CI**: GitHub Actions runs `laravel-ci.yml` (backend tests/lint) and `flutter-ci.yml` (mobile tests/lint) on PRs to `main`. PRs are validated by `pr-checks.yml` (conventional commit format, description length).
+- **Server:** Laravel Forge (Hobby plan) on DigitalOcean (4GB/2vCPU, Singapore). Ubuntu, PHP 8.4, PostgreSQL 17 + PostGIS, Redis, Nginx.
+- **Domains:** `api.anjem.me` (API + admin panel), `ws.anjem.me` (WebSocket via Reverb).
+- **Push-to-deploy:** Forge auto-deploys on push to `main`. Deploy script runs `composer install --no-dev`, `optimize`, and migrations.
+- **Daemons managed by Forge:** Horizon (queue), Reverb (WebSocket), Scheduler.
+- **Admin panel:** Filament at `api.anjem.me/admin`, protected by session auth + Nginx rate limiting (5r/s).
+- **SSL:** Let's Encrypt — `api.anjem.me` via DNS-01, `ws.anjem.me` via HTTP-01.
+- **CI:** GitHub Actions — `laravel-ci.yml` (backend tests/lint), `flutter-ci.yml` (mobile tests/lint), `pr-checks.yml` (conventional commit format, description length).
+
+## Key Systems
+
+### Force-Update System
+- Backend: `GET /api/v1/app/config` returns `min_version`, `force_update`, `update_url` (managed via Filament `AppSettingsPage`).
+- Mobile: `VersionCheckWrapper` wraps the app root; blocks navigation with `ForceUpdateScreen` when the installed version is below `min_version`.
+
+### Account Deletion (GDPR/PDP)
+- Soft-delete with PII anonymization. Foreign keys use `nullOnDelete`. Users can re-sign-up after deletion.
+
+### KYC Flow
+- Drivers submit student ID photo → Firebase Storage upload → email OTP verification (queued via Horizon) → admin reviews in Filament with approve/reject.
+- OTP has backend rate limiting: 60s cooldown between resends, 5/hour cap.
+
+### Notification Delivery
+- Dual delivery: WebSocket (Reverb) for instant in-app updates + FCM push to wake background/terminated apps.
+- `new_ride_request` foreground notification intentionally suppressed — WebSocket shows the full-screen request sheet instead.
+
+### Credit System
+- Prepaid: drivers consume 1 credit per ride accepted. Credits managed by admin. No payment processing — cash or driver's own QRIS.
 
 ## Environment & Operations Notes
 
-- Redis backs queues and broadcasting; ensure `redis-server` is running before `queue:work`.
-- WebSockets use Laravel Reverb (`php artisan reverb:start`); mobile clients rely on it for ride updates.
-- Storage: run `php artisan storage:link` whenever cloning the backend repo.
-- Keep Firebase, Mapbox, and Google OAuth credentials secure—never commit secrets; use `.env` or CI secrets.
-
-These guidelines keep backend, mobile, and documentation efforts aligned while protecting shared environments.
+- Postgres and Redis run as **native services** (not Docker). `docker-compose.yml` is legacy — do not use Docker commands for local dev.
+- Two queue systems exist — only `MatchingQueueService.php` (FIFO via `driver_profiles.queue_joined_at`) is active. `QueueService.php` / `BeaconQueueService` is deprecated legacy.
+- Firebase Auth handles Google OAuth identity; backend issues its own Sanctum tokens with role-based abilities for authorization. Filament admin uses separate session auth.
+- Sentry is integrated in both backend (`sentry/sentry-laravel`) and mobile (`sentry_flutter`) for error tracking.
+- Production email uses Mailtrap transactional SMTP (`live.smtp.mailtrap.io:2525`), domain `anjem.me` verified with SPF/DKIM/DMARC.
+- Route geometry (GeoJSON) is computed once at ride request creation and served from DB — no duplicate Mapbox API calls.
+- Keep Firebase, Mapbox, Google OAuth, Sentry, and Mailtrap credentials secure — never commit secrets; use `.env` or CI secrets.
