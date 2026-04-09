@@ -6,7 +6,6 @@ use App\Models\Location;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 
 /**
@@ -157,17 +156,15 @@ class PlaceSearchService
             throw new \Exception('Mapbox public token not configured');
         }
 
-        // Generate session token — groups suggest + retrieve calls into one billable session
-        $sessionToken = (string) Str::uuid();
-
         // Use Mapbox Search Box API (Suggest endpoint)
+        // NOTE: No session_token — billed as individual Requests (50k free/mo)
+        // instead of Sessions (500 free/mo)
         $response = Http::timeout(5)->get('https://api.mapbox.com/search/searchbox/v1/suggest', [
             'q' => $query,
             'language' => 'id', // Indonesian
             'proximity' => "$longitude,$latitude",
             'bbox' => config('services.mapbox.search_bbox', '110.30,-7.15,110.55,-6.90'),
             'limit' => 5,
-            'session_token' => $sessionToken,
             'access_token' => $publicToken,
         ]);
 
@@ -183,7 +180,7 @@ class PlaceSearchService
         foreach ($suggestions as $suggestion) {
             if (isset($suggestion['mapbox_id'])) {
                 try {
-                    $details = $this->retrieveMapboxPlace($suggestion['mapbox_id'], $publicToken, $sessionToken);
+                    $details = $this->retrieveMapboxPlace($suggestion['mapbox_id'], $publicToken);
                     if ($details) {
                         $results[] = $details;
                     }
@@ -202,10 +199,9 @@ class PlaceSearchService
     /**
      * Retrieve full place details from Mapbox
      */
-    private function retrieveMapboxPlace(string $mapboxId, string $token, string $sessionToken): ?array
+    private function retrieveMapboxPlace(string $mapboxId, string $token): ?array
     {
         $response = Http::timeout(5)->get("https://api.mapbox.com/search/searchbox/v1/retrieve/{$mapboxId}", [
-            'session_token' => $sessionToken,
             'access_token' => $token,
         ]);
 
