@@ -42,6 +42,7 @@
                             <th class="py-2 px-3">Wait Time</th>
                             <th class="py-2 px-3">Declines</th>
                             <th class="py-2 px-3">Status</th>
+                            <th class="py-2 px-3">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -71,10 +72,19 @@
                                     </span>
                                 @endif
                             </td>
+                            <td class="py-2 px-3">
+                                <button
+                                    wire:click="kickDriver({{ $driver->user_id }})"
+                                    wire:confirm="Kick {{ $driver->user?->name ?? 'this driver' }} from queue?"
+                                    class="text-xs px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900"
+                                >
+                                    Kick
+                                </button>
+                            </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" class="py-6 px-3 text-center text-gray-400">No drivers in queue</td>
+                            <td colspan="7" class="py-6 px-3 text-center text-gray-400">No drivers in queue</td>
                         </tr>
                         @endforelse
                     </tbody>
