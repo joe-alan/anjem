@@ -35,7 +35,8 @@ class ActiveRideScreen extends ConsumerStatefulWidget {
   ConsumerState<ActiveRideScreen> createState() => _ActiveRideScreenState();
 }
 
-class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
+class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen>
+    with WidgetsBindingObserver {
   MapboxMapController? _mapController;
   Set<MapMarker> _markers = {};
   Set<MapPolyline> _polylines = {};
@@ -46,8 +47,18 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
   LatLng? _currentDriverLocation;
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Force-refresh ride data from API on resume to fix stale state
+      if (kDebugMode) print('🔄 [Driver] App resumed — reloading ride ${widget.rideId}');
+      ref.read(activeRideProvider.notifier).loadRide(widget.rideId);
+    }
+  }
+
+  @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     // Subscribe to centralized location service for position updates
     final locationService = ref.read(driverLocationServiceProvider);
@@ -92,6 +103,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _locationSubscription?.cancel();
     _mapController?.dispose();
     super.dispose();
@@ -284,6 +296,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
 
   void _handleRideCancelled() {
     if (!mounted) return;
+    ref.read(activeRideProvider.notifier).reset();
     ref.read(driverStatusProvider.notifier).setActiveRide(null);
     ref.read(sessionStateProvider.notifier).updateSessionState(
       SessionState(
@@ -321,6 +334,9 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
       // deducted at accept time so balance is already 0 in the DB.
       ref.invalidate(creditsProvider);
       final balance = await ref.read(creditsProvider.future).catchError((_) => -1);
+
+      // Clear stale ride data and unsubscribe from ride WS channel
+      ref.read(activeRideProvider.notifier).reset();
 
       if (balance == 0) {
         ref.read(driverStatusProvider.notifier).setActiveRide(null);
