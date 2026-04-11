@@ -797,6 +797,19 @@ class AppLocalizationsId extends AppLocalizations {
       'Aplikasi ini membutuhkan izin lokasi untuk melacak perjalanan dan memperbarui posisi Anda. Harap aktifkan akses lokasi di Pengaturan.';
 
   @override
+  String get batteryOptimizationTitle => 'Tetap online di latar belakang';
+
+  @override
+  String get batteryOptimizationMessage =>
+      'Anjem perlu terus melacak lokasi Anda saat menunggu permintaan anjem, bahkan saat aplikasi tidak dibuka. Mohon nonaktifkan optimasi baterai untuk Anjem di layar berikutnya.';
+
+  @override
+  String get batteryOptimizationContinue => 'Buka Pengaturan';
+
+  @override
+  String get batteryOptimizationLater => 'Nanti saja';
+
+  @override
   String get rideCompletedSnackbar => 'Anjem selesai! 🎉';
 
   @override

@@ -10,7 +10,7 @@ use Illuminate\Console\Command;
 class KickStaleDrivers extends Command
 {
     protected $signature = 'drivers:kick-stale
-                            {--threshold=90 : Seconds since last heartbeat before a driver is kicked}
+                            {--threshold=180 : Seconds since last heartbeat before a driver is kicked}
                             {--dry-run : Log who would be kicked without actually kicking them}';
 
     protected $description = 'Remove from queue and mark offline any driver whose last heartbeat is stale (app crash / force-quit)';

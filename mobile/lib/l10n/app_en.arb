@@ -344,6 +344,10 @@
 
   "locationPermissionTitle": "Location Permission Required",
   "locationPermissionMessage": "This app needs location permission to track your ride and update your position. Please enable location access in Settings.",
+  "batteryOptimizationTitle": "Stay online in the background",
+  "batteryOptimizationMessage": "Anjem needs to keep tracking your location while you wait for ride requests, even when the app isn't open. Please disable battery optimization for Anjem on the next screen.",
+  "batteryOptimizationContinue": "Open Settings",
+  "batteryOptimizationLater": "Not now",
   "rideCompletedSnackbar": "Ride completed! \uD83C\uDF89",
   "rideCancelledSnackbar": "Ride cancelled",
   "rideCancelledByRiderSnackbar": "Ride was cancelled by the rider",
