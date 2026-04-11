@@ -65,9 +65,12 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
   final List<DriverPin> _driverPins = [];
   Map<String, Offset> _pinPositions = {};
 
-  // Memoize the last pin id set so we skip camera fit + pixel math when
-  // the polling response hasn't actually changed which drivers are nearby.
-  Set<String>? _lastPinIdSet;
+  // Memoize the last pin signature set so we skip camera fit + pixel math
+  // when the polling response hasn't changed. Signature includes both the
+  // coord-based id AND the pin state, because `_fitCameraToDrivers` frames
+  // the rider + the notified (blue) driver — a state-only transition from
+  // `active` → `notified` at the same coords must still trigger the pan.
+  Set<String>? _lastPinSignatureSet;
 
   // Cancel
   bool _isCancelling = false;
@@ -281,14 +284,16 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
         _driverPins.addAll(pins);
       });
 
-      // Skip camera fit + pixel math when the set of drivers hasn't changed.
-      // The server jitters pin coords ~100m, so unchanged-id-set means the
-      // visible pins are identical and no repaint is needed.
-      final pinIdSet = pins.map((p) => p.id).toSet();
-      if (_lastPinIdSet == null ||
-          _lastPinIdSet!.length != pinIdSet.length ||
-          !_lastPinIdSet!.containsAll(pinIdSet)) {
-        _lastPinIdSet = pinIdSet;
+      // Skip camera fit + pixel math when neither the set of drivers nor any
+      // pin's state has changed. State is part of the signature because a
+      // transition like `active` → `notified` at the same coords must still
+      // re-run `_fitCameraToDrivers` (which pans to frame the notified pin).
+      final pinSignatureSet =
+          pins.map((p) => '${p.id}|${p.state.name}').toSet();
+      if (_lastPinSignatureSet == null ||
+          _lastPinSignatureSet!.length != pinSignatureSet.length ||
+          !_lastPinSignatureSet!.containsAll(pinSignatureSet)) {
+        _lastPinSignatureSet = pinSignatureSet;
         _fitCameraToDrivers();
         _computePinPositions();
       }
