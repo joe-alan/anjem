@@ -259,6 +259,10 @@
 
   "locationPermissionTitle": "Izin Lokasi Diperlukan",
   "locationPermissionMessage": "Aplikasi ini membutuhkan izin lokasi untuk melacak perjalanan dan memperbarui posisi Anda. Harap aktifkan akses lokasi di Pengaturan.",
+  "batteryOptimizationTitle": "Tetap online di latar belakang",
+  "batteryOptimizationMessage": "Anjem perlu terus melacak lokasi Anda saat menunggu permintaan anjem, bahkan saat aplikasi tidak dibuka. Mohon nonaktifkan optimasi baterai untuk Anjem di layar berikutnya.",
+  "batteryOptimizationContinue": "Buka Pengaturan",
+  "batteryOptimizationLater": "Nanti saja",
   "rideCompletedSnackbar": "Anjem selesai! \uD83C\uDF89",
   "rideCancelledSnackbar": "Anjem dibatalkan",
   "rideCancelledByRiderSnackbar": "Anjem dibatalkan oleh penumpang",

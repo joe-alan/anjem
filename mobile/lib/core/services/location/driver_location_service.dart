@@ -137,8 +137,8 @@ class DriverLocationService {
             defType: 'mipmap',
           ),
           setOngoing: true,
-          enableWakeLock: false,
-          enableWifiLock: false,
+          enableWakeLock: true,
+          enableWifiLock: true,
           color: const Color(0xFF004743),
         ),
       );

@@ -1526,6 +1526,30 @@ abstract class AppLocalizations {
   /// **'This app needs location permission to track your ride and update your position. Please enable location access in Settings.'**
   String get locationPermissionMessage;
 
+  /// No description provided for @batteryOptimizationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay online in the background'**
+  String get batteryOptimizationTitle;
+
+  /// No description provided for @batteryOptimizationMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Anjem needs to keep tracking your location while you wait for ride requests, even when the app isn\'t open. Please disable battery optimization for Anjem on the next screen.'**
+  String get batteryOptimizationMessage;
+
+  /// No description provided for @batteryOptimizationContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get batteryOptimizationContinue;
+
+  /// No description provided for @batteryOptimizationLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get batteryOptimizationLater;
+
   /// No description provided for @rideCompletedSnackbar.
   ///
   /// In en, this message translates to:

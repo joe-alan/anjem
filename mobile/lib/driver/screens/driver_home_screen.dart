@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:mobile/l10n/app_localizations.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
@@ -145,6 +146,58 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         await ph.Permission.locationAlways.request();
       }
     }
+  }
+
+  /// Prompt the user to disable battery optimization for the app, the first
+  /// time they go online. Without this, aggressive OEM power management
+  /// (Xiaomi/Samsung/Oppo/Vivo) can kill the location foreground service even
+  /// while the app is online, causing the backend to mark the driver stale and
+  /// kick them from the queue.
+  ///
+  /// This is a one-shot prompt — we persist a flag so the user is not pestered
+  /// every time they go online. They can still manually re-enable optimization
+  /// from system settings if they choose.
+  static const _batteryOptPromptedKey = 'battery_opt_prompted_v1';
+  Future<void> _promptBatteryOptimizationIfFirstTime() async {
+    const storage = FlutterSecureStorage();
+    final alreadyPrompted = await storage.read(key: _batteryOptPromptedKey);
+    if (alreadyPrompted == 'true') return;
+
+    // If the user already granted the exemption (e.g. via OEM defaults), just
+    // record the flag and skip the dialog.
+    final current = await ph.Permission.ignoreBatteryOptimizations.status;
+    if (current.isGranted) {
+      await storage.write(key: _batteryOptPromptedKey, value: 'true');
+      return;
+    }
+
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final shouldOpen = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(l10n.batteryOptimizationTitle),
+        content: Text(l10n.batteryOptimizationMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.batteryOptimizationLater),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.batteryOptimizationContinue),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldOpen == true) {
+      await ph.Permission.ignoreBatteryOptimizations.request();
+    }
+
+    // Persist the flag regardless of the user's choice — we don't want to
+    // re-prompt every time they go online.
+    await storage.write(key: _batteryOptPromptedKey, value: 'true');
   }
 
   /// Check if location permission is granted (used before goOnline).
@@ -962,6 +1015,8 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
               HapticFeedback.mediumImpact();
               final hasPermission = await _checkLocationPermission();
               if (!hasPermission || !mounted) return;
+              await _promptBatteryOptimizationIfFirstTime();
+              if (!mounted) return;
               await ref.read(driverStatusProvider.notifier).goOnline();
               final error = ref.read(driverStatusProvider).error;
               if (error != null && error.contains('credit') && mounted) {
