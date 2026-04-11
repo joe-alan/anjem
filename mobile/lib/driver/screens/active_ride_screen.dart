@@ -18,6 +18,7 @@ import '../../core/providers/credits_provider.dart';
 import '../../core/providers/session_provider.dart';
 import '../../core/models/session_state.dart';
 import '../../core/services/location/driver_location_service.dart';
+import '../../core/utils/distance_utils.dart';
 import 'driver_home_screen.dart';
 import '../../core/widgets/mapbox_map_widget.dart';
 import '../../core/widgets/whatsapp_launcher.dart';
@@ -46,6 +47,14 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen>
   final MapboxDirectionsService _directionsService = MapboxDirectionsService();
   LatLng? _currentDriverLocation;
 
+  // Debounce route re-fetch on driver position ticks: skip if we fetched
+  // less than 15s ago OR the driver moved less than 50m. Mapbox Directions
+  // calls were firing on every position stream event.
+  LatLng? _lastRouteFetchLocation;
+  DateTime? _lastRouteFetchTime;
+  static const _routeRefetchMinInterval = Duration(seconds: 15);
+  static const _routeRefetchMinDistanceKm = 0.05; // 50m
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -64,15 +73,15 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen>
     final locationService = ref.read(driverLocationServiceProvider);
     _locationSubscription = locationService.positionStream.listen((position) {
       if (!mounted) return;
+      final newLoc = LatLng(position.latitude, position.longitude);
       setState(() {
-        _currentDriverLocation = LatLng(position.latitude, position.longitude);
+        _currentDriverLocation = newLoc;
       });
-      // Redraw route from new driver position (only for accepted — dynamic route)
+      // Redraw route from new driver position (only for accepted — dynamic route),
+      // debounced to avoid hammering Mapbox Directions on every tick.
       final currentStatus = ref.read(activeRideProvider).ride?.status;
       if (currentStatus == RideStatus.accepted) {
-        _fetchAndDisplayRoute().catchError((e) {
-          if (kDebugMode) print('⚠️ [Driver] Route update on location change error: $e');
-        });
+        _maybeRefetchRoute(newLoc);
       }
     });
 
@@ -107,6 +116,37 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen>
     _locationSubscription?.cancel();
     _mapController?.dispose();
     super.dispose();
+  }
+
+  /// Re-fetch the route only if the driver moved enough or enough time passed.
+  /// Guards against hammering the Mapbox Directions API on every position
+  /// stream tick — polyline may lag by up to 15s, the driver marker still
+  /// updates every tick so the experience is unchanged.
+  void _maybeRefetchRoute(LatLng driverLocation) {
+    final now = DateTime.now();
+    final last = _lastRouteFetchTime;
+    final lastLoc = _lastRouteFetchLocation;
+
+    if (last != null && now.difference(last) < _routeRefetchMinInterval) {
+      return;
+    }
+    if (lastLoc != null) {
+      final moved = haversineKm(
+        lastLoc.latitude,
+        lastLoc.longitude,
+        driverLocation.latitude,
+        driverLocation.longitude,
+      );
+      if (moved < _routeRefetchMinDistanceKm) {
+        return;
+      }
+    }
+
+    _lastRouteFetchLocation = driverLocation;
+    _lastRouteFetchTime = now;
+    _fetchAndDisplayRoute().catchError((e) {
+      if (kDebugMode) print('⚠️ [Driver] Route update on location change error: $e');
+    });
   }
 
   /// Fetch and display route based on current ride status

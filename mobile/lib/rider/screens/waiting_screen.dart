@@ -65,6 +65,10 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
   final List<DriverPin> _driverPins = [];
   Map<String, Offset> _pinPositions = {};
 
+  // Memoize the last pin id set so we skip camera fit + pixel math when
+  // the polling response hasn't actually changed which drivers are nearby.
+  Set<String>? _lastPinIdSet;
+
   // Cancel
   bool _isCancelling = false;
 
@@ -241,8 +245,10 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
   void _startDriverPolling() {
     _driverPollTimer?.cancel();
     _fetchNearbyDrivers();
+    // 15s poll interval — nearby driver pins are already jittered ~100m
+    // server-side, so 5s polling was overkill and hot on the device.
     _driverPollTimer = Timer.periodic(
-      const Duration(seconds: 5),
+      const Duration(seconds: 15),
       (_) => _fetchNearbyDrivers(),
     );
   }
@@ -275,8 +281,17 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
         _driverPins.addAll(pins);
       });
 
-      _fitCameraToDrivers();
-      _computePinPositions();
+      // Skip camera fit + pixel math when the set of drivers hasn't changed.
+      // The server jitters pin coords ~100m, so unchanged-id-set means the
+      // visible pins are identical and no repaint is needed.
+      final pinIdSet = pins.map((p) => p.id).toSet();
+      if (_lastPinIdSet == null ||
+          _lastPinIdSet!.length != pinIdSet.length ||
+          !_lastPinIdSet!.containsAll(pinIdSet)) {
+        _lastPinIdSet = pinIdSet;
+        _fitCameraToDrivers();
+        _computePinPositions();
+      }
     } catch (e) {
       debugPrint('Failed to fetch nearby drivers: $e');
     }

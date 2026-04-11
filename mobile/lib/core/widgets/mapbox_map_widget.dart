@@ -21,6 +21,14 @@ class MapboxMapWidget extends StatefulWidget {
   /// Whether to show user's current location
   final bool myLocationEnabled;
 
+  /// Whether the user-location dot pulses (continuous GPU animation).
+  /// Defaults to false to keep the device cool during active rides.
+  final bool pulsingEnabled;
+
+  /// Whether to draw the accuracy ring around the user-location dot
+  /// (continuous GPU draw). Defaults to false for the same reason.
+  final bool showAccuracyRing;
+
   /// Whether to show the location button
   final bool myLocationButtonEnabled;
 
@@ -53,6 +61,8 @@ class MapboxMapWidget extends StatefulWidget {
     this.markers = const {},
     this.polylines = const {},
     this.myLocationEnabled = false,
+    this.pulsingEnabled = false,
+    this.showAccuracyRing = false,
     this.myLocationButtonEnabled = true,
     this.zoomControlsEnabled = true,
     this.onMapCreated,
@@ -74,7 +84,9 @@ class _MapboxMapWidgetState extends State<MapboxMapWidget> {
   PointAnnotationManager? _pointAnnotationManager;
   PolylineAnnotationManager? _polylineAnnotationManager;
   final Map<String, PointAnnotation> _annotations = {};
+  final Map<String, MapMarker> _markerSources = {};
   final Map<String, PolylineAnnotation> _polylines = {};
+  final Map<String, MapPolyline> _polylineSources = {};
   Timer? _idleTimer;
 
   @override
@@ -137,12 +149,12 @@ class _MapboxMapWidgetState extends State<MapboxMapWidget> {
       await _mapboxMap?.location.updateSettings(
         LocationComponentSettings(
           enabled: true,
-          pulsingEnabled: true,
+          pulsingEnabled: widget.pulsingEnabled,
           pulsingColor: Colors.blue.red |
               (Colors.blue.green << 8) |
               (Colors.blue.blue << 16) |
               (Colors.blue.alpha << 24),
-          showAccuracyRing: true,
+          showAccuracyRing: widget.showAccuracyRing,
         ),
       );
     } catch (e) {
@@ -175,13 +187,39 @@ class _MapboxMapWidgetState extends State<MapboxMapWidget> {
     if (_pointAnnotationManager == null || !mounted) return;
 
     try {
-      if (_annotations.isNotEmpty) {
-        await _pointAnnotationManager!.deleteAll();
-        _annotations.clear();
+      final incoming = <String, MapMarker>{
+        for (final m in widget.markers) m.id: m,
+      };
+
+      // Delete annotations that were removed or moved.
+      // Mapbox point annotations have no in-place move, so a position change
+      // requires delete + recreate. Markers with matching id and position are
+      // left untouched so pickup/destination pins stop flickering every tick.
+      final staleIds = <String>[];
+      for (final entry in _markerSources.entries) {
+        final id = entry.key;
+        final prev = entry.value;
+        final next = incoming[id];
+        if (next == null ||
+            prev.latitude != next.latitude ||
+            prev.longitude != next.longitude) {
+          final annotation = _annotations[id];
+          if (annotation != null) {
+            await _pointAnnotationManager!.delete(annotation);
+          }
+          staleIds.add(id);
+        }
+      }
+      for (final id in staleIds) {
+        _annotations.remove(id);
+        _markerSources.remove(id);
       }
 
+      // Create annotations for new or replaced markers.
       for (final marker in widget.markers) {
         if (!mounted) return;
+        if (_annotations.containsKey(marker.id)) continue;
+
         final options = PointAnnotationOptions(
           geometry: Point(
             coordinates: Position(marker.longitude, marker.latitude),
@@ -193,6 +231,7 @@ class _MapboxMapWidgetState extends State<MapboxMapWidget> {
 
         final annotation = await _pointAnnotationManager!.create(options);
         _annotations[marker.id] = annotation;
+        _markerSources[marker.id] = marker;
       }
     } catch (e) {
       debugPrint('MapboxMapWidget: Failed to update markers: $e');
@@ -203,13 +242,36 @@ class _MapboxMapWidgetState extends State<MapboxMapWidget> {
     if (_polylineAnnotationManager == null || !mounted) return;
 
     try {
-      if (_polylines.isNotEmpty) {
-        await _polylineAnnotationManager!.deleteAll();
-        _polylines.clear();
+      final incoming = <String, MapPolyline>{
+        for (final p in widget.polylines) p.id: p,
+      };
+
+      // Delete polylines that were removed or whose geometry changed.
+      // MapPolyline.== now compares points length + first/last coord, so
+      // same-id-same-shape polylines short-circuit and are left alone.
+      final staleIds = <String>[];
+      for (final entry in _polylineSources.entries) {
+        final id = entry.key;
+        final prev = entry.value;
+        final next = incoming[id];
+        if (next == null || prev != next) {
+          final annotation = _polylines[id];
+          if (annotation != null) {
+            await _polylineAnnotationManager!.delete(annotation);
+          }
+          staleIds.add(id);
+        }
+      }
+      for (final id in staleIds) {
+        _polylines.remove(id);
+        _polylineSources.remove(id);
       }
 
+      // Create annotations for new or replaced polylines.
       for (final polyline in widget.polylines) {
         if (!mounted) return;
+        if (_polylines.containsKey(polyline.id)) continue;
+
         final options = PolylineAnnotationOptions(
           geometry: LineString(
             coordinates: polyline.points
@@ -223,6 +285,7 @@ class _MapboxMapWidgetState extends State<MapboxMapWidget> {
 
         final annotation = await _polylineAnnotationManager!.create(options);
         _polylines[polyline.id] = annotation;
+        _polylineSources[polyline.id] = polyline;
       }
     } catch (e) {
       debugPrint('MapboxMapWidget: Failed to update polylines: $e');
@@ -324,10 +387,17 @@ class MapPolyline {
       identical(this, other) ||
       other is MapPolyline &&
           runtimeType == other.runtimeType &&
-          id == other.id;
+          id == other.id &&
+          points.length == other.points.length &&
+          (points.isEmpty ||
+              (points.first == other.points.first &&
+                  points.last == other.points.last));
 
   @override
-  int get hashCode => id.hashCode;
+  int get hashCode =>
+      id.hashCode ^
+      points.length.hashCode ^
+      (points.isEmpty ? 0 : points.first.hashCode ^ points.last.hashCode);
 }
 
 /// Controller for Mapbox map
