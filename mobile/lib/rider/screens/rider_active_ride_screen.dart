@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +10,7 @@ import '../../core/models/ride.dart';
 import '../../core/models/lat_lng.dart';
 import '../../core/providers/active_ride_provider.dart';
 import '../../core/providers/ride_request_provider.dart';
+import '../../core/utils/distance_utils.dart';
 import '../../core/widgets/mapbox_map_widget.dart';
 import '../../core/services/mapbox/mapbox_directions_service.dart';
 import 'completed_screen.dart';
@@ -41,6 +41,15 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
   Timer? _statusPollingTimer;
   Timer? _autoDismissTimer;
   static const _pollInterval = Duration(seconds: 5);
+
+  // Debounce route re-fetch on driver location ticks: skip if we fetched
+  // less than 15s ago OR the driver moved less than 50m. Mapbox Directions
+  // calls are expensive (network + GPU redraw) and were hammering the API
+  // on every WebSocket driverLocation update.
+  LatLng? _lastRouteFetchLocation;
+  DateTime? _lastRouteFetchTime;
+  static const _routeRefetchMinInterval = Duration(seconds: 15);
+  static const _routeRefetchMinDistanceKm = 0.05; // 50m
 
   @override
   void initState() {
@@ -145,6 +154,37 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
     _markers = {};
     _mapController?.dispose();
     super.dispose();
+  }
+
+  /// Re-fetch the route only if the driver moved enough or enough time passed.
+  /// Guards against hammering the Mapbox Directions API on every WebSocket
+  /// driverLocation tick — polyline may lag by up to 15s, the driver marker
+  /// still updates every tick so the experience is unchanged.
+  void _maybeRefetchRoute(LatLng driverLocation) {
+    final now = DateTime.now();
+    final last = _lastRouteFetchTime;
+    final lastLoc = _lastRouteFetchLocation;
+
+    if (last != null && now.difference(last) < _routeRefetchMinInterval) {
+      return;
+    }
+    if (lastLoc != null) {
+      final moved = haversineKm(
+        lastLoc.latitude,
+        lastLoc.longitude,
+        driverLocation.latitude,
+        driverLocation.longitude,
+      );
+      if (moved < _routeRefetchMinDistanceKm) {
+        return;
+      }
+    }
+
+    _lastRouteFetchLocation = driverLocation;
+    _lastRouteFetchTime = now;
+    _fetchAndDisplayRoute().catchError((e) {
+      debugPrint('⚠️ [Rider] Route fetch on driver location update error: $e');
+    });
   }
 
   /// Fetch and display route based on ride status
@@ -271,11 +311,11 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         setState(() {
           _buildMarkers(next.ride ?? widget.initialRide, next.driverLocation);
         });
-        // Re-fetch route when driver location changes so polyline tracks driver movement
-        if (previous?.driverLocation != next.driverLocation) {
-          _fetchAndDisplayRoute().catchError((e) {
-            debugPrint('⚠️ [Rider] Route fetch on driver location update error: $e');
-          });
+        // Re-fetch route when driver location changes so polyline tracks driver movement,
+        // but only if the debounce thresholds are met (15s / 50m).
+        if (previous?.driverLocation != next.driverLocation &&
+            next.driverLocation != null) {
+          _maybeRefetchRoute(next.driverLocation!);
         }
       }
     });
@@ -286,7 +326,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
     // Compute driver ETA (only when driver is heading to pickup)
     int? etaMinutes;
     if (driverLocation != null && ride.status == RideStatus.accepted) {
-      final distKm = _haversineKm(
+      final distKm = haversineKm(
         driverLocation.latitude, driverLocation.longitude,
         ride.pickupLocation.coordinates.latitude,
         ride.pickupLocation.coordinates.longitude,
@@ -808,16 +848,6 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         zoom: 13,
       ),
     );
-  }
-
-  static double _haversineKm(double lat1, double lng1, double lat2, double lng2) {
-    const r = 6371.0;
-    final dLat = (lat2 - lat1) * pi / 180;
-    final dLng = (lng2 - lng1) * pi / 180;
-    final a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(lat1 * pi / 180) * cos(lat2 * pi / 180) *
-        sin(dLng / 2) * sin(dLng / 2);
-    return r * 2 * atan2(sqrt(a), sqrt(1 - a));
   }
 
   Color _getStatusColor(RideStatus status) {
