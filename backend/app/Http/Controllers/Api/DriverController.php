@@ -7,6 +7,7 @@ use App\Events\DriverOnlineStatusChanged;
 use App\Events\SessionReplaced;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateLocationRequest;
+use App\Models\DispatchAttempt;
 use App\Models\Location;
 use App\Models\Ride;
 use App\Models\RideRequest;
@@ -401,6 +402,14 @@ class DriverController extends Controller
         $pickup = $rideRequest->pickupLocation;
         $destination = $rideRequest->destinationLocation;
 
+        // Use the actual dispatch timestamp so the mobile countdown accounts
+        // for time elapsed between dispatch and the driver opening the app.
+        $latestDispatch = DispatchAttempt::where('ride_request_id', $rideRequest->id)
+            ->where('driver_id', $driver->id)
+            ->where('response', 'pending')
+            ->latest('dispatched_at')
+            ->first();
+
         $transformLocation = function ($loc) {
             return $loc ? [
                 'id' => $loc->id,
@@ -433,7 +442,8 @@ class DriverController extends Controller
                 'estimated_pickup_minutes' => $rideRequest->getEstimatedPickupTime()->diffInMinutes(now()),
                 'created_at'             => $rideRequest->created_at?->toISOString(),
                 'updated_at'             => $rideRequest->updated_at?->toISOString(),
-                'dispatched_at'          => now()->toISOString(),
+                'dispatched_at'          => $latestDispatch?->dispatched_at?->toISOString()
+                    ?? $rideRequest->created_at->toISOString(),
             ],
         ]);
     }

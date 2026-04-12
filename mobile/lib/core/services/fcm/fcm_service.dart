@@ -13,7 +13,11 @@ class FcmService {
 
   Future<void> initialize() async {
     await LocalNotificationService.instance.initialize();
-    await _requestPermission();
+    // Driver app gathers all permissions (including notification) upfront on
+    // the home screen. Skip here to avoid prompting during KYC flow.
+    if (!AppConfig.instance.isDriverApp) {
+      await _requestPermission();
+    }
     await _sendTokenToBackend();
     _setupTokenRefreshListener();
     _setupForegroundHandler();

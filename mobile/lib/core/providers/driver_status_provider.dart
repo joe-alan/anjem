@@ -294,8 +294,8 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
       },
       onRequestCancelled: (eventData) {
         if (kDebugMode) print('DriverStatusProvider: Ride request cancelled - $eventData');
-        // Clear the incoming request so RideRequestScreen dismisses itself
-        _ref.read(driverIncomingRequestProvider.notifier).clear();
+        final cancelledBy = eventData['cancelled_by'] as String?;
+        _ref.read(driverIncomingRequestProvider.notifier).clearWithReason(cancelledBy);
       },
       onSessionReplaced: (eventData) {
         if (kDebugMode) print('DriverStatusProvider: Session replaced — signing out this device');

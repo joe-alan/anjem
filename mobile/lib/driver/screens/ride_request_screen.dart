@@ -284,10 +284,12 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen>
       if (previous != null && next == null && mounted && !_isDismissing) {
         _isDismissing = true;
         _timer?.cancel();
+        final cancelledBy = ref.read(driverIncomingRequestProvider.notifier).consumeCancelledBy();
+        final message = cancelledBy == 'system' ? l10n.requestTimedOut : l10n.rideCancelledByRider;
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(l10n.rideCancelledByRider),
+            content: Text(message),
             backgroundColor: Colors.orange,
           ),
         );
