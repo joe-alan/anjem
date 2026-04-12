@@ -445,6 +445,7 @@ class _KycFormScreenState extends ConsumerState<KycFormScreen> {
           MaterialPageRoute(
             builder: (context) => EmailVerificationScreen(
               studentEmail: _studentEmailController.text.trim(),
+              autoSend: false, // Backend sends OTP during KYC submission
             ),
           ),
         );

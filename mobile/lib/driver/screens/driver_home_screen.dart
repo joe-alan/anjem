@@ -146,6 +146,9 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
         await ph.Permission.locationAlways.request();
       }
     }
+
+    // 4. Battery optimization exemption (one-shot, persisted via secure storage)
+    await _promptBatteryOptimizationIfFirstTime();
   }
 
   /// Prompt the user to disable battery optimization for the app, the first
@@ -1015,8 +1018,6 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
               HapticFeedback.mediumImpact();
               final hasPermission = await _checkLocationPermission();
               if (!hasPermission || !mounted) return;
-              await _promptBatteryOptimizationIfFirstTime();
-              if (!mounted) return;
               await ref.read(driverStatusProvider.notifier).goOnline();
               final error = ref.read(driverStatusProvider).error;
               if (error != null && error.contains('credit') && mounted) {
