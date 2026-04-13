@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/l10n/app_localizations.dart';
 import '../config/app_config.dart';
 import '../models/session_state.dart';
 import '../providers/session_provider.dart';
@@ -197,52 +196,9 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
       }
     }
 
-    if (sessionState != null && !sessionState.isIdle) {
-      _showResumeDialog(sessionState);
-    }
-  }
-
-  void _showResumeDialog(SessionState sessionState) {
-    final l10n = AppLocalizations.of(context);
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.continueSessionTitle),
-        content: Text(
-          sessionState.needsToResumeRide
-              ? l10n.continueRideMessage
-              : l10n.continuePendingMessage,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-
-              // Navigate to the session screen
-              final targetScreen = _getScreenForSessionState(sessionState);
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => targetScreen),
-              );
-
-              // Update active ride provider after navigation starts
-              if (sessionState.activeRide != null) {
-                Future.microtask(() {
-                  if (mounted) {
-                    ref.read(activeRideProvider.notifier).setRide(sessionState.activeRide!);
-                  }
-                });
-              }
-            },
-            child: Text(l10n.yes),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.no),
-          ),
-        ],
-      ),
-    );
+    // No resume dialog — the provider sync above already updates ride state.
+    // The user is already on the correct screen (active ride / waiting / home),
+    // so prompting "Continue session?" is redundant and confusing.
   }
 
   Widget _getScreenForSessionState(SessionState sessionState) {
