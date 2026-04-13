@@ -1008,14 +1008,21 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen>
   void _fitBounds(Ride ride) {
     if (_mapController == null) return;
 
-    final lats = [
-      ride.pickupLocation.coordinates.latitude,
-      ride.destinationLocation.coordinates.latitude,
-    ];
-    final lngs = [
-      ride.pickupLocation.coordinates.longitude,
-      ride.destinationLocation.coordinates.longitude,
-    ];
+    final isPickupPhase = ride.status == RideStatus.accepted ||
+        ride.status == RideStatus.driverArrived;
+
+    final List<double> lats;
+    final List<double> lngs;
+
+    if (isPickupPhase && _currentDriverLocation != null) {
+      // Pickup phase: frame driver → pickup
+      lats = [_currentDriverLocation!.latitude, ride.pickupLocation.coordinates.latitude];
+      lngs = [_currentDriverLocation!.longitude, ride.pickupLocation.coordinates.longitude];
+    } else {
+      // In-progress / fallback: frame pickup → destination
+      lats = [ride.pickupLocation.coordinates.latitude, ride.destinationLocation.coordinates.latitude];
+      lngs = [ride.pickupLocation.coordinates.longitude, ride.destinationLocation.coordinates.longitude];
+    }
 
     final centerLat = lats.reduce((a, b) => a + b) / lats.length;
     final centerLng = lngs.reduce((a, b) => a + b) / lngs.length;

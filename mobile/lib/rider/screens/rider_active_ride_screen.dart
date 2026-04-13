@@ -826,17 +826,21 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
   void _fitBounds(Ride ride, LatLng? driverLocation) {
     if (_mapController == null) return;
 
-    // Calculate center point and appropriate zoom level
-    final lats = [
-      ride.pickupLocation.coordinates.latitude,
-      ride.destinationLocation.coordinates.latitude,
-      if (driverLocation != null) driverLocation.latitude,
-    ];
-    final lngs = [
-      ride.pickupLocation.coordinates.longitude,
-      ride.destinationLocation.coordinates.longitude,
-      if (driverLocation != null) driverLocation.longitude,
-    ];
+    final isPickupPhase = ride.status == RideStatus.accepted ||
+        ride.status == RideStatus.driverArrived;
+
+    final List<double> lats;
+    final List<double> lngs;
+
+    if (isPickupPhase && driverLocation != null) {
+      // Pickup phase: frame driver → pickup so rider sees driver approaching
+      lats = [driverLocation.latitude, ride.pickupLocation.coordinates.latitude];
+      lngs = [driverLocation.longitude, ride.pickupLocation.coordinates.longitude];
+    } else {
+      // In-progress / fallback: frame pickup → destination (full route)
+      lats = [ride.pickupLocation.coordinates.latitude, ride.destinationLocation.coordinates.latitude];
+      lngs = [ride.pickupLocation.coordinates.longitude, ride.destinationLocation.coordinates.longitude];
+    }
 
     final centerLat = lats.reduce((a, b) => a + b) / lats.length;
     final centerLng = lngs.reduce((a, b) => a + b) / lngs.length;
