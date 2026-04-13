@@ -66,9 +66,17 @@ class KickStaleDrivers extends Command
             broadcast(new DriverOnlineStatusChanged($driver, false, null, null, 'location_stale'));
 
             \Log::warning('KickStaleDrivers: driver force-kicked offline', [
-                'driver_id'           => $driver->id,
+                'driver_id'            => $driver->id,
+                'driver_name'          => $driver->name,
                 'last_location_update' => $profile->last_location_update?->toISOString(),
-                'threshold_seconds'   => $threshold,
+                'stale_seconds'        => $age,
+                'went_online_at'       => $profile->went_online_at?->toISOString(),
+                'online_duration_s'    => $profile->went_online_at
+                    ? (int) $profile->went_online_at->diffInSeconds(now())
+                    : null,
+                'queue_joined_at'      => $profile->queue_joined_at?->toISOString(),
+                'had_any_heartbeat'    => $profile->last_location_update !== null,
+                'threshold_seconds'    => $threshold,
             ]);
         }
 
