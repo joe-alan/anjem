@@ -39,6 +39,7 @@ class FifoQueueRideFlowTest extends TestCase
         $this->admin = User::factory()->create([
             'email' => 'admin@fifo-test.com',
             'role' => 'admin',
+            'is_admin' => true,
             'is_active' => true,
         ]);
         $this->adminToken = $this->admin->createTokenWithAbilities(false, true);

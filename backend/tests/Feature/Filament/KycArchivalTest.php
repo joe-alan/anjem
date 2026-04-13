@@ -26,6 +26,7 @@ class KycArchivalTest extends TestCase
 
         $this->admin = User::factory()->create([
             'role'      => 'admin',
+            'is_admin'  => true,
             'is_active' => true,
         ]);
 

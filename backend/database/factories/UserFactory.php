@@ -39,6 +39,7 @@ class UserFactory extends Factory
             'rider_rating_avg' => fake()->randomFloat(2, 3.5, 5.0),
             'total_rides_taken' => fake()->numberBetween(0, 50),
             'is_active' => true,
+            'is_admin' => false,
             'last_active_at' => fake()->dateTimeBetween('-1 week', 'now'),
         ];
     }
@@ -90,6 +91,7 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'role' => 'admin',
+            'is_admin' => true,
         ]);
     }
 
