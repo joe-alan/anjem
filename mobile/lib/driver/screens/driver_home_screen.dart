@@ -124,25 +124,58 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
 
   /// Request all permissions the driver app needs upfront.
   ///
-  /// Uses the batch [].request() API for location + notification so that
-  /// Android OEMs that recreate the Activity after a permission dialog don't
-  /// break the async chain (which caused "one permission per launch" behaviour).
+  /// Ordered so that permissions which do NOT trigger Activity recreation come
+  /// first.  Granting foreground location on some OEMs (Samsung, Xiaomi)
+  /// destroys and recreates the Activity, killing the async chain.  By
+  /// requesting notification first, we guarantee it completes.  If location
+  /// grant recreates the Activity, initState re-fires, re-runs this method,
+  /// and the already-granted steps are skipped via the isGranted checks.
   Future<void> _requestAllPermissions() async {
-    // 1+2. Location and notification in one native batch — resilient to
-    //       Activity recreation between dialogs.
-    await [
-      ph.Permission.location,
-      ph.Permission.notification,
-    ].request();
+    // 1. Notification — safe, never triggers Activity recreation.
+    if (!await ph.Permission.notification.isGranted) {
+      await ph.Permission.notification.request();
+    }
+    if (!mounted) return;
+
+    // 2. Foreground location — may trigger Activity recreation on some OEMs.
+    //    If the Activity dies here, next mount resumes from step 3.
+    if (!await ph.Permission.location.isGranted) {
+      await ph.Permission.location.request();
+    }
+    if (!mounted) return;
 
     // 3. Background location (must be requested separately, AFTER foreground
-    //    location is granted — Android policy).
-    if (await ph.Permission.location.isGranted) {
-      final bgStatus = await ph.Permission.locationAlways.status;
-      if (bgStatus.isDenied) {
+    //    location is granted — Android policy). Skip entirely if foreground
+    //    location was denied — no point asking for "all the time" without it.
+    if (!await ph.Permission.location.isGranted) return;
+    final bgStatus = await ph.Permission.locationAlways.status;
+    if (!mounted) return;
+    if (bgStatus.isDenied) {
+      // Show rationale before the OS prompt — Android 11+ just opens
+      // settings silently, which is confusing without context.
+      final l10n = AppLocalizations.of(context);
+      final shouldContinue = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: Text(l10n.backgroundLocationTitle),
+          content: Text(l10n.backgroundLocationMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.backgroundLocationLater),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l10n.backgroundLocationContinue),
+            ),
+          ],
+        ),
+      );
+      if (shouldContinue == true) {
         await ph.Permission.locationAlways.request();
       }
     }
+    if (!mounted) return;
 
     // 4. Battery optimization exemption (one-shot, persisted via secure storage)
     await _promptBatteryOptimizationIfFirstTime();

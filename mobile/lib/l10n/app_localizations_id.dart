@@ -797,6 +797,19 @@ class AppLocalizationsId extends AppLocalizations {
       'Aplikasi ini membutuhkan izin lokasi untuk melacak perjalanan dan memperbarui posisi Anda. Harap aktifkan akses lokasi di Pengaturan.';
 
   @override
+  String get backgroundLocationTitle => 'Izinkan lokasi sepanjang waktu';
+
+  @override
+  String get backgroundLocationMessage =>
+      'Anjem membutuhkan lokasi Anda meskipun aplikasi diminimalkan agar Anda tetap dalam antrian dan menerima permintaan anjem. Di layar berikutnya, pilih \"Izinkan sepanjang waktu\".';
+
+  @override
+  String get backgroundLocationContinue => 'Lanjutkan';
+
+  @override
+  String get backgroundLocationLater => 'Nanti saja';
+
+  @override
   String get batteryOptimizationTitle => 'Tetap online di latar belakang';
 
   @override

@@ -1526,6 +1526,30 @@ abstract class AppLocalizations {
   /// **'This app needs location permission to track your ride and update your position. Please enable location access in Settings.'**
   String get locationPermissionMessage;
 
+  /// No description provided for @backgroundLocationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow location all the time'**
+  String get backgroundLocationTitle;
+
+  /// No description provided for @backgroundLocationMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Anjem needs your location even when the app is minimized so you stay in the queue and receive ride requests. On the next screen, select \"Allow all the time\".'**
+  String get backgroundLocationMessage;
+
+  /// No description provided for @backgroundLocationContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get backgroundLocationContinue;
+
+  /// No description provided for @backgroundLocationLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get backgroundLocationLater;
+
   /// No description provided for @batteryOptimizationTitle.
   ///
   /// In en, this message translates to:
