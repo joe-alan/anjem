@@ -122,25 +122,22 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     );
   }
 
-  /// Request all permissions the driver app needs upfront:
-  /// location, notification, and background location.
+  /// Request all permissions the driver app needs upfront.
+  ///
+  /// Uses the batch [].request() API for location + notification so that
+  /// Android OEMs that recreate the Activity after a permission dialog don't
+  /// break the async chain (which caused "one permission per launch" behaviour).
   Future<void> _requestAllPermissions() async {
-    // 1. Location (required for core functionality)
-    final locationStatus = await ph.Permission.location.status;
-    if (locationStatus.isDenied) {
-      await ph.Permission.location.request();
-    }
+    // 1+2. Location and notification in one native batch — resilient to
+    //       Activity recreation between dialogs.
+    await [
+      ph.Permission.location,
+      ph.Permission.notification,
+    ].request();
 
-    // 2. Notification (Android 13+, needed for FCM + foreground service)
-    final notifStatus = await ph.Permission.notification.status;
-    if (notifStatus.isDenied) {
-      await ph.Permission.notification.request();
-    }
-
-    // 3. Background location (needed for foreground service when app backgrounded)
-    // Must be requested AFTER foreground location is granted.
-    final locationAfter = await ph.Permission.location.status;
-    if (locationAfter.isGranted) {
+    // 3. Background location (must be requested separately, AFTER foreground
+    //    location is granted — Android policy).
+    if (await ph.Permission.location.isGranted) {
       final bgStatus = await ph.Permission.locationAlways.status;
       if (bgStatus.isDenied) {
         await ph.Permission.locationAlways.request();
