@@ -232,8 +232,8 @@ class KycVerificationService
                 ]
             );
 
-            // Store phone and profile photo on the users table
-            $userUpdates = [];
+            // Store name, phone and profile photo on the users table
+            $userUpdates = ['name' => $studentName];
             if ($phoneNumber !== null) {
                 $userUpdates['phone_number'] = $phoneNumber;
             }

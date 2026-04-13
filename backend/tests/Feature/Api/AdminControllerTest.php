@@ -30,6 +30,7 @@ class AdminControllerTest extends TestCase
         $this->admin = User::factory()->create([
             'email' => 'admin@test.com',
             'role' => 'admin',
+            'is_admin' => true,
             'is_active' => true,
         ]);
 
