@@ -18,7 +18,7 @@ import '../../core/providers/credits_provider.dart';
 import '../../core/providers/session_provider.dart';
 import '../../core/models/session_state.dart';
 import '../../core/services/location/driver_location_service.dart';
-import '../../core/utils/distance_utils.dart';
+import '../../core/utils/polyline_utils.dart';
 import 'driver_home_screen.dart';
 import '../../core/widgets/mapbox_map_widget.dart';
 import '../../core/widgets/whatsapp_launcher.dart';
@@ -47,13 +47,10 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen>
   final MapboxDirectionsService _directionsService = MapboxDirectionsService();
   LatLng? _currentDriverLocation;
 
-  // Debounce route re-fetch on driver position ticks: skip if we fetched
-  // less than 15s ago OR the driver moved less than 50m. Mapbox Directions
-  // calls were firing on every position stream event.
-  LatLng? _lastRouteFetchLocation;
-  DateTime? _lastRouteFetchTime;
-  static const _routeRefetchMinInterval = Duration(seconds: 15);
-  static const _routeRefetchMinDistanceKm = 0.05; // 50m
+  // Pickup-phase polyline: fetched once from Mapbox, then trimmed locally
+  // as the driver progresses. Re-fetched only if driver goes off-route.
+  List<LatLng> _pickupRoutePoints = [];
+  static const _offRouteThresholdKm = 0.1; // 100m
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -81,7 +78,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen>
       // debounced to avoid hammering Mapbox Directions on every tick.
       final currentStatus = ref.read(activeRideProvider).ride?.status;
       if (currentStatus == RideStatus.accepted) {
-        _maybeRefetchRoute(newLoc);
+        _maybeUpdatePickupRoute(newLoc);
       }
     });
 
@@ -122,31 +119,43 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen>
   /// Guards against hammering the Mapbox Directions API on every position
   /// stream tick — polyline may lag by up to 15s, the driver marker still
   /// updates every tick so the experience is unchanged.
-  void _maybeRefetchRoute(LatLng driverLocation) {
-    final now = DateTime.now();
-    final last = _lastRouteFetchTime;
-    final lastLoc = _lastRouteFetchLocation;
-
-    if (last != null && now.difference(last) < _routeRefetchMinInterval) {
+  void _maybeUpdatePickupRoute(LatLng driverLocation) {
+    if (_pickupRoutePoints.isEmpty) {
+      // First location tick — fetch the route once
+      _fetchAndDisplayRoute().catchError((e) {
+        if (kDebugMode) print('⚠️ [Driver] Initial route fetch error: $e');
+      });
       return;
     }
-    if (lastLoc != null) {
-      final moved = haversineKm(
-        lastLoc.latitude,
-        lastLoc.longitude,
-        driverLocation.latitude,
-        driverLocation.longitude,
-      );
-      if (moved < _routeRefetchMinDistanceKm) {
-        return;
-      }
+
+    // Check if driver went off-route
+    final dist = distanceToPolylineKm(driverLocation, _pickupRoutePoints);
+    if (dist > _offRouteThresholdKm) {
+      if (kDebugMode) print('🔄 [Driver] Off-route (${(dist * 1000).toInt()}m), re-fetching');
+      _pickupRoutePoints = [];
+      _fetchAndDisplayRoute().catchError((e) {
+        if (kDebugMode) print('⚠️ [Driver] Re-route fetch error: $e');
+      });
+      return;
     }
 
-    _lastRouteFetchLocation = driverLocation;
-    _lastRouteFetchTime = now;
-    _fetchAndDisplayRoute().catchError((e) {
-      if (kDebugMode) print('⚠️ [Driver] Route update on location change error: $e');
-    });
+    // Trim passed points and redraw
+    final trimmed = trimPolyline(_pickupRoutePoints, driverLocation);
+    _pickupRoutePoints = trimmed;
+
+    final ride = ref.read(activeRideProvider).ride;
+    if (ride != null && mounted) {
+      setState(() {
+        _polylines = {
+          MapPolyline(
+            id: 'route_to_pickup_${ride.id}',
+            points: trimmed,
+            color: Colors.blue,
+            width: 4.0,
+          ),
+        };
+      });
+    }
   }
 
   /// Fetch and display route based on current ride status
@@ -181,6 +190,8 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen>
           return;
         }
 
+        // Cache for local trim — subsequent ticks trim instead of re-fetching
+        _pickupRoutePoints = routePoints;
         if (kDebugMode) print('✅ [Driver] Route to pickup fetched: ${routePoints.length} points');
 
         polyline = MapPolyline(
