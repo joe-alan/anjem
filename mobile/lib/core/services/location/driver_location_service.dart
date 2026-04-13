@@ -14,10 +14,13 @@ class DriverLocationService {
 
   StreamSubscription<Position>? _positionSubscription;
   final _positionController = StreamController<Position>.broadcast();
+  Timer? _keepaliveTimer;
 
   DriverLocationMode _mode = DriverLocationMode.idle;
   DateTime _lastSendTime = DateTime(2000);
   bool _isTracking = false;
+
+  static const _keepaliveInterval = Duration(seconds: 60);
 
   DriverLocationService(this._apiService);
 
@@ -53,6 +56,8 @@ class DriverLocationService {
       },
     );
 
+    _startKeepalive();
+
     if (kDebugMode) print('DriverLocationService: started (mode=$_mode)');
   }
 
@@ -64,6 +69,8 @@ class DriverLocationService {
   Future<void> stop() async {
     if (!_isTracking) return;
 
+    _keepaliveTimer?.cancel();
+    _keepaliveTimer = null;
     await _positionSubscription?.cancel();
     _positionSubscription = null;
     _isTracking = false;
@@ -74,6 +81,30 @@ class DriverLocationService {
   void dispose() {
     stop();
     _positionController.close();
+  }
+
+  /// Periodic keepalive that sends the cached OS position even when the driver
+  /// is stationary and the GPS stream is silent (distanceFilter suppresses it).
+  /// Prevents KickStaleDrivers from treating a stationary-but-alive driver as
+  /// a ghost.  Uses getLastKnownPosition — no GPS hardware activation.
+  void _startKeepalive() {
+    _keepaliveTimer?.cancel();
+    _keepaliveTimer = Timer.periodic(_keepaliveInterval, (_) async {
+      final elapsed = DateTime.now().difference(_lastSendTime);
+      // Only fire if the normal stream hasn't sent recently
+      if (elapsed < _keepaliveInterval) return;
+
+      try {
+        final pos = await Geolocator.getLastKnownPosition();
+        if (pos != null) {
+          _sendToBackend(pos);
+          _lastSendTime = DateTime.now();
+          if (kDebugMode) print('DriverLocationService: keepalive sent');
+        }
+      } catch (e) {
+        if (kDebugMode) print('DriverLocationService: keepalive failed: $e');
+      }
+    });
   }
 
   void _onPositionUpdate(Position position) {
