@@ -102,9 +102,12 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
                 sessionState != null &&
                 sessionState.driverContext.isDriver) {
               final driverCtx = sessionState.driverContext;
-              if (driverCtx.isOnline && driverCtx.activeRideId == null) {
-                // Cold launch: backend still shows online but no active ride.
-                // Kick offline so the driver starts fresh each launch.
+              final alreadyOnline = ref.read(driverStatusProvider).isOnline;
+              if (driverCtx.isOnline && driverCtx.activeRideId == null && !alreadyOnline) {
+                // Cold launch: backend shows online but mobile state is offline
+                // (app just started). Kick offline so the driver starts fresh.
+                // Skip if mobile is already online — that means the driver just
+                // finished a ride and navigated back, not a cold launch.
                 ref.read(driverStatusProvider.notifier).kickOfflineOnLaunch();
               } else {
                 ref.read(driverStatusProvider.notifier).syncFromBackend(
