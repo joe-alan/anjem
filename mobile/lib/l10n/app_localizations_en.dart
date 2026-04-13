@@ -795,6 +795,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'This app needs location permission to track your ride and update your position. Please enable location access in Settings.';
 
   @override
+  String get backgroundLocationTitle => 'Allow location all the time';
+
+  @override
+  String get backgroundLocationMessage =>
+      'Anjem needs your location even when the app is minimized so you stay in the queue and receive ride requests. On the next screen, select \"Allow all the time\".';
+
+  @override
+  String get backgroundLocationContinue => 'Continue';
+
+  @override
+  String get backgroundLocationLater => 'Not now';
+
+  @override
   String get batteryOptimizationTitle => 'Stay online in the background';
 
   @override
