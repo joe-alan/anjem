@@ -98,6 +98,7 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen>
     if (!mounted) return;
 
     _isDismissing = true;
+    LocalNotificationService.instance.cancelRideRequestNotification();
 
     // Notify backend of timeout so the request passes to the next driver.
     // Ignore errors — the server-side HandleRequestTimeout job is the safety-net.
