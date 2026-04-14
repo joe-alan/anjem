@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +10,8 @@ import '../../core/models/ride.dart';
 import '../../core/models/lat_lng.dart';
 import '../../core/providers/active_ride_provider.dart';
 import '../../core/providers/ride_request_provider.dart';
+import '../../core/utils/distance_utils.dart';
+import '../../core/utils/polyline_utils.dart';
 import '../../core/widgets/mapbox_map_widget.dart';
 import '../../core/services/mapbox/mapbox_directions_service.dart';
 import 'completed_screen.dart';
@@ -41,6 +42,11 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
   Timer? _statusPollingTimer;
   Timer? _autoDismissTimer;
   static const _pollInterval = Duration(seconds: 5);
+
+  // Pickup-phase polyline: fetched once from Mapbox, then trimmed locally
+  // as the driver progresses. Re-fetched only if driver goes off-route.
+  List<LatLng> _pickupRoutePoints = [];
+  static const _offRouteThresholdKm = 0.1; // 100m
 
   @override
   void initState() {
@@ -147,6 +153,48 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
     super.dispose();
   }
 
+  /// Update the pickup-phase polyline by trimming passed points locally.
+  /// Only re-fetches from Mapbox if the driver goes off-route (>100m from
+  /// any polyline point).  Driver marker still updates every tick.
+  void _maybeUpdatePickupRoute(LatLng driverLocation) {
+    if (_pickupRoutePoints.isEmpty) {
+      // First tick — fetch the route once
+      _fetchAndDisplayRoute().catchError((e) {
+        debugPrint('⚠️ [Rider] Initial route fetch error: $e');
+      });
+      return;
+    }
+
+    // Check if driver went off-route
+    final dist = distanceToPolylineKm(driverLocation, _pickupRoutePoints);
+    if (dist > _offRouteThresholdKm) {
+      debugPrint('🔄 [Rider] Off-route (${(dist * 1000).toInt()}m), re-fetching');
+      _pickupRoutePoints = [];
+      _fetchAndDisplayRoute().catchError((e) {
+        debugPrint('⚠️ [Rider] Re-route fetch error: $e');
+      });
+      return;
+    }
+
+    // Trim passed points and redraw
+    final trimmed = trimPolyline(_pickupRoutePoints, driverLocation);
+    _pickupRoutePoints = trimmed;
+
+    final ride = ref.read(activeRideProvider).ride ?? widget.initialRide;
+    if (mounted) {
+      setState(() {
+        _polylines = {
+          MapPolyline(
+            id: 'route_to_pickup_${ride.id}',
+            points: trimmed,
+            color: Colors.blue,
+            width: 4.0,
+          ),
+        };
+      });
+    }
+  }
+
   /// Fetch and display route based on ride status
   Future<void> _fetchAndDisplayRoute() async {
     final rideState = ref.read(activeRideProvider);
@@ -178,6 +226,8 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
           origin: driverLoc,
           destination: pickupLatLng,
         );
+        // Cache for local trim — subsequent ticks trim instead of re-fetching
+        _pickupRoutePoints = routePoints;
       } else if (ride.status == RideStatus.inProgress) {
         // Ride started — show pickup → destination (backend geometry preferred)
         routePoints = ride.routeCoordinates ?? [];
@@ -271,11 +321,11 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         setState(() {
           _buildMarkers(next.ride ?? widget.initialRide, next.driverLocation);
         });
-        // Re-fetch route when driver location changes so polyline tracks driver movement
-        if (previous?.driverLocation != next.driverLocation) {
-          _fetchAndDisplayRoute().catchError((e) {
-            debugPrint('⚠️ [Rider] Route fetch on driver location update error: $e');
-          });
+        // Trim pickup polyline as driver moves (no API call unless off-route)
+        if (previous?.driverLocation != next.driverLocation &&
+            next.driverLocation != null &&
+            (next.ride?.status == RideStatus.accepted)) {
+          _maybeUpdatePickupRoute(next.driverLocation!);
         }
       }
     });
@@ -286,7 +336,7 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
     // Compute driver ETA (only when driver is heading to pickup)
     int? etaMinutes;
     if (driverLocation != null && ride.status == RideStatus.accepted) {
-      final distKm = _haversineKm(
+      final distKm = haversineKm(
         driverLocation.latitude, driverLocation.longitude,
         ride.pickupLocation.coordinates.latitude,
         ride.pickupLocation.coordinates.longitude,
@@ -786,17 +836,21 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
   void _fitBounds(Ride ride, LatLng? driverLocation) {
     if (_mapController == null) return;
 
-    // Calculate center point and appropriate zoom level
-    final lats = [
-      ride.pickupLocation.coordinates.latitude,
-      ride.destinationLocation.coordinates.latitude,
-      if (driverLocation != null) driverLocation.latitude,
-    ];
-    final lngs = [
-      ride.pickupLocation.coordinates.longitude,
-      ride.destinationLocation.coordinates.longitude,
-      if (driverLocation != null) driverLocation.longitude,
-    ];
+    final isPickupPhase = ride.status == RideStatus.accepted ||
+        ride.status == RideStatus.driverArrived;
+
+    final List<double> lats;
+    final List<double> lngs;
+
+    if (isPickupPhase && driverLocation != null) {
+      // Pickup phase: frame driver → pickup so rider sees driver approaching
+      lats = [driverLocation.latitude, ride.pickupLocation.coordinates.latitude];
+      lngs = [driverLocation.longitude, ride.pickupLocation.coordinates.longitude];
+    } else {
+      // In-progress / fallback: frame pickup → destination (full route)
+      lats = [ride.pickupLocation.coordinates.latitude, ride.destinationLocation.coordinates.latitude];
+      lngs = [ride.pickupLocation.coordinates.longitude, ride.destinationLocation.coordinates.longitude];
+    }
 
     final centerLat = lats.reduce((a, b) => a + b) / lats.length;
     final centerLng = lngs.reduce((a, b) => a + b) / lngs.length;
@@ -808,16 +862,6 @@ class _RiderActiveRideScreenState extends ConsumerState<RiderActiveRideScreen> {
         zoom: 13,
       ),
     );
-  }
-
-  static double _haversineKm(double lat1, double lng1, double lat2, double lng2) {
-    const r = 6371.0;
-    final dLat = (lat2 - lat1) * pi / 180;
-    final dLng = (lng2 - lng1) * pi / 180;
-    final a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(lat1 * pi / 180) * cos(lat2 * pi / 180) *
-        sin(dLng / 2) * sin(dLng / 2);
-    return r * 2 * atan2(sqrt(a), sqrt(1 - a));
   }
 
   Color _getStatusColor(RideStatus status) {

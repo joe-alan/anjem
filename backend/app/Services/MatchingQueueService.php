@@ -56,8 +56,8 @@ class MatchingQueueService
     // Rider cooldown after cancel/expire
     private const RIDER_COOLDOWN_SECONDS = 60;
 
-    // Safety-net timeout job delay (slightly longer than the mobile 15s UI timer)
-    private const TIMEOUT_JOB_DELAY_SECONDS = 18;
+    // Safety-net timeout job delay (slightly longer than the mobile 20s UI timer)
+    private const TIMEOUT_JOB_DELAY_SECONDS = 25;
 
     // Countdown shown to rider when no drivers are available before expiry
     private const NO_DRIVERS_COUNTDOWN_SECONDS = 60;
@@ -159,6 +159,16 @@ class MatchingQueueService
             ->notInCooldown()
             ->where('is_verified', true)
             ->whereNotNull('went_online_at')
+            // Skip ghost drivers whose heartbeat is stale (force-quit / crash).
+            // Stale-kick cron cleans them up eventually; this prevents wasted dispatches.
+            ->where(function ($q) {
+                $q->where('last_location_update', '>', now()->subSeconds(60))
+                  // Grace: drivers who just went online may not have sent a heartbeat yet
+                  ->orWhere(function ($inner) {
+                      $inner->whereNull('last_location_update')
+                            ->where('went_online_at', '>', now()->subSeconds(60));
+                  });
+            })
             ->whereNotIn('user_id', $excludedDriverIds)
             // Exclude drivers currently being offered another pending request
             ->whereNotIn('user_id', function ($q) use ($rideRequest) {

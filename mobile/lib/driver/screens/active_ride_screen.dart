@@ -17,6 +17,8 @@ import '../../core/providers/driver_status_provider.dart';
 import '../../core/providers/credits_provider.dart';
 import '../../core/providers/session_provider.dart';
 import '../../core/models/session_state.dart';
+import '../../core/services/location/driver_location_service.dart';
+import '../../core/utils/polyline_utils.dart';
 import 'driver_home_screen.dart';
 import '../../core/widgets/mapbox_map_widget.dart';
 import '../../core/widgets/whatsapp_launcher.dart';
@@ -34,20 +36,60 @@ class ActiveRideScreen extends ConsumerStatefulWidget {
   ConsumerState<ActiveRideScreen> createState() => _ActiveRideScreenState();
 }
 
-class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
+class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen>
+    with WidgetsBindingObserver {
   MapboxMapController? _mapController;
   Set<MapMarker> _markers = {};
   Set<MapPolyline> _polylines = {};
-  Timer? _locationUpdateTimer;
+  StreamSubscription<Position>? _locationSubscription;
   bool _isUpdatingStatus = false;
   bool _isCancelling = false;
   final MapboxDirectionsService _directionsService = MapboxDirectionsService();
   LatLng? _currentDriverLocation;
 
+  // Pickup-phase polyline: fetched once from Mapbox, then trimmed locally
+  // as the driver progresses. Re-fetched only if driver goes off-route.
+  List<LatLng> _pickupRoutePoints = [];
+  static const _offRouteThresholdKm = 0.1; // 100m
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Force-refresh ride data from API on resume to fix stale state
+      if (kDebugMode) print('🔄 [Driver] App resumed — reloading ride ${widget.rideId}');
+      ref.read(activeRideProvider.notifier).loadRide(widget.rideId);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    _startLocationUpdates();
+    WidgetsBinding.instance.addObserver(this);
+
+    // Subscribe to centralized location service for position updates
+    final locationService = ref.read(driverLocationServiceProvider);
+    _locationSubscription = locationService.positionStream.listen((position) {
+      if (!mounted) return;
+      final newLoc = LatLng(position.latitude, position.longitude);
+      setState(() {
+        _currentDriverLocation = newLoc;
+      });
+      // Redraw route from new driver position (only for accepted — dynamic route),
+      // debounced to avoid hammering Mapbox Directions on every tick.
+      final currentStatus = ref.read(activeRideProvider).ride?.status;
+      if (currentStatus == RideStatus.accepted) {
+        _maybeUpdatePickupRoute(newLoc);
+      }
+    });
+
+    // Get initial location for immediate map display
+    Geolocator.getLastKnownPosition().then((position) {
+      if (position != null && mounted) {
+        setState(() {
+          _currentDriverLocation = LatLng(position.latitude, position.longitude);
+        });
+      }
+    });
 
     // Load ride data from API
     Future.microtask(() async {
@@ -67,139 +109,53 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
 
   @override
   void dispose() {
-    _locationUpdateTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _locationSubscription?.cancel();
     _mapController?.dispose();
     super.dispose();
   }
 
-  Future<void> _startLocationUpdates() async {
-    final hasPermission = await _checkLocationPermission();
-    if (!hasPermission) {
-      _showLocationPermissionDialog();
+  /// Re-fetch the route only if the driver moved enough or enough time passed.
+  /// Guards against hammering the Mapbox Directions API on every position
+  /// stream tick — polyline may lag by up to 15s, the driver marker still
+  /// updates every tick so the experience is unchanged.
+  void _maybeUpdatePickupRoute(LatLng driverLocation) {
+    if (_pickupRoutePoints.isEmpty) {
+      // First location tick — fetch the route once
+      _fetchAndDisplayRoute().catchError((e) {
+        if (kDebugMode) print('⚠️ [Driver] Initial route fetch error: $e');
+      });
       return;
     }
 
-    // Get initial location
-    try {
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 10,
-        ),
-      );
-      _currentDriverLocation = LatLng(position.latitude, position.longitude);
-      // Fetch route for initial position
+    // Check if driver went off-route
+    final dist = distanceToPolylineKm(driverLocation, _pickupRoutePoints);
+    if (dist > _offRouteThresholdKm) {
+      if (kDebugMode) print('🔄 [Driver] Off-route (${(dist * 1000).toInt()}m), re-fetching');
+      _pickupRoutePoints = [];
       _fetchAndDisplayRoute().catchError((e) {
-        if (kDebugMode) print('⚠️ [Driver] Initial route fetch error handled: $e');
+        if (kDebugMode) print('⚠️ [Driver] Re-route fetch error: $e');
       });
-    } catch (e) {
-      if (kDebugMode) print('Failed to get initial location: $e');
+      return;
     }
 
-    // Start adaptive location update loop
-    _scheduleNextLocationUpdate();
-  }
+    // Trim passed points and redraw
+    final trimmed = trimPolyline(_pickupRoutePoints, driverLocation);
+    _pickupRoutePoints = trimmed;
 
-  // Adaptive location update interval based on speed:
-  //   > 15 km/h  →  5 s  (fast-moving, high precision)
-  //   2–15 km/h  → 10 s  (normal driving)
-  //   < 2 km/h   → 30 s  (stationary/slow, save battery)
-  void _scheduleNextLocationUpdate() {
-    if (!mounted) return;
-    Future.delayed(const Duration(seconds: 5), () async {
-      if (!mounted) return;
-      try {
-        final position = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.high,
-            distanceFilter: 10,
+    final ride = ref.read(activeRideProvider).ride;
+    if (ride != null && mounted) {
+      setState(() {
+        _polylines = {
+          MapPolyline(
+            id: 'route_to_pickup_${ride.id}',
+            points: trimmed,
+            color: Colors.blue,
+            width: 4.0,
           ),
-        );
-
-        // Update current driver location
-        if (mounted) {
-          setState(() {
-            _currentDriverLocation = LatLng(position.latitude, position.longitude);
-          });
-          // Redraw route from new driver position (only for accepted — dynamic route)
-          final currentStatus = ref.read(activeRideProvider).ride?.status;
-          if (currentStatus == RideStatus.accepted) {
-            _fetchAndDisplayRoute().catchError((e) {
-              if (kDebugMode) print('⚠️ [Driver] Route update on location change error: $e');
-            });
-          }
-        }
-
-        // Determine adaptive interval from speed (m/s → km/h)
-        final speedKmh = (position.speed < 0 ? 0 : position.speed) * 3.6;
-        final interval = speedKmh > 15
-            ? const Duration(seconds: 5)
-            : speedKmh >= 2
-                ? const Duration(seconds: 10)
-                : const Duration(seconds: 30);
-
-        final apiService = ref.read(apiServiceProvider);
-        await apiService.post('/driver/location', data: {
-          'latitude': position.latitude,
-          'longitude': position.longitude,
-          'heading': position.heading,
-          'speed': position.speed,
-        });
-
-        if (kDebugMode) print('Driver location updated (${interval.inSeconds}s interval, ${speedKmh.toStringAsFixed(1)} km/h)');
-
-        // Schedule next update after the adaptive interval
-        if (mounted) {
-          _locationUpdateTimer = Timer(interval, _scheduleNextLocationUpdate);
-        }
-      } catch (e) {
-        if (kDebugMode) print('Failed to update location: $e');
-        // Retry after default interval on error
-        if (mounted) {
-          _locationUpdateTimer = Timer(const Duration(seconds: 10), _scheduleNextLocationUpdate);
-        }
-      }
-    });
-  }
-
-  Future<bool> _checkLocationPermission() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+        };
+      });
     }
-
-    if (permission == LocationPermission.deniedForever) {
-      return false;
-    }
-
-    return permission == LocationPermission.whileInUse ||
-        permission == LocationPermission.always;
-  }
-
-  void _showLocationPermissionDialog() {
-    final l10n = AppLocalizations.of(context);
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.locationPermissionTitle),
-        content: Text(l10n.locationPermissionMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Geolocator.openLocationSettings();
-            },
-            child: Text(l10n.openSettings),
-          ),
-        ],
-      ),
-    );
   }
 
   /// Fetch and display route based on current ride status
@@ -234,6 +190,8 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
           return;
         }
 
+        // Cache for local trim — subsequent ticks trim instead of re-fetching
+        _pickupRoutePoints = routePoints;
         if (kDebugMode) print('✅ [Driver] Route to pickup fetched: ${routePoints.length} points');
 
         polyline = MapPolyline(
@@ -389,6 +347,7 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
 
   void _handleRideCancelled() {
     if (!mounted) return;
+    ref.read(activeRideProvider.notifier).reset();
     ref.read(driverStatusProvider.notifier).setActiveRide(null);
     ref.read(sessionStateProvider.notifier).updateSessionState(
       SessionState(
@@ -426,6 +385,9 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
       // deducted at accept time so balance is already 0 in the DB.
       ref.invalidate(creditsProvider);
       final balance = await ref.read(creditsProvider.future).catchError((_) => -1);
+
+      // Clear stale ride data and unsubscribe from ride WS channel
+      ref.read(activeRideProvider.notifier).reset();
 
       if (balance == 0) {
         ref.read(driverStatusProvider.notifier).setActiveRide(null);
@@ -1057,14 +1019,21 @@ class _ActiveRideScreenState extends ConsumerState<ActiveRideScreen> {
   void _fitBounds(Ride ride) {
     if (_mapController == null) return;
 
-    final lats = [
-      ride.pickupLocation.coordinates.latitude,
-      ride.destinationLocation.coordinates.latitude,
-    ];
-    final lngs = [
-      ride.pickupLocation.coordinates.longitude,
-      ride.destinationLocation.coordinates.longitude,
-    ];
+    final isPickupPhase = ride.status == RideStatus.accepted ||
+        ride.status == RideStatus.driverArrived;
+
+    final List<double> lats;
+    final List<double> lngs;
+
+    if (isPickupPhase && _currentDriverLocation != null) {
+      // Pickup phase: frame driver → pickup
+      lats = [_currentDriverLocation!.latitude, ride.pickupLocation.coordinates.latitude];
+      lngs = [_currentDriverLocation!.longitude, ride.pickupLocation.coordinates.longitude];
+    } else {
+      // In-progress / fallback: frame pickup → destination
+      lats = [ride.pickupLocation.coordinates.latitude, ride.destinationLocation.coordinates.latitude];
+      lngs = [ride.pickupLocation.coordinates.longitude, ride.destinationLocation.coordinates.longitude];
+    }
 
     final centerLat = lats.reduce((a, b) => a + b) / lats.length;
     final centerLng = lngs.reduce((a, b) => a + b) / lngs.length;

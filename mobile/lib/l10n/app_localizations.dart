@@ -1526,6 +1526,54 @@ abstract class AppLocalizations {
   /// **'This app needs location permission to track your ride and update your position. Please enable location access in Settings.'**
   String get locationPermissionMessage;
 
+  /// No description provided for @backgroundLocationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow location all the time'**
+  String get backgroundLocationTitle;
+
+  /// No description provided for @backgroundLocationMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Anjem needs your location even when the app is minimized so you stay in the queue and receive ride requests. On the next screen, select \"Allow all the time\".'**
+  String get backgroundLocationMessage;
+
+  /// No description provided for @backgroundLocationContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get backgroundLocationContinue;
+
+  /// No description provided for @backgroundLocationLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get backgroundLocationLater;
+
+  /// No description provided for @batteryOptimizationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay online in the background'**
+  String get batteryOptimizationTitle;
+
+  /// No description provided for @batteryOptimizationMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Anjem needs to keep tracking your location while you wait for ride requests, even when the app isn\'t open. Please disable battery optimization for Anjem on the next screen.'**
+  String get batteryOptimizationMessage;
+
+  /// No description provided for @batteryOptimizationContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get batteryOptimizationContinue;
+
+  /// No description provided for @batteryOptimizationLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get batteryOptimizationLater;
+
   /// No description provided for @rideCompletedSnackbar.
   ///
   /// In en, this message translates to:
@@ -2594,11 +2642,29 @@ abstract class AppLocalizations {
   /// **'You were taken offline because your credit balance reached zero. Contact admin to top up.'**
   String get kickedZeroCredits;
 
+  /// No description provided for @kickedAdminKick.
+  ///
+  /// In en, this message translates to:
+  /// **'You were removed from the queue by an admin.'**
+  String get kickedAdminKick;
+
   /// No description provided for @kickedGeneric.
   ///
   /// In en, this message translates to:
   /// **'You were taken offline by the system.'**
   String get kickedGeneric;
+
+  /// No description provided for @driverLocationNotificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Anjem Driver'**
+  String get driverLocationNotificationTitle;
+
+  /// No description provided for @driverLocationNotificationText.
+  ///
+  /// In en, this message translates to:
+  /// **'Your location is being shared while you are online'**
+  String get driverLocationNotificationText;
 
   /// No description provided for @forceUpdateTitle.
   ///

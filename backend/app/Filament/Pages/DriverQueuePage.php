@@ -2,9 +2,14 @@
 
 namespace App\Filament\Pages;
 
+use App\Events\DriverOnlineStatusChanged;
 use App\Models\DriverProfile;
+use App\Models\User;
+use App\Services\MatchingQueueService;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 class DriverQueuePage extends Page
 {
@@ -41,5 +46,34 @@ class DriverQueuePage extends Page
             'avg_wait_minutes' => (int) round($avgWaitMinutes),
             'in_cooldown' => $inCooldown,
         ];
+    }
+
+    public function kickDriver(int $driverId): void
+    {
+        $user = User::find($driverId);
+        if (! $user) {
+            Notification::make()->title('Driver not found')->danger()->send();
+            return;
+        }
+
+        $profile = DriverProfile::where('user_id', $driverId)->first();
+        if (! $profile || ! $profile->isInQueue()) {
+            Notification::make()->title('Driver is not in queue')->warning()->send();
+            return;
+        }
+
+        app(MatchingQueueService::class)->removeFromQueue($driverId);
+        $profile->update(['went_online_at' => null]);
+        broadcast(new DriverOnlineStatusChanged($user, false, null, null, 'admin_kick'));
+
+        Log::info('Admin kicked driver from queue', [
+            'driver_id' => $driverId,
+            'admin_id' => auth()->id(),
+        ]);
+
+        Notification::make()
+            ->title("Kicked {$user->name} from queue")
+            ->success()
+            ->send();
     }
 }

@@ -795,6 +795,32 @@ class AppLocalizationsEn extends AppLocalizations {
       'This app needs location permission to track your ride and update your position. Please enable location access in Settings.';
 
   @override
+  String get backgroundLocationTitle => 'Allow location all the time';
+
+  @override
+  String get backgroundLocationMessage =>
+      'Anjem needs your location even when the app is minimized so you stay in the queue and receive ride requests. On the next screen, select \"Allow all the time\".';
+
+  @override
+  String get backgroundLocationContinue => 'Continue';
+
+  @override
+  String get backgroundLocationLater => 'Not now';
+
+  @override
+  String get batteryOptimizationTitle => 'Stay online in the background';
+
+  @override
+  String get batteryOptimizationMessage =>
+      'Anjem needs to keep tracking your location while you wait for ride requests, even when the app isn\'t open. Please disable battery optimization for Anjem on the next screen.';
+
+  @override
+  String get batteryOptimizationContinue => 'Open Settings';
+
+  @override
+  String get batteryOptimizationLater => 'Not now';
+
+  @override
   String get rideCompletedSnackbar => 'Ride completed! 🎉';
 
   @override
@@ -1380,7 +1406,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'You were taken offline because your credit balance reached zero. Contact admin to top up.';
 
   @override
+  String get kickedAdminKick => 'You were removed from the queue by an admin.';
+
+  @override
   String get kickedGeneric => 'You were taken offline by the system.';
+
+  @override
+  String get driverLocationNotificationTitle => 'Anjem Driver';
+
+  @override
+  String get driverLocationNotificationText =>
+      'Your location is being shared while you are online';
 
   @override
   String get forceUpdateTitle => 'Update Required';

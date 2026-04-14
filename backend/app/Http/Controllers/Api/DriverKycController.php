@@ -70,6 +70,19 @@ class DriverKycController extends Controller
 
             \Log::info('KYC submission successful', ['user_id' => $user->id]);
 
+            // Auto-send OTP so the driver doesn't have to tap "Resend" on the
+            // verification screen. Non-fatal — the screen still has a resend button.
+            $cooldownSeconds = 0;
+            try {
+                $this->kycService->sendVerificationCode($request->student_email, $user->id);
+                $cooldownSeconds = KycVerificationService::RESEND_COOLDOWN_SECONDS;
+            } catch (\Exception $e) {
+                \Log::warning('Auto-send OTP after KYC failed', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'KYC data submitted successfully. Please verify your student email.',
@@ -78,6 +91,7 @@ class DriverKycController extends Controller
                     'email_verified' => false,
                     'is_verified' => false,
                     'student_email' => $driverProfile->student_email,
+                    'cooldown_seconds' => $cooldownSeconds,
                 ],
             ]);
         } catch (\Exception $e) {

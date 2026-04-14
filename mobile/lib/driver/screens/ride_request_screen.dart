@@ -13,6 +13,7 @@ import '../../core/providers/api_provider.dart';
 import '../../core/services/api/api_exception.dart';
 import '../../core/services/mapbox/mapbox_directions_service.dart';
 import '../../core/providers/driver_incoming_request_provider.dart';
+import '../../core/services/fcm/local_notification_service.dart';
 import '../../core/providers/driver_status_provider.dart';
 import '../../core/providers/ride_request_provider.dart';
 import 'active_ride_screen.dart';
@@ -31,7 +32,7 @@ class RideRequestScreen extends ConsumerStatefulWidget {
 
 class _RideRequestScreenState extends ConsumerState<RideRequestScreen>
     with SingleTickerProviderStateMixin {
-  static const int timeoutSeconds = 15;
+  static const int timeoutSeconds = 20;
   late int _secondsRemaining;
   Timer? _timer;
   bool _isProcessing = false;
@@ -97,6 +98,7 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen>
     if (!mounted) return;
 
     _isDismissing = true;
+    LocalNotificationService.instance.cancelRideRequestNotification();
 
     // Notify backend of timeout so the request passes to the next driver.
     // Ignore errors — the server-side HandleRequestTimeout job is the safety-net.
@@ -127,6 +129,7 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen>
     });
 
     _timer?.cancel();
+    LocalNotificationService.instance.cancelRideRequestNotification();
 
     try {
       final apiService = ref.read(apiServiceProvider);
@@ -212,6 +215,7 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen>
   Future<void> _declineRide() async {
     if (_isProcessing) return;
     _timer?.cancel();
+    LocalNotificationService.instance.cancelRideRequestNotification();
     _isDismissing = true;
 
     setState(() => _isProcessing = true);
@@ -284,10 +288,12 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen>
       if (previous != null && next == null && mounted && !_isDismissing) {
         _isDismissing = true;
         _timer?.cancel();
+        final cancelledBy = ref.read(driverIncomingRequestProvider.notifier).consumeCancelledBy();
+        final message = cancelledBy == 'system' ? l10n.requestTimedOut : l10n.rideCancelledByRider;
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(l10n.rideCancelledByRider),
+            content: Text(message),
             backgroundColor: Colors.orange,
           ),
         );

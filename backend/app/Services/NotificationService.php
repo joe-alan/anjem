@@ -37,8 +37,8 @@ class NotificationService
         }
 
         $message = [
-            'title' => 'Driver Found!',
-            'body' => "Your driver {$ride->driver->name} is on the way. Estimated pickup in 5-8 minutes.",
+            'title' => 'Driver Ditemukan!',
+            'body' => "Driver Anda {$ride->driver->name} sedang dalam perjalanan. Estimasi penjemputan 5-8 menit.",
             'data' => [
                 'type' => 'ride_matched',
                 'ride_id' => (string) $ride->id,
@@ -62,8 +62,8 @@ class NotificationService
         }
 
         $message = [
-            'title' => 'New Ride Request',
-            'body' => "Ride to {$ride->destinationLocation->name}. Fare: Rp ".number_format($ride->estimated_fare_rp),
+            'title' => 'Permintaan Anjem Baru',
+            'body' => "Anjem ke {$ride->destinationLocation->name}. Tarif: Rp ".number_format($ride->estimated_fare_rp),
             'data' => [
                 'type' => 'ride_request',
                 'ride_id' => (string) $ride->id,
@@ -87,8 +87,8 @@ class NotificationService
             return false;
         }
 
-        $title = 'New Ride Request';
-        $body = "Pickup: {$rideRequest->pickupLocation->name} → {$rideRequest->destinationLocation->name}. Fare: Rp {$rideRequest->estimated_fare_rp}";
+        $title = 'Permintaan Anjem Baru';
+        $body = "Jemput: {$rideRequest->pickupLocation->name} → {$rideRequest->destinationLocation->name}. Tarif: Rp {$rideRequest->estimated_fare_rp}";
 
         $message = [
             'title' => $title,
@@ -132,8 +132,8 @@ class NotificationService
         }
 
         $message = [
-            'title' => 'Ride Accepted',
-            'body' => "Your driver {$ride->driver->name} has accepted your ride and is coming to pick you up.",
+            'title' => 'Anjem Diterima',
+            'body' => "Driver Anda {$ride->driver->name} telah menerima Anjem dan sedang menuju lokasi penjemputan.",
             'data' => [
                 'type' => 'ride_accepted',
                 'ride_id' => (string) $ride->id,
@@ -157,8 +157,8 @@ class NotificationService
         }
 
         $message = [
-            'title' => 'Driver Arrived',
-            'body' => "Your driver {$ride->driver->name} has arrived at the pickup location.",
+            'title' => 'Driver Tiba',
+            'body' => "Driver Anda {$ride->driver->name} telah tiba di lokasi penjemputan.",
             'data' => [
                 'type' => 'driver_arrived',
                 'ride_id' => (string) $ride->id,
@@ -181,8 +181,8 @@ class NotificationService
         }
 
         $message = [
-            'title' => 'Ride Started',
-            'body' => "Your ride to {$ride->destinationLocation->name} has started. Enjoy your trip!",
+            'title' => 'Anjem Dimulai',
+            'body' => "Anjem Anda ke {$ride->destinationLocation->name} telah dimulai. Selamat menikmati perjalanan!",
             'data' => [
                 'type' => 'ride_started',
                 'ride_id' => (string) $ride->id,
@@ -206,8 +206,8 @@ class NotificationService
         // Notification to rider
         if ($ride->rider && $ride->rider->fcm_token) {
             $riderMessage = [
-                'title' => 'Ride Completed',
-                'body' => "You've arrived at {$ride->destinationLocation->name}. Please rate your driver!",
+                'title' => 'Anjem Selesai',
+                'body' => "Anda telah tiba di {$ride->destinationLocation->name}. Silakan beri rating untuk driver Anda!",
                 'data' => [
                     'type' => 'ride_completed',
                     'ride_id' => (string) $ride->id,
@@ -221,8 +221,8 @@ class NotificationService
         // Notification to driver
         if ($ride->driver && $ride->driver->fcm_token) {
             $driverMessage = [
-                'title' => 'Ride Completed',
-                'body' => 'Ride completed! You earned Rp '.number_format($ride->finalFare).'. Please rate your rider!',
+                'title' => 'Anjem Selesai',
+                'body' => 'Anjem selesai! Anda mendapatkan Rp '.number_format($ride->finalFare).'. Silakan beri rating untuk penumpang!',
                 'data' => [
                     'type' => 'ride_completed',
                     'ride_id' => (string) $ride->id,
@@ -252,8 +252,8 @@ class NotificationService
         // Notification to the other party
         if ($isCancelledByRider && $ride->driver && $ride->driver->fcm_token) {
             $message = [
-                'title' => 'Ride Cancelled',
-                'body' => 'The rider has cancelled the ride.'.($reason ? " Reason: {$reason}" : ''),
+                'title' => 'Anjem Dibatalkan',
+                'body' => 'Penumpang telah membatalkan Anjem.'.($reason ? " Alasan: {$reason}" : ''),
                 'data' => [
                     'type' => 'ride_cancelled',
                     'ride_id' => (string) $ride->id,
@@ -264,8 +264,8 @@ class NotificationService
             $results['driver'] = $this->sendNotification($ride->driver->fcm_token, $message);
         } elseif (! $isCancelledByRider && $ride->rider && $ride->rider->fcm_token) {
             $message = [
-                'title' => 'Ride Cancelled',
-                'body' => 'Your driver has cancelled the ride.'.($reason ? " Reason: {$reason}" : ''),
+                'title' => 'Anjem Dibatalkan',
+                'body' => 'Driver Anda telah membatalkan Anjem.'.($reason ? " Alasan: {$reason}" : ''),
                 'data' => [
                     'type' => 'ride_cancelled',
                     'ride_id' => (string) $ride->id,
@@ -292,8 +292,8 @@ class NotificationService
         $estimatedWait = $queueStatus['estimated_wait_minutes'] ?? 0;
 
         $message = [
-            'title' => 'Queue Update',
-            'body' => "You're #${position} in queue. Estimated wait: ${estimatedWait} minutes.",
+            'title' => 'Update Antrean',
+            'body' => "Anda di posisi #${position} dalam antrean. Estimasi tunggu: ${estimatedWait} menit.",
             'data' => [
                 'type' => 'queue_position_update',
                 'position' => (string) $position,
@@ -316,8 +316,8 @@ class NotificationService
         }
 
         $message = [
-            'title' => 'No Drivers Available',
-            'body' => 'We couldn\'t find a driver for your ride. Please try again in a few minutes.',
+            'title' => 'Tidak Ada Driver Tersedia',
+            'body' => 'Kami tidak dapat menemukan driver untuk Anjem Anda. Silakan coba lagi dalam beberapa menit.',
             'data' => [
                 'type' => 'ride_request_timeout',
                 'ride_request_id' => (string) $rideRequest->id,
@@ -392,8 +392,8 @@ class NotificationService
         }
 
         $message = [
-            'title' => 'KYC Approved!',
-            'body' => 'Your driver verification has been approved. You can now go online and start accepting rides.',
+            'title' => 'KYC Disetujui!',
+            'body' => 'Verifikasi driver Anda telah disetujui. Anda sekarang dapat online dan mulai menerima Anjem.',
             'data' => ['type' => 'kyc_approved'],
         ];
 
@@ -410,8 +410,8 @@ class NotificationService
         }
 
         $message = [
-            'title' => 'KYC Verification Rejected',
-            'body' => 'Your verification was not approved. Please open the app for details and resubmit your documents.',
+            'title' => 'Verifikasi KYC Ditolak',
+            'body' => 'Verifikasi Anda tidak disetujui. Silakan buka aplikasi untuk detail dan kirim ulang dokumen Anda.',
             'data' => ['type' => 'kyc_rejected'],
         ];
 
@@ -503,8 +503,8 @@ class NotificationService
     public function sendTestNotification(string $fcmToken): bool
     {
         $message = [
-            'title' => 'Anjem Test Notification',
-            'body' => 'Your notification setup is working correctly!',
+            'title' => 'Notifikasi Tes Anjem',
+            'body' => 'Pengaturan notifikasi Anda berfungsi dengan baik!',
             'data' => [
                 'type' => 'test',
                 'timestamp' => now()->toISOString(),
