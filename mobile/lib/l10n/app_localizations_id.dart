@@ -797,6 +797,32 @@ class AppLocalizationsId extends AppLocalizations {
       'Aplikasi ini membutuhkan izin lokasi untuk melacak perjalanan dan memperbarui posisi Anda. Harap aktifkan akses lokasi di Pengaturan.';
 
   @override
+  String get backgroundLocationTitle => 'Izinkan lokasi sepanjang waktu';
+
+  @override
+  String get backgroundLocationMessage =>
+      'Anjem membutuhkan lokasi Anda meskipun aplikasi diminimalkan agar Anda tetap dalam antrian dan menerima permintaan anjem. Di layar berikutnya, pilih \"Izinkan sepanjang waktu\".';
+
+  @override
+  String get backgroundLocationContinue => 'Lanjutkan';
+
+  @override
+  String get backgroundLocationLater => 'Nanti saja';
+
+  @override
+  String get batteryOptimizationTitle => 'Tetap online di latar belakang';
+
+  @override
+  String get batteryOptimizationMessage =>
+      'Anjem perlu terus melacak lokasi Anda saat menunggu permintaan anjem, bahkan saat aplikasi tidak dibuka. Mohon nonaktifkan optimasi baterai untuk Anjem di layar berikutnya.';
+
+  @override
+  String get batteryOptimizationContinue => 'Buka Pengaturan';
+
+  @override
+  String get batteryOptimizationLater => 'Nanti saja';
+
+  @override
   String get rideCompletedSnackbar => 'Anjem selesai! 🎉';
 
   @override
@@ -1384,7 +1410,17 @@ class AppLocalizationsId extends AppLocalizations {
       'Anda dibuat offline karena saldo kredit habis. Hubungi admin untuk isi ulang.';
 
   @override
+  String get kickedAdminKick => 'Anda dikeluarkan dari antrean oleh admin.';
+
+  @override
   String get kickedGeneric => 'Anda dibuat offline oleh sistem.';
+
+  @override
+  String get driverLocationNotificationTitle => 'Anjem Driver';
+
+  @override
+  String get driverLocationNotificationText =>
+      'Lokasi Anda dibagikan selama Anda online';
 
   @override
   String get forceUpdateTitle => 'Pembaruan Diperlukan';

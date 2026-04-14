@@ -13,7 +13,14 @@ class FcmService {
 
   Future<void> initialize() async {
     await LocalNotificationService.instance.initialize();
-    await _requestPermission();
+    // Clear stale notifications from previous session (e.g., ride request
+    // notifications that lingered after force-quit).
+    await LocalNotificationService.instance.cancelAll();
+    // Driver app gathers all permissions (including notification) upfront on
+    // the home screen. Skip here to avoid prompting during KYC flow.
+    if (!AppConfig.instance.isDriverApp) {
+      await _requestPermission();
+    }
     await _sendTokenToBackend();
     _setupTokenRefreshListener();
     _setupForegroundHandler();

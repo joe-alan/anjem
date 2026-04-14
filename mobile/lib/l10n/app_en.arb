@@ -344,6 +344,14 @@
 
   "locationPermissionTitle": "Location Permission Required",
   "locationPermissionMessage": "This app needs location permission to track your ride and update your position. Please enable location access in Settings.",
+  "backgroundLocationTitle": "Allow location all the time",
+  "backgroundLocationMessage": "Anjem needs your location even when the app is minimized so you stay in the queue and receive ride requests. On the next screen, select \"Allow all the time\".",
+  "backgroundLocationContinue": "Continue",
+  "backgroundLocationLater": "Not now",
+  "batteryOptimizationTitle": "Stay online in the background",
+  "batteryOptimizationMessage": "Anjem needs to keep tracking your location while you wait for ride requests, even when the app isn't open. Please disable battery optimization for Anjem on the next screen.",
+  "batteryOptimizationContinue": "Open Settings",
+  "batteryOptimizationLater": "Not now",
   "rideCompletedSnackbar": "Ride completed! \uD83C\uDF89",
   "rideCancelledSnackbar": "Ride cancelled",
   "rideCancelledByRiderSnackbar": "Ride was cancelled by the rider",
@@ -618,7 +626,11 @@
 
   "kickedStaleGps": "You were taken offline because your GPS signal was lost. Please check your location settings.",
   "kickedZeroCredits": "You were taken offline because your credit balance reached zero. Contact admin to top up.",
+  "kickedAdminKick": "You were removed from the queue by an admin.",
   "kickedGeneric": "You were taken offline by the system.",
+
+  "driverLocationNotificationTitle": "Anjem Driver",
+  "driverLocationNotificationText": "Your location is being shared while you are online",
 
   "forceUpdateTitle": "Update Required",
   "forceUpdateMessage": "Your app version is no longer supported. Please update to the latest version.",

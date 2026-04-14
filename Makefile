@@ -29,6 +29,13 @@ help:
 	@echo "build-driver    - Build driver app"
 	@echo "build-all       - Build both mobile apps"
 	@echo ""
+	@echo "Staging Commands:"
+	@echo "mobile-dev-staging-rider   - Run rider app against staging"
+	@echo "mobile-dev-staging-driver  - Run driver app against staging"
+	@echo "build-staging-rider        - Build staging rider APK"
+	@echo "build-staging-driver       - Build staging driver APK"
+	@echo "build-staging-all          - Build both staging APKs"
+	@echo ""
 	@echo "Deployment:"
 	@echo "  Production deploys automatically via Forge on push to main"
 
@@ -114,12 +121,12 @@ mobile-dev:
 # Start Flutter development for rider app
 mobile-dev-rider:
 	@echo "📱 Starting Rider app development..."
-	@cd mobile && flutter run --flavor rider_app
+	@cd mobile && flutter run --flavor rider -t lib/main_rider.dart
 
 # Start Flutter development for driver app
 mobile-dev-driver:
 	@echo "🚗 Starting Driver app development..."
-	@cd mobile && flutter run --flavor driver_app
+	@cd mobile && flutter run --flavor driver -t lib/main_driver.dart
 
 # Run Flutter tests
 mobile-test:
@@ -129,16 +136,60 @@ mobile-test:
 # Build rider app (APK)
 build-rider:
 	@echo "📦 Building rider app..."
-	@cd mobile && flutter build apk --flavor rider_app --release
+	@cd mobile && flutter build apk --flavor rider -t lib/main_rider.dart --release
 
 # Build driver app (APK)
 build-driver:
 	@echo "📦 Building driver app..."
-	@cd mobile && flutter build apk --flavor driver_app --release
+	@cd mobile && flutter build apk --flavor driver -t lib/main_driver.dart --release
 
 # Build both mobile apps
 build-all: build-rider build-driver
 	@echo "📦 Both mobile apps built successfully!"
+
+# ===== STAGING BUILDS =====
+# Staging URLs — override MAPBOX_ACCESS_TOKEN via env var
+STAGING_API_URL    = https://staging-api.anjem.me/api/v1
+STAGING_WS_URL     = wss://staging-ws.anjem.me
+STAGING_PUSHER_HOST = staging-ws.anjem.me
+STAGING_PUSHER_PORT = 443
+STAGING_PUSHER_SCHEME = https
+STAGING_SENTRY_ENV = staging
+
+STAGING_DART_DEFINES = \
+	--dart-define=API_URL=$(STAGING_API_URL) \
+	--dart-define=WS_URL=$(STAGING_WS_URL) \
+	--dart-define=PUSHER_HOST=$(STAGING_PUSHER_HOST) \
+	--dart-define=PUSHER_PORT=$(STAGING_PUSHER_PORT) \
+	--dart-define=PUSHER_SCHEME=$(STAGING_PUSHER_SCHEME) \
+	--dart-define=SENTRY_ENV=$(STAGING_SENTRY_ENV) \
+	$(if $(MAPBOX_ACCESS_TOKEN),--dart-define=MAPBOX_ACCESS_TOKEN=$(MAPBOX_ACCESS_TOKEN)) \
+	$(if $(PUSHER_KEY),--dart-define=PUSHER_KEY=$(PUSHER_KEY)) \
+	$(if $(SENTRY_DSN),--dart-define=SENTRY_DSN=$(SENTRY_DSN))
+
+# Run staging rider app (dev mode)
+mobile-dev-staging-rider:
+	@echo "📱 Starting Rider app (staging)..."
+	@cd mobile && flutter run --flavor rider -t lib/main_rider.dart $(STAGING_DART_DEFINES)
+
+# Run staging driver app (dev mode)
+mobile-dev-staging-driver:
+	@echo "🚗 Starting Driver app (staging)..."
+	@cd mobile && flutter run --flavor driver -t lib/main_driver.dart $(STAGING_DART_DEFINES)
+
+# Build staging rider APK
+build-staging-rider:
+	@echo "📦 Building rider app (staging)..."
+	@cd mobile && flutter build apk --flavor rider -t lib/main_rider.dart --release $(STAGING_DART_DEFINES)
+
+# Build staging driver APK
+build-staging-driver:
+	@echo "📦 Building driver app (staging)..."
+	@cd mobile && flutter build apk --flavor driver -t lib/main_driver.dart --release $(STAGING_DART_DEFINES)
+
+# Build both staging APKs
+build-staging-all: build-staging-rider build-staging-driver
+	@echo "📦 Both staging APKs built successfully!"
 
 # ===== DEVELOPMENT TOOLS =====
 

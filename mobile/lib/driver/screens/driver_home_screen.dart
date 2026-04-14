@@ -1,12 +1,12 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:mobile/l10n/app_localizations.dart';
+import 'package:permission_handler/permission_handler.dart' as ph;
 import '../../core/config/app_config.dart';
 import '../../core/models/ride_request.dart';
-import '../../core/providers/api_provider.dart';
 import '../../core/providers/driver_incoming_request_provider.dart';
 import '../../core/providers/credits_provider.dart';
 import '../../core/providers/driver_status_provider.dart';
@@ -33,7 +33,6 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
   ProviderSubscription<RideRequest?>? _incomingRequestSub;
   ProviderSubscription<DriverStatusState>? _driverStatusSub;
   bool _isPresentingRideRequest = false;
-  Timer? _locationUpdateTimer;
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -63,9 +62,9 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     Future.microtask(() {
       ref.refresh(driverStatisticsProvider);
     });
-    // Prompt for location permission on first boot if not yet granted
+    // Request all permissions upfront on first screen mount
     WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _checkAndRequestLocationPermission(),
+      (_) => _requestAllPermissions(),
     );
 
     _incomingRequestSub = ref.listenManual<RideRequest?>(
@@ -106,6 +105,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
             final message = switch (reason) {
               'location_stale' => l10n.kickedStaleGps,
               'zero_credits' => l10n.kickedZeroCredits,
+              'admin_kick' => l10n.kickedAdminKick,
               _ => l10n.kickedGeneric,
             };
             ScaffoldMessenger.of(context).showSnackBar(
@@ -118,34 +118,129 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
           }
         }
 
-        // Start location updates when online & idle; stop otherwise.
-        if (next.isOnline && !next.hasActiveRide) {
-          _startIdleLocationUpdates();
-        } else {
-          _stopIdleLocationUpdates();
-        }
       },
     );
-
-    // Kick off immediately if already online when screen mounts.
-    final status = ref.read(driverStatusProvider);
-    if (status.isOnline && !status.hasActiveRide) {
-      _startIdleLocationUpdates();
-    }
   }
 
-  Future<bool> _checkAndRequestLocationPermission() async {
+  /// Request all permissions the driver app needs upfront.
+  ///
+  /// Ordered so that permissions which do NOT trigger Activity recreation come
+  /// first.  Granting foreground location on some OEMs (Samsung, Xiaomi)
+  /// destroys and recreates the Activity, killing the async chain.  By
+  /// requesting notification first, we guarantee it completes.  If location
+  /// grant recreates the Activity, initState re-fires, re-runs this method,
+  /// and the already-granted steps are skipped via the isGranted checks.
+  Future<void> _requestAllPermissions() async {
+    // 1. Notification — safe, never triggers Activity recreation.
+    if (!await ph.Permission.notification.isGranted) {
+      await ph.Permission.notification.request();
+    }
+    if (!mounted) return;
+
+    // 2. Foreground location — may trigger Activity recreation on some OEMs.
+    //    If the Activity dies here, next mount resumes from step 3.
+    if (!await ph.Permission.location.isGranted) {
+      await ph.Permission.location.request();
+    }
+    if (!mounted) return;
+
+    // 3. Background location (must be requested separately, AFTER foreground
+    //    location is granted — Android policy). Skip entirely if foreground
+    //    location was denied — no point asking for "all the time" without it.
+    if (!await ph.Permission.location.isGranted) return;
+    final bgStatus = await ph.Permission.locationAlways.status;
+    if (!mounted) return;
+    if (bgStatus.isDenied) {
+      // Show rationale before the OS prompt — Android 11+ just opens
+      // settings silently, which is confusing without context.
+      final l10n = AppLocalizations.of(context);
+      final shouldContinue = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: Text(l10n.backgroundLocationTitle),
+          content: Text(l10n.backgroundLocationMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.backgroundLocationLater),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l10n.backgroundLocationContinue),
+            ),
+          ],
+        ),
+      );
+      if (shouldContinue == true) {
+        await ph.Permission.locationAlways.request();
+      }
+    }
+    if (!mounted) return;
+
+    // 4. Battery optimization exemption (one-shot, persisted via secure storage)
+    await _promptBatteryOptimizationIfFirstTime();
+  }
+
+  /// Prompt the user to disable battery optimization for the app, the first
+  /// time they go online. Without this, aggressive OEM power management
+  /// (Xiaomi/Samsung/Oppo/Vivo) can kill the location foreground service even
+  /// while the app is online, causing the backend to mark the driver stale and
+  /// kick them from the queue.
+  ///
+  /// This is a one-shot prompt — we persist a flag so the user is not pestered
+  /// every time they go online. They can still manually re-enable optimization
+  /// from system settings if they choose.
+  static const _batteryOptPromptedKey = 'battery_opt_prompted_v1';
+  Future<void> _promptBatteryOptimizationIfFirstTime() async {
+    const storage = FlutterSecureStorage();
+    final alreadyPrompted = await storage.read(key: _batteryOptPromptedKey);
+    if (alreadyPrompted == 'true') return;
+
+    // If the user already granted the exemption (e.g. via OEM defaults), just
+    // record the flag and skip the dialog.
+    final current = await ph.Permission.ignoreBatteryOptimizations.status;
+    if (current.isGranted) {
+      await storage.write(key: _batteryOptPromptedKey, value: 'true');
+      return;
+    }
+
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final shouldOpen = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(l10n.batteryOptimizationTitle),
+        content: Text(l10n.batteryOptimizationMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.batteryOptimizationLater),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.batteryOptimizationContinue),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldOpen == true) {
+      await ph.Permission.ignoreBatteryOptimizations.request();
+    }
+
+    // Persist the flag regardless of the user's choice — we don't want to
+    // re-prompt every time they go online.
+    await storage.write(key: _batteryOptPromptedKey, value: 'true');
+  }
+
+  /// Check if location permission is granted (used before goOnline).
+  Future<bool> _checkLocationPermission() async {
     final permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.whileInUse ||
         permission == LocationPermission.always) {
       return true;
     }
-    if (permission == LocationPermission.denied) {
-      final result = await Geolocator.requestPermission();
-      return result == LocationPermission.whileInUse ||
-          result == LocationPermission.always;
-    }
-    // deniedForever — system dialog won't appear; direct them to settings
+    // If denied at this point, direct to settings
     if (mounted) {
       final l10n = AppLocalizations.of(context);
       await showDialog<void>(
@@ -172,52 +267,11 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
     return false;
   }
 
-  void _startIdleLocationUpdates() {
-    if (_locationUpdateTimer?.isActive ?? false) return;
-    _sendLocationUpdate(); // send once immediately
-    _locationUpdateTimer = Timer.periodic(
-      const Duration(seconds: 30),
-      (_) => _sendLocationUpdate(),
-    );
-  }
-
-  void _stopIdleLocationUpdates() {
-    _locationUpdateTimer?.cancel();
-    _locationUpdateTimer = null;
-  }
-
-  Future<void> _sendLocationUpdate() async {
-    try {
-      final permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        return;
-      }
-
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
-
-      if (!mounted) return;
-      await ref.read(apiServiceProvider).post('/driver/location', data: {
-        'latitude': position.latitude,
-        'longitude': position.longitude,
-        'heading': position.heading,
-        'speed': position.speed,
-      });
-    } catch (_) {
-      // Non-fatal — matching still works with last known location.
-    }
-  }
-
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _incomingRequestSub?.close();
     _driverStatusSub?.close();
-    _stopIdleLocationUpdates();
     super.dispose();
   }
 
@@ -992,7 +1046,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen>
       onPressed: canGoOnline
           ? () async {
               HapticFeedback.mediumImpact();
-              final hasPermission = await _checkAndRequestLocationPermission();
+              final hasPermission = await _checkLocationPermission();
               if (!hasPermission || !mounted) return;
               await ref.read(driverStatusProvider.notifier).goOnline();
               final error = ref.read(driverStatusProvider).error;

@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/l10n/app_localizations.dart';
 import '../config/app_config.dart';
 import '../models/session_state.dart';
 import '../providers/session_provider.dart';
@@ -103,9 +102,12 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
                 sessionState != null &&
                 sessionState.driverContext.isDriver) {
               final driverCtx = sessionState.driverContext;
-              if (driverCtx.isOnline && driverCtx.activeRideId == null) {
-                // Cold launch: backend still shows online but no active ride.
-                // Kick offline so the driver starts fresh each launch.
+              final alreadyOnline = ref.read(driverStatusProvider).isOnline;
+              if (driverCtx.isOnline && driverCtx.activeRideId == null && !alreadyOnline) {
+                // Cold launch: backend shows online but mobile state is offline
+                // (app just started). Kick offline so the driver starts fresh.
+                // Skip if mobile is already online — that means the driver just
+                // finished a ride and navigated back, not a cold launch.
                 ref.read(driverStatusProvider.notifier).kickOfflineOnLaunch();
               } else {
                 ref.read(driverStatusProvider.notifier).syncFromBackend(
@@ -172,71 +174,34 @@ class _SessionCheckWrapperState extends ConsumerState<SessionCheckWrapper>
   Future<void> _handleAppResume() async {
     final sessionNotifier = ref.read(sessionStateProvider.notifier);
 
-    // Only refresh if enough time has passed (>5 minutes)
-    if (sessionNotifier.shouldRefresh()) {
-      final sessionState = await sessionNotifier.refreshSession();
+    // Always refresh session on resume — even brief screen-off can break
+    // WebSocket and leave stale state. The API call is lightweight.
+    final sessionState = await sessionNotifier.refreshSession();
 
-      if (!mounted) return;
+    if (!mounted) return;
 
-      // Always re-sync driver status so online/offline reflects backend truth
-      if (sessionState != null) {
-        final appConfig = AppConfig.instance;
-        if (appConfig.isDriverApp && sessionState.driverContext.isDriver) {
-          ref.read(driverStatusProvider.notifier).syncFromBackend(
-            isOnline: sessionState.driverContext.isOnline,
-            activeRideId: sessionState.driverContext.activeRideId,
-          );
-        }
+    if (sessionState != null) {
+      final appConfig = AppConfig.instance;
+
+      // Sync driver status so online/offline reflects backend truth
+      if (appConfig.isDriverApp && sessionState.driverContext.isDriver) {
+        ref.read(driverStatusProvider.notifier).syncFromBackend(
+          isOnline: sessionState.driverContext.isOnline,
+          activeRideId: sessionState.driverContext.activeRideId,
+        );
       }
 
-      if (sessionState != null && !sessionState.isIdle) {
-        // Show dialog asking if user wants to resume
-        _showResumeDialog(sessionState);
+      // Sync active ride provider with backend truth
+      if (sessionState.activeRide != null) {
+        ref.read(activeRideProvider.notifier).setRide(sessionState.activeRide!);
+      } else {
+        ref.read(activeRideProvider.notifier).reset();
       }
     }
-  }
 
-  void _showResumeDialog(SessionState sessionState) {
-    final l10n = AppLocalizations.of(context);
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.continueSessionTitle),
-        content: Text(
-          sessionState.needsToResumeRide
-              ? l10n.continueRideMessage
-              : l10n.continuePendingMessage,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-
-              // Navigate to the session screen
-              final targetScreen = _getScreenForSessionState(sessionState);
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => targetScreen),
-              );
-
-              // Update active ride provider after navigation starts
-              if (sessionState.activeRide != null) {
-                Future.microtask(() {
-                  if (mounted) {
-                    ref.read(activeRideProvider.notifier).setRide(sessionState.activeRide!);
-                  }
-                });
-              }
-            },
-            child: Text(l10n.yes),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.no),
-          ),
-        ],
-      ),
-    );
+    // No resume dialog — the provider sync above already updates ride state.
+    // The user is already on the correct screen (active ride / waiting / home),
+    // so prompting "Continue session?" is redundant and confusing.
   }
 
   Widget _getScreenForSessionState(SessionState sessionState) {

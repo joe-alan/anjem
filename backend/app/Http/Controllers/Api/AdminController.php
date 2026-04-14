@@ -152,7 +152,7 @@ class AdminController extends Controller
      * POST /api/admin/drivers/{id}/suspend
      * Suspend or unsuspend a driver
      */
-    public function suspendDriver(Request $request, int $id): JsonResponse
+    public function suspendDriver(Request $request, int $id, MatchingQueueService $matchingQueue): JsonResponse
     {
         $request->validate([
             'suspended' => 'required|boolean',
@@ -161,14 +161,17 @@ class AdminController extends Controller
 
         $driver = User::whereHas('driverProfile')->findOrFail($id);
 
-        DB::transaction(function () use ($request, $driver) {
+        DB::transaction(function () use ($request, $driver, $matchingQueue) {
             $driver->update([
                 'is_active' => ! $request->suspended,
             ]);
 
-            // If suspending, force driver offline
+            // If suspending, force driver offline AND remove from matching queue.
+            // Without removeFromQueue(), queue_joined_at stays populated and the
+            // suspended driver is still considered "in queue" by other queries.
             if ($request->suspended && $driver->driverProfile) {
                 $driver->driverProfile->update(['went_online_at' => null]);
+                $matchingQueue->removeFromQueue($driver->id);
             }
 
             AdminAuditLog::create([

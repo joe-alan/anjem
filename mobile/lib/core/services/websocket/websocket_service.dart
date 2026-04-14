@@ -18,6 +18,8 @@ class WebSocketService {
   static const int _maxReconnectDelaySecs = 30;
 
   final Map<String, dynamic> _channels = {};
+  // Store event bindings per channel so we can re-apply after reconnect
+  final Map<String, List<_EventBinding>> _channelBindings = {};
   final StreamController<WsConnectionState> _connectionStateController =
       StreamController<WsConnectionState>.broadcast();
 
@@ -47,6 +49,14 @@ class WebSocketService {
     for (final entry in _channels.entries) {
       try {
         entry.value.subscribe();
+        // Re-apply stored event bindings after reconnect
+        final bindings = _channelBindings[entry.key];
+        if (bindings != null) {
+          for (final binding in bindings) {
+            entry.value.bind(binding.event, binding.callback);
+          }
+          debugPrint('Re-bound ${bindings.length} events on ${entry.key}');
+        }
       } catch (e, st) {
         debugPrint('Failed to resubscribe to ${entry.key}: $e\n$st');
       }
@@ -158,6 +168,7 @@ class WebSocketService {
       }
 
       _channels.clear();
+      _channelBindings.clear();
 
       _pusher?.disconnect();
       _isConnected = false;
@@ -167,7 +178,8 @@ class WebSocketService {
     }
   }
 
-  // Subscribe to private ride channel for ride updates
+  // Subscribe to private ride channel for ride updates.
+  // If already subscribed, re-binds callbacks (needed after session resume).
   Future<void> subscribeToRideChannel({
     required int rideId,
     required Function(Map<String, dynamic>) onStatusUpdate,
@@ -176,38 +188,46 @@ class WebSocketService {
     final channelName = 'private-ride.$rideId';
 
     try {
+      dynamic channel;
       if (_channels.containsKey(channelName)) {
-        debugPrint('Already subscribed to $channelName');
-        return;
+        // Channel exists — reuse it but refresh callbacks
+        channel = _channels[channelName];
+        debugPrint('Re-binding callbacks on existing $channelName');
+      } else {
+        channel = _pusher!.private(channelName);
+        if (!_isConnected) {
+          debugPrint(
+              'WebSocket currently disconnected, will subscribe to $channelName once connection is ready');
+        }
+        channel.subscribe();
+        _channels[channelName] = channel;
       }
 
-      final channel = _pusher!.private(channelName);
-      if (!_isConnected) {
-        debugPrint(
-            'WebSocket currently disconnected, will subscribe to $channelName once connection is ready');
+      // Build fresh bindings
+      final bindings = <_EventBinding>[
+        _EventBinding('ride.status.updated', (data) {
+          debugPrint('Received ride status update: $data');
+          if (data != null) {
+            onStatusUpdate(data as Map<String, dynamic>);
+          }
+        }),
+        _EventBinding('driver.location.updated', (data) {
+          debugPrint('Received driver location update: $data');
+          if (data != null) {
+            final locationData = data as Map<String, dynamic>;
+            final lat = (locationData['latitude'] as num).toDouble();
+            final lng = (locationData['longitude'] as num).toDouble();
+            onLocationUpdate(lat, lng);
+          }
+        }),
+      ];
+
+      // Apply bindings to channel
+      for (final binding in bindings) {
+        channel.bind(binding.event, binding.callback);
       }
-      channel.subscribe();
+      _channelBindings[channelName] = bindings;
 
-      // Listen for ride status updates
-      channel.bind('ride.status.updated', (data) {
-        debugPrint('Received ride status update: $data');
-        if (data != null) {
-          onStatusUpdate(data as Map<String, dynamic>);
-        }
-      });
-
-      // Listen for driver location updates
-      channel.bind('driver.location.updated', (data) {
-        debugPrint('Received driver location update: $data');
-        if (data != null) {
-          final locationData = data as Map<String, dynamic>;
-          final lat = (locationData['latitude'] as num).toDouble();
-          final lng = (locationData['longitude'] as num).toDouble();
-          onLocationUpdate(lat, lng);
-        }
-      });
-
-      _channels[channelName] = channel;
       debugPrint('Subscribed to ride channel: $channelName');
     } catch (e) {
       debugPrint('Failed to subscribe to ride channel: $e');
@@ -480,6 +500,7 @@ class WebSocketService {
         if (channel != null) {
           channel.unsubscribe();
           _channels.remove(channelName);
+          _channelBindings.remove(channelName);
           debugPrint('Unsubscribed from channel: $channelName');
         }
       }
@@ -498,4 +519,10 @@ enum WsConnectionState {
   connecting,
   connected,
   disconnected,
+}
+
+class _EventBinding {
+  final String event;
+  final Function(dynamic) callback;
+  const _EventBinding(this.event, this.callback);
 }
