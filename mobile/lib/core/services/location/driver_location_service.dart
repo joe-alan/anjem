@@ -71,19 +71,6 @@ class DriverLocationService {
     _keepaliveTimer = null;
     await _positionSubscription?.cancel();
     _positionSubscription = null;
-
-    // Kill any orphaned foreground service from a previous app session.
-    // On cold launch after force-quit, _isTracking is false and there's no
-    // subscription to cancel, but the platform service (and its notification)
-    // may still be alive. Briefly subscribing and cancelling triggers the
-    // platform-level service shutdown.
-    if (!_isTracking) {
-      try {
-        final orphan = Geolocator.getPositionStream().listen((_) {});
-        await orphan.cancel();
-      } catch (_) {}
-    }
-
     _isTracking = false;
     if (kDebugMode) print('DriverLocationService: stopped');
   }
