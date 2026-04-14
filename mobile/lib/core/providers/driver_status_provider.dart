@@ -9,6 +9,7 @@ import 'api_provider.dart';
 import 'auth_provider.dart'; // also used for authStateProvider (session.replaced)
 import 'credits_provider.dart';
 import 'driver_incoming_request_provider.dart';
+import '../services/fcm/local_notification_service.dart';
 import 'kyc_provider.dart';
 
 // Driver Status State
@@ -234,6 +235,8 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
 
       // Stop background location tracking
       await _locationService.stop();
+      // Clear any stale ride request notifications
+      LocalNotificationService.instance.cancelRideRequestNotification();
 
       // Keep the driver channel subscription alive so session.replaced
       // is received immediately if another device logs in while offline.
@@ -309,6 +312,7 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
           if (kDebugMode) print('DriverStatusProvider: Auto-kicked offline by backend (reason: $reason)');
           _kickReason = reason;
           _locationService.stop();
+          LocalNotificationService.instance.cancelRideRequestNotification();
           _ref.read(driverIncomingRequestProvider.notifier).clear();
           state = state.copyWith(
             status: DriverStatusEnum.offline,
@@ -448,6 +452,7 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
     if (kDebugMode) print('DriverStatusProvider: kickOfflineOnLaunch — clearing stale online state');
 
     await _locationService.stop();
+    LocalNotificationService.instance.cancelAll();
 
     state = state.copyWith(
       status: DriverStatusEnum.offline,
