@@ -13,6 +13,7 @@ import '../../core/providers/api_provider.dart';
 import '../../core/services/api/api_exception.dart';
 import '../../core/services/mapbox/mapbox_directions_service.dart';
 import '../../core/providers/driver_incoming_request_provider.dart';
+import '../../core/services/fcm/local_notification_service.dart';
 import '../../core/providers/driver_status_provider.dart';
 import '../../core/providers/ride_request_provider.dart';
 import 'active_ride_screen.dart';
@@ -127,6 +128,7 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen>
     });
 
     _timer?.cancel();
+    LocalNotificationService.instance.cancelRideRequestNotification();
 
     try {
       final apiService = ref.read(apiServiceProvider);
@@ -212,6 +214,7 @@ class _RideRequestScreenState extends ConsumerState<RideRequestScreen>
   Future<void> _declineRide() async {
     if (_isProcessing) return;
     _timer?.cancel();
+    LocalNotificationService.instance.cancelRideRequestNotification();
     _isDismissing = true;
 
     setState(() => _isProcessing = true);

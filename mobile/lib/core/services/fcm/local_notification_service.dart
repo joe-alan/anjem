@@ -10,6 +10,9 @@ class LocalNotificationService {
   static const _rideChannelId = 'anjem_rides';
   static const _generalChannelId = 'anjem_general';
 
+  /// Fixed ID for ride request notifications so they can be cancelled.
+  static const rideRequestNotificationId = 9001;
+
   Future<void> initialize() async {
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const initSettings = InitializationSettings(android: androidSettings);
@@ -49,6 +52,11 @@ class LocalNotificationService {
     final importance = isRideEvent ? Importance.max : Importance.defaultImportance;
     final priority = isRideEvent ? Priority.max : Priority.defaultPriority;
 
+    // Use a fixed ID for ride requests so we can cancel them later.
+    final id = type == 'new_ride_request'
+        ? rideRequestNotificationId
+        : notification.hashCode;
+
     final androidDetails = AndroidNotificationDetails(
       channelId,
       channelName,
@@ -58,11 +66,22 @@ class LocalNotificationService {
     );
 
     await _plugin.show(
-      notification.hashCode,
+      id,
       notification.title,
       notification.body,
       NotificationDetails(android: androidDetails),
       payload: message.data.toString(),
     );
+  }
+
+  /// Cancel the ride request notification (e.g., on accept, decline, expiry,
+  /// or going offline).
+  Future<void> cancelRideRequestNotification() async {
+    await _plugin.cancel(rideRequestNotificationId);
+  }
+
+  /// Cancel all notifications from this app.
+  Future<void> cancelAll() async {
+    await _plugin.cancelAll();
   }
 }
