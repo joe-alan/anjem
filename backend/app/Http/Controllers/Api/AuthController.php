@@ -218,6 +218,61 @@ class AuthController extends Controller
     }
 
     /**
+     * Review-only login: accepts email + secret code, returns a Sanctum token.
+     * Bypasses Google OAuth so Play Store reviewers can sign in without
+     * adding a Gmail account to their device.
+     */
+    public function reviewLogin(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'code' => 'required|string',
+            'device_type' => 'required|string|in:rider,driver',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'error' => 'Validation failed',
+                'messages' => $validator->errors(),
+            ], 422);
+        }
+
+        $reviewSecret = config('app.review_login_secret');
+        if (! $reviewSecret || $request->code !== $reviewSecret) {
+            return response()->json([
+                'error' => 'Invalid credentials',
+                'message' => 'Invalid email or code',
+            ], 401);
+        }
+
+        $user = \App\Models\User::where('email', $request->email)->first();
+        if (! $user) {
+            return response()->json([
+                'error' => 'Invalid credentials',
+                'message' => 'Invalid email or code',
+            ], 401);
+        }
+
+        $abilities = $this->getTokenAbilities($user);
+        $token = $user->createToken('review-login', $abilities)->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'user_type' => $user->role,
+                'firebase_uid' => $user->firebase_uid,
+                'is_active' => $user->is_active,
+            ],
+            'token' => $token,
+            'token_type' => 'Bearer',
+            'abilities' => $abilities,
+        ]);
+    }
+
+    /**
      * Get token abilities based on user role
      */
     private function getTokenAbilities($user): array

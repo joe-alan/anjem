@@ -179,6 +179,32 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<void> signInWithReviewCode(String email, String code) async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final user = await _authService.signInWithReviewCode(email, code);
+      await _initializeWebSocket();
+
+      state = state.copyWith(
+        isLoading: false,
+        isAuthenticated: true,
+        user: user,
+        error: null,
+      );
+    } on ApiException catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.userFriendlyMessage,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'An unexpected error occurred during sign in',
+      );
+    }
+  }
+
   Future<void> signOut() async {
     state = state.copyWith(isLoading: true);
 

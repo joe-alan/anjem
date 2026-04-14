@@ -7,11 +7,61 @@ import 'package:url_launcher/url_launcher.dart';
 import '../config/app_config.dart';
 import '../providers/auth_provider.dart';
 
-class LoginScreen extends ConsumerWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  void _showReviewLoginDialog() {
+    final emailController = TextEditingController();
+    final codeController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sign in with email'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: emailController,
+              decoration: const InputDecoration(labelText: 'Email'),
+              keyboardType: TextInputType.emailAddress,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: codeController,
+              decoration: const InputDecoration(labelText: 'Code'),
+              obscureText: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ref.read(authStateProvider.notifier).signInWithReviewCode(
+                    emailController.text.trim(),
+                    codeController.text.trim(),
+                  );
+            },
+            child: const Text('Sign in'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ref = this.ref;
     final config = AppConfig.instance;
     final authState = ref.watch(authStateProvider);
     final l10n = AppLocalizations.of(context);
@@ -132,7 +182,21 @@ class LoginScreen extends ConsumerWidget {
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
+
+                // Review login (email + code bypass)
+                TextButton(
+                  onPressed: _showReviewLoginDialog,
+                  child: Text(
+                    'Sign in with email',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
 
                 // Terms and Privacy
                 Text.rich(

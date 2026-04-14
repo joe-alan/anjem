@@ -95,6 +95,39 @@ class AuthService {
     }
   }
 
+  /// Sign in with email + review code (Play Store reviewer bypass)
+  Future<User> signInWithReviewCode(String email, String code) async {
+    try {
+      final response = await _apiService.post(
+        '/auth/review-login',
+        data: {
+          'email': email,
+          'code': code,
+          'device_type': AppConfig.instance.flavorName,
+        },
+      );
+
+      if (response.data['success'] != true) {
+        throw ApiException(
+          message: response.data['message'] ?? 'Authentication failed',
+          statusCode: response.statusCode,
+        );
+      }
+
+      final String sanctumToken = response.data['token'];
+      await _apiService.setToken(sanctumToken);
+
+      return await getCurrentUser();
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException(
+        message: 'Failed to sign in: ${e.toString()}',
+        statusCode: null,
+      );
+    }
+  }
+
   /// Check if user is authenticated
   Future<bool> isAuthenticated() async {
     // Only check Sanctum token - Firebase is just for initial login

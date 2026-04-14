@@ -18,6 +18,8 @@ return [
 
     'name' => env('APP_NAME', 'Laravel'),
 
+    'review_login_secret' => env('REVIEW_LOGIN_SECRET'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment
