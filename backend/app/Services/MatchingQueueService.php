@@ -56,8 +56,8 @@ class MatchingQueueService
     // Rider cooldown after cancel/expire
     private const RIDER_COOLDOWN_SECONDS = 60;
 
-    // Safety-net timeout job delay (slightly longer than the mobile 15s UI timer)
-    private const TIMEOUT_JOB_DELAY_SECONDS = 18;
+    // Safety-net timeout job delay (slightly longer than the mobile 20s UI timer)
+    private const TIMEOUT_JOB_DELAY_SECONDS = 25;
 
     // Countdown shown to rider when no drivers are available before expiry
     private const NO_DRIVERS_COUNTDOWN_SECONDS = 60;

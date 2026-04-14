@@ -32,7 +32,7 @@ class RideRequestScreen extends ConsumerStatefulWidget {
 
 class _RideRequestScreenState extends ConsumerState<RideRequestScreen>
     with SingleTickerProviderStateMixin {
-  static const int timeoutSeconds = 15;
+  static const int timeoutSeconds = 20;
   late int _secondsRemaining;
   Timer? _timer;
   bool _isProcessing = false;
