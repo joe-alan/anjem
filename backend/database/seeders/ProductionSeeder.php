@@ -15,6 +15,7 @@ class ProductionSeeder extends Seeder
 
         $this->seedLocations();
         $this->seedRouteCaches();
+        $this->call(TestAccountSeeder::class);
     }
 
     private function seedLocations(): void
