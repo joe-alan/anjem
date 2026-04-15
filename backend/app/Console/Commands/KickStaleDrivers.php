@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Events\DriverOnlineStatusChanged;
 use App\Models\DriverProfile;
 use App\Services\MatchingQueueService;
+use App\Services\NotificationService;
 use Illuminate\Console\Command;
 
 class KickStaleDrivers extends Command
@@ -64,6 +65,23 @@ class KickStaleDrivers extends Command
             $queue->removeFromQueue($driver->id);
             $profile->update(['went_online_at' => null]);
             broadcast(new DriverOnlineStatusChanged($driver, false, null, null, 'location_stale'));
+
+            // Send high-priority FCM so the driver knows they were kicked even
+            // when the foreground service (and WebSocket) is already dead.
+            try {
+                app(NotificationService::class)->sendToUser(
+                    $driver,
+                    'Sesi Driver Berakhir',
+                    'Kamu dikeluarkan karena sinyal GPS hilang. Buka aplikasi untuk online kembali.',
+                    ['type' => 'driver_kicked_offline', 'reason' => 'location_stale'],
+                    highPriority: true,
+                );
+            } catch (\Exception $e) {
+                \Log::error('KickStaleDrivers: failed to send FCM to driver', [
+                    'driver_id' => $driver->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             \Log::warning('KickStaleDrivers: driver force-kicked offline', [
                 'driver_id'            => $driver->id,

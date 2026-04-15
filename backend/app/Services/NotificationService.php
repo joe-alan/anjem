@@ -367,7 +367,7 @@ class NotificationService
     /**
      * Send a generic notification to a specific user
      */
-    public function sendToUser(User $user, string $title, string $body, array $data = []): bool
+    public function sendToUser(User $user, string $title, string $body, array $data = [], bool $highPriority = false): bool
     {
         if (! $user->fcm_token) {
             return false;
@@ -379,7 +379,7 @@ class NotificationService
             'data' => $data,
         ];
 
-        return $this->sendNotification($user->fcm_token, $message);
+        return $this->sendNotification($user->fcm_token, $message, $highPriority);
     }
 
     /**

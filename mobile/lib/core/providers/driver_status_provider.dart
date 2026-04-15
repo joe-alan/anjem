@@ -512,7 +512,17 @@ class DriverStatusNotifier extends StateNotifier<DriverStatusState> {
       await _locationService.start(mode: DriverLocationMode.idle);
       await _subscribeToRideRequests();
     } else {
-      if (kDebugMode) print('DriverStatusProvider: Syncing status - offline');
+      // If we were online locally but backend says offline, we were kicked
+      // while backgrounded (foreground service died → heartbeats stopped).
+      if (state.isOnline || state.hasActiveRide) {
+        if (kDebugMode) print('DriverStatusProvider: Syncing status - detected background kick');
+        _kickReason = 'location_stale';
+        _locationService.stop();
+        LocalNotificationService.instance.cancelRideRequestNotification();
+        _ref.read(driverIncomingRequestProvider.notifier).clear();
+      } else {
+        if (kDebugMode) print('DriverStatusProvider: Syncing status - offline');
+      }
       state = state.copyWith(
         status: DriverStatusEnum.offline,
         activeRideId: null,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +21,17 @@ void main() async {
   // Initialize Firebase
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // Clean up orphan geolocator foreground notification from a previous crash.
+  // The geolocator plugin uses START_STICKY so Android restarts the service
+  // after an OEM kill, but onDestroy() is never called — the notification
+  // (ID 75415) persists as an orphan that flutter_local_notifications can't reach.
+  const notifChannel = MethodChannel('me.anjem.driver/notifications');
+  try {
+    await notifChannel.invokeMethod('cancelGeolocatorNotification');
+  } catch (_) {
+    // Non-fatal — channel may not be available in tests
+  }
 
   // Initialize Mapbox access token
   MapboxOptions.setAccessToken(MapboxConfig.accessToken);
