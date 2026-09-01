@@ -527,8 +527,8 @@ php artisan migrate:fresh --seed
 ## References
 
 - **API Documentation**: `/docs/api/API_DOCUMENTATION.md`
-- **Phase 1 Report**: `/docs/status/2025-11-21_API_COST_OPTIMIZATION_COMPLETE.md`
-- **Phase 2 Report**: `/docs/status/2025-11-21_PHASE_2_ADMIN_DASHBOARD_COMPLETE.md`
+- **Phase 1 Report**: `/docs/archive/status/2025-11-21_API_COST_OPTIMIZATION_COMPLETE.md`
+- **Phase 2 Report**: `/docs/archive/status/2025-11-21_PHASE_2_ADMIN_DASHBOARD_COMPLETE.md`
 - **Migrations Directory**: `/backend/database/migrations/`
 
 ---

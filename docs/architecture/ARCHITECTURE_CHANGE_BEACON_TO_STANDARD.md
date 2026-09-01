@@ -68,7 +68,7 @@ $nearbyDrivers = User::whereHas('driverProfile', function ($query) {
 
 Updated all references to beacon-based system in:
 - ✅ `CLAUDE.md` - Main project guide
-- ✅ `docs/phases/PHASE_9_IMPLEMENTATION_PLAN.md` - Removed BeaconSelectionScreen
+- ✅ `docs/archive/phases/PHASE_9_IMPLEMENTATION_PLAN.md` - Removed BeaconSelectionScreen
 - ⏳ API documentation (pending)
 - ⏳ Technical spec (pending)
 
@@ -196,7 +196,7 @@ If needed, revert these commits:
 - `backend/app/Services/RideService.php` - Core logic changes
 - `backend/routes/api.php` - Route binding fix
 - `CLAUDE.md` - Main documentation
-- `docs/phases/PHASE_9_IMPLEMENTATION_PLAN.md` - Phase plan updates
+- `docs/archive/phases/PHASE_9_IMPLEMENTATION_PLAN.md` - Phase plan updates
 - `scripts/test-rider-flow.sh` - Testing script (still works!)
 
 ---

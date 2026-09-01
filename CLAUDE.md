@@ -7,7 +7,7 @@ Anjem is a campus ride-sharing platform (Grab/Uber model) for the Semarang/Undip
 - **Backend:** Laravel 11 (`backend/`) — API, Filament 3 admin panel, Horizon queue manager, Reverb WebSocket server
 - **Mobile:** Flutter 3.24 (`mobile/`) — two flavors: `rider` and `driver`
 - **Docs:** `docs/` — product spec, tech spec, admin docs, test logs
-- **Tracking:** `STAGING_LAUNCH_CHECKLIST.md` tracks launch progress
+- **Tracking:** `docs/archive/STAGING_LAUNCH_CHECKLIST.md` records the (paused) launch plan
 
 ## Project Structure & Modules
 
