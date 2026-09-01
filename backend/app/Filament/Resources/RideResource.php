@@ -103,7 +103,7 @@ class RideResource extends Resource
                     ->action(function (Ride $record, array $data): void {
                         $previousStatus = $record->status;
                         $driverId = $record->driver_id;
-                        DB::transaction(function () use ($record, $data): void {
+                        DB::transaction(function () use ($record, $data, $previousStatus): void {
                             $record->update(['status' => 'completed', 'dropoff_time' => now()]);
                             if ($record->rideRequest) {
                                 $record->rideRequest->markAsCompleted();
@@ -142,7 +142,7 @@ class RideResource extends Resource
                     ->action(function (Ride $record, array $data): void {
                         $previousStatus = $record->status;
                         $driverId = $record->driver_id;
-                        DB::transaction(function () use ($record, $data): void {
+                        DB::transaction(function () use ($record, $data, $previousStatus): void {
                             $record->update(['status' => 'cancelled', 'dropoff_time' => now()]);
                             if ($record->rideRequest) {
                                 $record->rideRequest->markAsCancelled();

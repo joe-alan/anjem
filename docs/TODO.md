@@ -87,3 +87,22 @@ console command, and three Filament pages. Removing it cleanly means rerouting t
 untangling the DI, dropping the model/migration/Filament page/event, and rewriting the tests —
 a self-contained refactor. The abandoned `refactor/remove-legacy-driver-queue` branch attempted
 this. `QueueService` is marked `@deprecated` in the meantime.
+
+### #16 — GitHub Actions CI is broken (both workflows, since ~April 2026)
+**Files:** `.github/workflows/laravel-ci.yml`, `.github/workflows/flutter-ci.yml`
+Every CI run has failed for months; the analyze/test/lint steps never actually execute.
+
+- **Laravel CI** fails in "Setup app": `php artisan key:generate` → *"Please provide a valid
+  cache path."* The repo is missing `storage/framework/{cache,sessions,views}/` (and `data/`)
+  placeholder dirs, so the framework can't boot on a fresh checkout. Add the standard
+  `.gitkeep`/`.gitignore` files. Behind that: PHPStan reports 8 errors at level 1 — mostly
+  Larastan false positives on `JsonResource` (`relationLoaded()`, `ratings()`, `hasCapacity()`,
+  `getEstimatedWaitTimeMinutes()` called via `__call` forwarding) plus two real smells
+  (`DriverController.php:360` dead `?? `, `KycVerificationService.php:243` always-false
+  `empty()`). Fix or add targeted `ignoreErrors`. Also verify `pint --test` and `composer audit`.
+- **Flutter CI** fails at `flutter pub get`: `font_awesome_flutter ^11.0.0` needs Dart ≥3.9 /
+  Flutter ≥3.35, but the workflow pins `FLUTTER_VERSION: 3.24.x`. Bump `FLUTTER_VERSION` and
+  `pubspec.yaml`'s `environment.sdk` (`^3.5.4` → `^3.9.0`) to match the dev toolchain, then
+  expect first-run `flutter analyze` / `flutter test` failures to work through.
+- Consider trimming the aspirational jobs (APK build, integration tests, perf analysis,
+  security scan) that need secrets and won't run on a fork.
