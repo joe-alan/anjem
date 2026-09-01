@@ -27,7 +27,6 @@ riders and drivers.
 | **Geofence** | Rides must start and end within the Undip / Tembalang campus area. |
 | **Payments** | None in-app. Riders pay drivers directly (cash or the driver's own QRIS). |
 | **Platform revenue** | Prepaid **credits** — a driver spends 1 credit per accepted ride. Credits are granted by an admin; there is no in-app top-up yet. |
-| **Fare** | Rp 5,000 base + Rp 3,000/km (Mapbox driving distance), Rp 5,000 minimum. No surge. |
 
 ---
 
