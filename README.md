@@ -7,8 +7,7 @@ Grab/Gojek-style model scoped to short campus hops. It is a full product: a Lara
 Filament admin panel, a real-time matching engine, and a dual-flavor Flutter app for riders and
 drivers.
 
-[![Laravel CI](https://github.com/joe-alan/anjem/actions/workflows/laravel-ci.yml/badge.svg)](https://github.com/joe-alan/anjem/actions/workflows/laravel-ci.yml)
-[![Flutter CI](https://github.com/joe-alan/anjem/actions/workflows/flutter-ci.yml/badge.svg)](https://github.com/joe-alan/anjem/actions/workflows/flutter-ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 > **Status:** Feature-complete MVP. Deployed to production infrastructure (Laravel Forge) and
 > packaged as a signed Android release, but development paused before Play Store submission — it
@@ -278,5 +277,4 @@ Known follow-ups are tracked in [`docs/TODO.md`](docs/TODO.md).
 
 ## License
 
-Not yet licensed. A license will be added before this repository is made public — until then,
-all rights reserved.
+[MIT](LICENSE) © Jonathan Alano Hasiholan
