@@ -42,14 +42,10 @@ class MapboxConfig {
   static const double defaultBearing = 0.0;
 
   /// Undip (Universitas Diponegoro) Tembalang campus center — Semarang
-  static const double uiCampusLatitude = -7.0523;
-  static const double uiCampusLongitude = 110.4381;
-
-  /// Search radius for nearby beacons (in meters)
-  static const double searchRadiusMeters = 5000.0; // 5km
+  static const double undipCampusLatitude = -7.0523;
+  static const double undipCampusLongitude = 110.4381;
 
   /// Marker icon sizes
-  static const double beaconMarkerSize = 40.0;
   static const double userMarkerSize = 30.0;
   static const double destinationMarkerSize = 35.0;
 }

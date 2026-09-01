@@ -472,7 +472,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen>
     final loc = _riderLocation ??
         requestState.request?.pickupLocation.coordinates ??
         const LatLng(
-            MapboxConfig.uiCampusLatitude, MapboxConfig.uiCampusLongitude);
+            MapboxConfig.undipCampusLatitude, MapboxConfig.undipCampusLongitude);
 
     return PopScope(
       canPop: false,
