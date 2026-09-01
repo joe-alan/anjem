@@ -22,13 +22,13 @@ cp .env .env.testing
 Edit `.env.testing` and change:
 
 ```env
-DB_DATABASE=anjemme
+DB_DATABASE=anjem
 ```
 
 To:
 
 ```env
-DB_DATABASE=anjemme_test
+DB_DATABASE=anjem_test
 ```
 
 **Important:** Only change the database name. Keep all other credentials the same (DB_USERNAME, DB_PASSWORD, etc.)
@@ -36,7 +36,7 @@ DB_DATABASE=anjemme_test
 ### 3. Create Test Database in PostgreSQL
 
 ```bash
-psql -U jonathanalanohasiholan -d postgres -c "CREATE DATABASE anjemme_test;"
+psql -U postgres -d postgres -c "CREATE DATABASE anjem_test;"
 ```
 
 ### 4. Enable PostGIS Extension
@@ -44,7 +44,7 @@ psql -U jonathanalanohasiholan -d postgres -c "CREATE DATABASE anjemme_test;"
 Our app uses geography types which require PostGIS:
 
 ```bash
-psql -U jonathanalanohasiholan -d anjemme_test -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+psql -U postgres -d anjem_test -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 ```
 
 ### 5. Run Migrations on Test Database
@@ -114,7 +114,7 @@ php artisan test --filter=TestName  # Uses test DB automatically
 **Solution:** Enable PostGIS extension:
 
 ```bash
-psql -U jonathanalanohasiholan -d anjemme_test -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+psql -U postgres -d anjem_test -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 ```
 
 ### Tests still affecting main database
@@ -122,8 +122,8 @@ psql -U jonathanalanohasiholan -d anjemme_test -c "CREATE EXTENSION IF NOT EXIST
 **Check:**
 
 1. `.env.testing` exists in `backend/` directory
-2. `.env.testing` has `DB_DATABASE=anjemme_test`
-3. Test database exists: `psql -U jonathanalanohasiholan -d postgres -c "\l" | grep anjemme`
+2. `.env.testing` has `DB_DATABASE=anjem_test`
+3. Test database exists: `psql -U postgres -d postgres -c "\l" | grep anjem`
 
 ### Need to reset test database
 

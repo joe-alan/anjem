@@ -40,16 +40,16 @@ php artisan schedule:work   # required for MB-9 (route cache cleanup)
 php artisan migrate
 
 # Confirm column exists
-psql anjemme -c "\d ride_requests" | grep route_geometry
+psql anjem -c "\d ride_requests" | grep route_geometry
 # Expected: route_geometry | jsonb | nullable
 
 # Confirm route_caches table has driving-traffic as default (Phase 3)
-psql anjemme -c "\d route_cache" | grep profile
+psql anjem -c "\d route_cache" | grep profile
 # Expected: profile | character varying(20) | default 'driving'
 # (DB default stays 'driving' — the PHP default is 'driving-traffic', see RouteCacheService)
 
 # Flush route_caches to ensure clean state for Phase 3 tests
-psql anjemme -c "TRUNCATE route_cache;"
+psql anjem -c "TRUNCATE route_cache;"
 ```
 
 **Flutter builds:**

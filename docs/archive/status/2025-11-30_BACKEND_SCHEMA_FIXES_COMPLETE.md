@@ -188,19 +188,19 @@ All changes were verified against actual database schema using psql:
 
 ```bash
 # Users table verification
-psql -U jonathanalanohasiholan -d anjemme -c "\d users"
+psql -U jonathanalanohasiholan -d anjem -c "\d users"
 ✅ Confirmed: Only 'role' column exists (no 'user_type')
 
 # Rides table verification
-psql -U jonathanalanohasiholan -d anjemme -c "\d rides"
+psql -U jonathanalanohasiholan -d anjem -c "\d rides"
 ✅ Confirmed: 'ride_request_id' column exists
 
 # Ratings table verification
-psql -U jonathanalanohasiholan -d anjemme -c "\d ratings"
+psql -U jonathanalanohasiholan -d anjem -c "\d ratings"
 ✅ Confirmed: 'rated_id' and 'rating_type' columns exist
 
 # Driver profiles table verification
-psql -U jonathanalanohasiholan -d anjemme -c "\d driver_profiles"
+psql -U jonathanalanohasiholan -d anjem -c "\d driver_profiles"
 ✅ Confirmed: 'vehicle_type', 'vehicle_plate', 'vehicle_color' exist
 ✅ Confirmed: 'is_verified', 'email_verified_at' exist
 ✅ Confirmed: 'vehicle_make', 'vehicle_model', 'license_plate' do NOT exist

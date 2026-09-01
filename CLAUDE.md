@@ -68,7 +68,7 @@ Anjem is a campus ride-sharing platform (Grab/Uber model) for the Semarang/Undip
 
 ## Testing & Test Environment Setup
 
-- Create `.env.testing` (copy from `.env`) and set `DB_DATABASE=anjemme_test`. Provision that DB (`CREATE DATABASE anjemme_test;` + `CREATE EXTENSION postgis;`) and run `php artisan migrate --env=testing`.
+- Create `.env.testing` (copy from `.env`) and set `DB_DATABASE=anjem_test`. Provision that DB (`CREATE DATABASE anjem_test;` + `CREATE EXTENSION postgis;`) and run `php artisan migrate --env=testing`.
 - Run suites: `cd backend && php artisan test` and `cd mobile && flutter test`.
 - Test names should describe behavior (e.g., `RideControllerTest::test_driver_cannot_accept_ride_without_permissions`).
 

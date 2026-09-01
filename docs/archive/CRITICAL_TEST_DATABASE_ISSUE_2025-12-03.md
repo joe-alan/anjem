@@ -46,12 +46,12 @@ code .env.testing
 
 **Change this line:**
 ```env
-DB_DATABASE=anjemme
+DB_DATABASE=anjem
 ```
 
 **To:**
 ```env
-DB_DATABASE=anjemme_test
+DB_DATABASE=anjem_test
 ```
 
 **Save the file.**
@@ -62,16 +62,16 @@ DB_DATABASE=anjemme_test
 
 ```bash
 # Create test database in PostgreSQL
-psql -U jonathanalanohasiholan -d postgres -c "CREATE DATABASE anjemme_test;"
+psql -U jonathanalanohasiholan -d postgres -c "CREATE DATABASE anjem_test;"
 
 # Verify it was created
-psql -U jonathanalanohasiholan -d postgres -c "\l" | grep anjemme
+psql -U jonathanalanohasiholan -d postgres -c "\l" | grep anjem
 ```
 
 **Expected output:**
 ```
-anjemme       | jonathanalanohasiholan | ...  (main database)
-anjemme_test  | jonathanalanohasiholan | ...  (test database) ← NEW
+anjem       | jonathanalanohasiholan | ...  (main database)
+anjem_test  | jonathanalanohasiholan | ...  (test database) ← NEW
 ```
 
 ---
@@ -83,7 +83,7 @@ cd backend
 php artisan migrate --env=testing
 ```
 
-**This will create all tables in `anjemme_test` database only.**
+**This will create all tables in `anjem_test` database only.**
 
 ---
 
@@ -197,7 +197,7 @@ echo 'Driver created: ' . \$driver->email . PHP_EOL;
 ls -la ~/path/to/backups/*.sql
 
 # Restore from backup
-psql -U jonathanalanohasiholan -d anjemme < backup_file.sql
+psql -U jonathanalanohasiholan -d anjem < backup_file.sql
 ```
 
 ---
@@ -207,8 +207,8 @@ psql -U jonathanalanohasiholan -d anjemme < backup_file.sql
 Before running tests again, verify:
 
 - [ ] `.env.testing` exists in `backend/` directory
-- [ ] `.env.testing` has `DB_DATABASE=anjemme_test`
-- [ ] `anjemme_test` database exists in PostgreSQL
+- [ ] `.env.testing` has `DB_DATABASE=anjem_test`
+- [ ] `anjem_test` database exists in PostgreSQL
 - [ ] Migrations run on test database: `php artisan migrate --env=testing`
 - [ ] Test run doesn't affect main database (verify with user count before/after)
 
@@ -216,12 +216,12 @@ Before running tests again, verify:
 
 ## 📋 Current Status
 
-### Main Database (anjemme)
+### Main Database (anjem)
 - ❌ **Data lost during testing**
 - ✅ **Schema intact** (all migrations applied)
 - ⏳ **Needs reseeding**
 
-### Test Database (anjemme_test)
+### Test Database (anjem_test)
 - ✅ **Created**
 - ✅ **Migrations applied**
 - ✅ **Properly configured**
@@ -235,7 +235,7 @@ Before running tests again, verify:
    ```bash
    cat backend/.env.testing | grep DB_DATABASE
    ```
-   Should show: `DB_DATABASE=anjemme_test`
+   Should show: `DB_DATABASE=anjem_test`
 
 2. **Reseed main database:**
    ```bash
@@ -313,8 +313,8 @@ This is now documented and won't happen again.
 
 **ALL STEPS COMPLETED SUCCESSFULLY:**
 
-1. ✅ Created `.env.testing` with `DB_DATABASE=anjemme_test`
-2. ✅ Created `anjemme_test` database in PostgreSQL
+1. ✅ Created `.env.testing` with `DB_DATABASE=anjem_test`
+2. ✅ Created `anjem_test` database in PostgreSQL
 3. ✅ Enabled PostGIS extension on test database
 4. ✅ Ran all 30 migrations on test database
 5. ✅ Reseeded main database (16 users, 31 locations restored)

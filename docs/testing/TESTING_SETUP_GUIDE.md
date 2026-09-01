@@ -156,7 +156,7 @@ defaultValue: 'http://192.168.1.XXX:8000/api/v1'  // Replace XXX with your IP
 #### Option 2: Using Terminal
 ```bash
 # Navigate to mobile directory
-cd /Users/jonathanalanohasiholan/Documents/Anjemme/Project-folder/anjem/mobile
+cd <repo-root>/mobile
 
 # Check devices
 flutter devices

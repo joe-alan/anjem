@@ -337,7 +337,7 @@ adb logcat | grep -E "Mapbox|MapWidget"
 curl 'http://localhost:8000/api/v1/places/search?q=gate'
 
 # Check database has locations
-psql anjemme -c "SELECT COUNT(*) FROM locations;"
+psql anjem -c "SELECT COUNT(*) FROM locations;"
 # Should show 27 (12 beacons + 15 destinations)
 
 # Re-seed if needed

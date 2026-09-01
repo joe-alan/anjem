@@ -254,7 +254,7 @@
 
 | #    | Task                                                             | Status |
 | ---- | ---------------------------------------------------------------- | ------ |
-| 10.5 | Rotate database password (`***REDACTED***` is exposed)                 | ⏭️     |
+| 10.5 | Rotate the dev DB password that was committed in docs                 | ⏭️     |
 | 10.6 | Regenerate `APP_KEY`                                             | ⏭️     |
 | 10.7 | Regenerate Reverb app key + secret                               | ⏭️     |
 | 10.8 | Rotate Mapbox secret token (`sk.eyJ1...` in `gradle.properties`) | ⏭️     |

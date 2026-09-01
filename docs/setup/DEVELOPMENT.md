@@ -112,7 +112,7 @@ APP_URL=http://localhost:8000
 DB_CONNECTION=pgsql
 DB_HOST=localhost
 DB_PORT=5432
-DB_DATABASE=anjemme
+DB_DATABASE=anjem
 DB_USERNAME=postgres
 DB_PASSWORD=your_password
 
@@ -149,8 +149,8 @@ class Environment {
 
 ```bash
 # Create database with PostGIS extension
-createdb anjemme
-psql anjemme -c "CREATE EXTENSION postgis;"
+createdb anjem
+psql anjem -c "CREATE EXTENSION postgis;"
 
 # Run migrations
 php artisan migrate
@@ -271,7 +271,7 @@ php artisan db:seed
 ### PostGIS Operations
 ```bash
 # Connect to database
-psql anjemme
+psql anjem
 
 # Check PostGIS version
 SELECT PostGIS_Version();
@@ -420,7 +420,7 @@ chmod -R 775 storage bootstrap/cache
 **PostGIS extension missing:**
 ```bash
 # Install PostGIS extension
-psql anjemme -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+psql anjem -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 ```
 
 ### Mobile Issues

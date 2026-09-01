@@ -506,11 +506,11 @@ SELECT ST_Distance(
 
 ```bash
 # Check all table structures
-PGPASSWORD=***REDACTED*** psql -h localhost -U jonathanalanohasiholan -d anjemme \
+psql -h localhost -U postgres -d anjem \
   -c "SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name;"
 
 # Check specific column names
-PGPASSWORD=***REDACTED*** psql -h localhost -U jonathanalanohasiholan -d anjemme \
+psql -h localhost -U postgres -d anjem \
   -c "\d ratings"
 ```
 
@@ -535,4 +535,4 @@ php artisan migrate:fresh --seed
 
 **Status**: ✅ All migrations applied and verified
 **Last Verified**: November 21, 2025
-**Database**: `anjemme` (PostgreSQL 16 + PostGIS 3.6)
+**Database**: `anjem` (PostgreSQL 16 + PostGIS 3.6)

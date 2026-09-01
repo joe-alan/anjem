@@ -47,7 +47,7 @@ php artisan queue:work
 php artisan schedule:work
 
 # Confirm FCM token column exists
-psql anjemme -c "\d users" | grep fcm_token
+psql anjem -c "\d users" | grep fcm_token
 # Expected: fcm_token | character varying(500) | nullable
 
 # Confirm Firebase credentials are set in .env

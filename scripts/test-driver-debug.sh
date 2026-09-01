@@ -90,7 +90,7 @@ check_db_state() {
 
   print_db "Database State - $LABEL"
 
-  cd "$BACKEND_DIR" && psql -U jonathanalanohasiholan -d anjemme -c "
+  cd "$BACKEND_DIR" && psql -U postgres -d anjem -c "
     SELECT
       rr.id as req_id,
       rr.status as req_status,

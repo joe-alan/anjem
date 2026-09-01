@@ -1090,7 +1090,7 @@ Queue is Redis-backed (`QUEUE_CONNECTION=redis`). Run with `php artisan queue:wo
 cd backend && php artisan test
 ```
 
-Test database: `anjemme_test` (PostgreSQL with PostGIS). Configured via `.env.testing`.
+Test database: `anjem_test` (PostgreSQL with PostGIS). Configured via `.env.testing`.
 
 | Test Class | Count | Coverage |
 |---|---|---|
@@ -1119,8 +1119,8 @@ cd backend && ./vendor/bin/phpstan analyse
 ### Test Database Setup
 
 ```sql
-CREATE DATABASE anjemme_test;
-\c anjemme_test
+CREATE DATABASE anjem_test;
+\c anjem_test
 CREATE EXTENSION postgis;
 ```
 
@@ -1169,7 +1169,7 @@ Key variables:
 ```env
 APP_URL=http://localhost:8000
 DB_CONNECTION=pgsql
-DB_DATABASE=anjemme
+DB_DATABASE=anjem
 QUEUE_CONNECTION=redis
 BROADCAST_CONNECTION=reverb
 REVERB_APP_ID=...
