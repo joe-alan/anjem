@@ -2,17 +2,18 @@
 
 **A campus ride-sharing platform for the Universitas Diponegoro (Undip) area in Semarang, Indonesia.**
 
-Anjem matches riders with verified student motorbike drivers inside a university geofence — a
-Grab/Gojek-style model scoped to short campus hops. It is a full product: a Laravel API with a
-Filament admin panel, a real-time matching engine, and a dual-flavor Flutter app for riders and
-drivers.
+**Anjem** is the ride-hailing platform in this repo; it launched to the Undip campus under the
+consumer brand **anjem.me**. It matches riders with verified student motorbike drivers inside a
+university geofence — a Grab/Gojek-style model scoped to short campus hops — built as a Laravel
+API with a Filament admin panel, a real-time matching engine, and a dual-flavor Flutter app for
+riders and drivers.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-> **Status:** Feature-complete MVP. Deployed to production infrastructure (Laravel Forge) and
-> packaged as a signed Android release, but development paused before Play Store submission — it
-> is not running publicly today. Designed and built solo. This repository is being prepared for
-> open source as a portfolio project; see [Project status](#project-status).
+> **Status:** A complete platform, designed and built solo. It ran a limited campus pilot as
+> *anjem.me* in 2026 — ~500 registered users, real rides, distributed as sideloaded APKs — before
+> the founding team disbanded and the project was wound down. Not currently running; open-sourced
+> here as a portfolio project. See [Project status](#project-status).
 
 ---
 
@@ -254,8 +255,8 @@ Longer-form write-ups of the decisions that shaped the codebase:
 
 ## Project status
 
-The product was built through a full Android release candidate and deployed to live
-infrastructure, then paused before public launch.
+Anjem was built solo, deployed to live infrastructure, and run as a limited campus pilot in 2026
+(as *anjem.me*) before the founding team disbanded and work stopped. It is not running today.
 
 | Area | State |
 | --- | --- |
@@ -266,8 +267,9 @@ infrastructure, then paused before public launch.
 | Mapbox route caching, force-update system, account deletion | ✅ Complete |
 | Backend test suite | ✅ Broad coverage |
 | Production deploy (Forge) + signed Android release build | ✅ Done |
-| Play Store submission | ⬜ Not started — development paused here |
-| Public launch / real rides | ⬜ Never ran |
+| Campus pilot (2026) | ✅ ~500 registered users, real rides |
+| Distribution | Sideloaded APKs — a Play Store submission was prepared but never filed |
+| Current state | Wound down; not running. Open-sourced as a portfolio project. |
 | Mobile test coverage | ⚠️ Minimal |
 | iOS | ⬜ Out of scope — Android only |
 

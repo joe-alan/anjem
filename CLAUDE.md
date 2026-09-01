@@ -2,12 +2,12 @@
 
 ## Project Overview
 
-Anjem is a campus ride-sharing platform (Grab/Uber model) for the Semarang/Undip area. It connects riders with verified student motorbike drivers within a university geofence.
+Anjem is a campus ride-sharing platform (Grab/Uber model) for the Semarang/Undip area. It connects riders with verified student motorbike drivers within a university geofence. The codebase is **Anjem**; it launched to the Undip campus under the consumer brand **anjem.me** (also the deployment domain and the source of the `me.anjem.*` app identifiers).
 
 - **Backend:** Laravel 10 (`backend/`) — API, Filament 3 admin panel, Horizon queue manager, Reverb WebSocket server
 - **Mobile:** Flutter 3.24 (`mobile/`) — two flavors: `rider` and `driver`
 - **Docs:** `docs/` — product & technical specs, architecture notes, setup guides; point-in-time material under `docs/archive/`
-- **Status:** feature-complete MVP, deployed then paused before Play Store launch. Being prepared for open source. `docs/archive/STAGING_LAUNCH_CHECKLIST.md` records the (paused) launch plan.
+- **Status:** complete platform; ran a ~500-user campus pilot in 2026 (sideloaded APKs) before the founding team disbanded and work stopped. Not running. Being open-sourced as a portfolio project. `docs/archive/STAGING_LAUNCH_CHECKLIST.md` records the old launch plan.
 
 ## Project Structure & Modules
 

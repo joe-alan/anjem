@@ -44,5 +44,5 @@ things. This folder holds the longer-form material.
 ## Archive
 
 [archive/](archive/) holds point-in-time material kept for reference: phase completion reports,
-dated status updates, device-test logs, superseded specs, and the (paused) launch checklist.
+dated status updates, device-test logs, superseded specs, and the old launch checklist.
 It is not maintained.
