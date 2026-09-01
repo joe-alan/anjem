@@ -10,10 +10,16 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 
 /**
- * QueueService manages driver queues at beacon locations
+ * QueueService manages driver queues at beacon locations.
  *
  * Uses Redis for real-time caching and PostgreSQL for persistence.
  * Provides queue management operations and real-time status updates.
+ *
+ * @deprecated Legacy from the fixed-pickup-point ("beacon") model, which was replaced by the
+ * standard ride-hailing flow. {@see MatchingQueueService} is the active FIFO dispatcher. This
+ * class is still injected into RideService for a single `markDriverServed()` call on ride
+ * completion and referenced by a job, a console command, and three Filament pages. See
+ * docs/TODO.md #15 for the removal plan.
  */
 class QueueService
 {
