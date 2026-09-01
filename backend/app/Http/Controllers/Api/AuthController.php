@@ -221,9 +221,17 @@ class AuthController extends Controller
      * Review-only login: accepts email + secret code, returns a Sanctum token.
      * Bypasses Google OAuth so Play Store reviewers can sign in without
      * adding a Gmail account to their device.
+     *
+     * This is a dev/review convenience only. It authenticates any existing user
+     * by email against a single shared code (REVIEW_LOGIN_SECRET), so it must
+     * never be reachable in production — the environment guard below enforces
+     * that even if the secret is accidentally set there. Leave REVIEW_LOGIN_SECRET
+     * empty to disable it entirely in local/staging too.
      */
     public function reviewLogin(Request $request): JsonResponse
     {
+        abort_unless(app()->environment(['local', 'staging', 'testing']), 404);
+
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
             'code' => 'required|string',

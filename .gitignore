@@ -63,6 +63,7 @@ secrets.json
 # IDE and editor files
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 *~
@@ -119,6 +120,8 @@ temp/
 *.db
 *.sqlite
 *.sqlite3
+*.rdb
+dump.rdb
 
 # Keys and certificates
 *.pem
@@ -127,8 +130,10 @@ temp/
 *.p12
 *.pfx
 
-# Firebase config files (keep templates)
+# Firebase config files — real configs are per-developer; commit only the *.example templates
 mobile/android/app/google-services.json
+mobile/android/app/src/rider/google-services.json
+mobile/android/app/src/driver/google-services.json
 mobile/ios/Runner/GoogleService-Info.plist
 
 # Generated files
