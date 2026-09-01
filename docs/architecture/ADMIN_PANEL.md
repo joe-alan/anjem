@@ -1,6 +1,6 @@
 # Anjem Admin Panel — Technical Reference
 
-**Stack**: Filament 3.2.123 on Laravel 11
+**Stack**: Filament 3.3 on Laravel 10
 **URL**: `/admin`
 **Package**: `filament/filament ^3.2.123`
 

@@ -13,7 +13,7 @@ The platform consists of:
 - **Rider app** — Flutter (Android). Anyone can ride. No student restriction.
 - **Driver app** — Flutter (Android). Separate flavor of the same codebase. Drivers must be verified students.
 - **Admin panel** — Web-based (Filament 3 on Laravel). Session-authenticated, accessible at `/admin`. Used by the ops team for live monitoring, KYC review, ride overrides, credit management, and audit logs.
-- **Backend API** — Laravel 11, serving both mobile apps and the admin panel.
+- **Backend API** — Laravel 10, serving both mobile apps and the admin panel.
 
 ### What Anjem Is Not
 

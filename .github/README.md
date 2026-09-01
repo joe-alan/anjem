@@ -133,7 +133,7 @@ Add all required secrets to your GitHub repository:
 
 ### 3. Firebase Setup
 1. Create Firebase project
-2. Enable Cloud Messaging, Analytics, and Crashlytics
+2. Enable Cloud Messaging (Analytics optional; error tracking is Sentry, not Crashlytics)
 3. Download `google-services.json` and encode as base64
 4. Add Firebase server key for push notifications
 

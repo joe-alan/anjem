@@ -50,7 +50,7 @@ class Environment {
 - Authentication (backup for OTP)
 - Cloud Messaging (push notifications)
 - Analytics (GA4)
-- Crashlytics
+- Sentry (error tracking, both backend and mobile)
 
 ### Configuration Files
 

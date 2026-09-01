@@ -8,7 +8,7 @@ _Last updated: 2026-03-14_
 
 | Layer | Technology | Version | Notes |
 |---|---|---|---|
-| **Backend** | Laravel | 11 | PHP 8.2 |
+| **Backend** | Laravel | 10 | PHP 8.2 |
 | **Mobile** | Flutter | 3.24 | Two flavors: rider, driver |
 | **Database** | PostgreSQL | 15 | With PostGIS 3.6 for spatial queries |
 | **Cache / Queue** | Redis | 7 | Queue driver, broadcasting, cache |
@@ -44,7 +44,7 @@ _Last updated: 2026-03-14_
 
 ```
 anjem/
-├── backend/                          # Laravel 11 application
+├── backend/                          # Laravel 10 application
 │   ├── app/
 │   │   ├── Console/
 │   │   │   ├── Commands/             # Artisan commands (TestRouteCaching, etc.)

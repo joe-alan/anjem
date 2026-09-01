@@ -4,10 +4,10 @@
 
 Anjem is a campus ride-sharing platform (Grab/Uber model) for the Semarang/Undip area. It connects riders with verified student motorbike drivers within a university geofence.
 
-- **Backend:** Laravel 11 (`backend/`) — API, Filament 3 admin panel, Horizon queue manager, Reverb WebSocket server
+- **Backend:** Laravel 10 (`backend/`) — API, Filament 3 admin panel, Horizon queue manager, Reverb WebSocket server
 - **Mobile:** Flutter 3.24 (`mobile/`) — two flavors: `rider` and `driver`
-- **Docs:** `docs/` — product spec, tech spec, admin docs, test logs
-- **Tracking:** `docs/archive/STAGING_LAUNCH_CHECKLIST.md` records the (paused) launch plan
+- **Docs:** `docs/` — product & technical specs, architecture notes, setup guides; point-in-time material under `docs/archive/`
+- **Status:** feature-complete MVP, deployed then paused before Play Store launch. Being prepared for open source. `docs/archive/STAGING_LAUNCH_CHECKLIST.md` records the (paused) launch plan.
 
 ## Project Structure & Modules
 
@@ -117,10 +117,9 @@ Builder/helper methods that need l10n should receive it as a parameter (`AppLoca
 
 ## Branching & Git Flow
 
-- `main`: production branch; Forge auto-deploys to `api.anjem.me` on push.
-- Feature branches use `feat/…`, `fix/…`, `docs/…`, `refactor/…`, `test/…`, or `chore/…`.
-- Merge feature branches into `main` via PR when ready to deploy.
-- Local dev serves as the staging/testing environment — there is no separate staging server.
+- `main` is the default branch. There is no live deployment anymore (the hosted infra was torn down), so `main` is no longer auto-deployed.
+- Feature branches use `feat/…`, `fix/…`, `docs/…`, `refactor/…`, `test/…`, or `chore/…`; open a PR into `main`.
+- Local dev is the only environment — there is no staging or production server.
 
 ## Commit & Pull Request Guidelines
 
@@ -134,7 +133,10 @@ Builder/helper methods that need l10n should receive it as a parameter (`AppLoca
 
 ## Deployment
 
-- **Server:** Laravel Forge (Hobby plan) on DigitalOcean (4GB/2vCPU, Singapore). Ubuntu, PHP 8.4, PostgreSQL 17 + PostGIS, Redis, Nginx.
+> The hosted deployment below is **no longer running** — it was torn down after development
+> paused. Kept as a reference for how the project was operated.
+
+- **Server:** Laravel Forge (Hobby plan) on DigitalOcean (4GB/2vCPU, Singapore). Ubuntu, PHP 8.2+, PostgreSQL 15+ with PostGIS, Redis, Nginx.
 - **Domains:** `api.anjem.me` (API + admin panel), `ws.anjem.me` (WebSocket via Reverb).
 - **Push-to-deploy:** Forge auto-deploys on push to `main`. Deploy script runs `composer install --no-dev`, `optimize`, and migrations.
 - **Daemons managed by Forge:** Horizon (queue), Reverb (WebSocket), Scheduler.

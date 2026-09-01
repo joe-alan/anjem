@@ -47,11 +47,11 @@ This document provides comprehensive guidance for implementing the Flutter mobil
 - State Management: Riverpod 2.5.1
 - HTTP Client: Dio 5.7.0
 - Maps: Mapbox Maps SDK for Flutter
-- Real-time: Laravel Echo + socket_io_client
+- Real-time: pusher_client_socket (Pusher protocol over Reverb)
 - Push Notifications: Firebase Cloud Messaging
 
 **Backend (Laravel)** - ✅ **100% COMPLETE**
-- Laravel 11.x with PostgreSQL 15 + PostGIS 3.6
+- Laravel 10.x with PostgreSQL 15+ and PostGIS
 - Real-time: Laravel Reverb (WebSocket)
 - Authentication: Firebase Auth + Laravel Sanctum
 - Maps & Routing: Mapbox Platform (80-90% cost savings via caching)
